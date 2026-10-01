@@ -116,8 +116,8 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 | `tools/one_shot.py` | 一键 PID 挖掘：起伪服务器 → 手机录一遍 → 自动出 pids_full.csv |
 | `tools/analyze_proble.py` | 把注入信号与 Car Scanner 录制对上号，反推 PID→仪表映射与解码公式 |
 | `tools/parse_carscanner_backup.py` | 解析 CarScanner 备份目录，导出全车 PID 清单 CSV |
-| `main/python_quick_rs485_check.py` | RS485/Modbus 直连自检（排障用）|
-| `fix_nvs.py` | 把 NVS 角色重置为独立模式（修 WiFi OOM 崩溃）|
+| `tools/python_quick_rs485_check.py` | RS485/Modbus 直连自检（排障用）|
+| `tools/fix_nvs.py` | 把 NVS 角色重置为独立模式（修 WiFi OOM 崩溃）|
 
 ### PID 挖掘工作流（不上车找私有 PID）
 

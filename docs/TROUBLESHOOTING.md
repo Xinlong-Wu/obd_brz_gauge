@@ -125,7 +125,7 @@ RS485 走 UART 而非蓝牙，故障独立排查：
 2. **快速自检**：USB 转 TTL 接 PC 直接跑
 
 ```bash
-python3 main/python_quick_rs485_check.py --port /dev/cu.usbserial-XXXX --baud 9600 --tries 5
+python3 tools/python_quick_rs485_check.py --port /dev/cu.usbserial-XXXX --baud 9600 --tries 5
 ```
 
 脚本发标准 Modbus 读请求（addr=1, func=03, reg=0x0000）并显示传感器应答。
@@ -139,7 +139,7 @@ PC 上能读、仪表读不到 → 检查接线与共地；PC 上也读不到 �
 1. 断电重启整条链路：仪表 → OBD 设备 → 车辆点火，再重新连接
 2. 检查设置：车型选对了吗（协议锁定 / 油温路径都随车型变）、BLE 设备名是否是目标适配器
 3. 日志里反复初始化失败或 NVS 报错：USB 重刷固件（首次烧录本就会擦 NVS）；
-   主从模式 WiFi OOM 崩溃可跑 `python3 fix_nvs.py` 把角色重置为独立模式
+   主从模式 WiFi OOM 崩溃可跑 `python3 tools/fix_nvs.py` 把角色重置为独立模式
 
 ## 日志关键字
 

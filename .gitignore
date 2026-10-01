@@ -8,7 +8,6 @@ sdkconfig
 .qwen/
 .DS_Store
 **/.DS_Store
-main/SAX0AC BC CC.pdf
 __pycache__/
 *.pyc
 # generated PID probe artifacts (from tools/analyze_proble.py)

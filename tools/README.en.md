@@ -32,12 +32,11 @@ reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts
 | `analyze_proble.py` | Pairs injected signals with the Car Scanner recording to infer which PID drives which gauge and its decode formula |
 | `parse_carscanner_backup.py` | Parses a CarScanner app backup directory into a full vehicle PID CSV |
 
-## One-off device debug scripts (repo root; adjust the serial port as needed)
+## One-off device debug scripts (adjust the serial port as needed)
 
 | Script | Purpose |
 |--------|---------|
 | `fix_nvs.py` | Resets the device NVS role to standalone mode (fixes WiFi OOM crashes) |
 | `verify_bootmedia.py` | Reads back the first 512 bytes of the bootmedia partition to verify a flash |
 
-The RS485/Modbus hardware probes live under `main/`:
-`main/python_quick_rs485_check.py`, `main/python_test.py`.
+RS485/Modbus hardware probes: `python_quick_rs485_check.py`, `python_test.py` (in this directory).

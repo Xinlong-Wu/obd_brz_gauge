@@ -124,8 +124,8 @@ on the version page — so commit *before* releasing, see
 | `tools/one_shot.py` | one-shot PID hunting: starts the fake server → you record once → pids_full.csv |
 | `tools/analyze_proble.py` | correlates injected signals with Car Scanner recordings to recover PID mappings and formulas |
 | `tools/parse_carscanner_backup.py` | parses a CarScanner backup directory into a per-car PID CSV |
-| `main/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
-| `fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
+| `tools/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
+| `tools/fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
 
 ### PID-hunting workflow (find private PIDs without a car)
 

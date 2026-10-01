@@ -31,12 +31,11 @@
 | `analyze_proble.py` | 把注入信号与 Car Scanner 录制按序配对，反推「哪个 PID 驱动哪个仪表、解码公式是什么」|
 | `parse_carscanner_backup.py` | 解析 CarScanner App 备份目录，导出全车 PID 清单 CSV |
 
-## 一次性设备调试脚本（仓库根目录，按需改串口）
+## 一次性设备调试脚本（按需改串口）
 
 | 脚本 | 用途 |
 |------|------|
 | `fix_nvs.py` | 把设备 NVS 角色重置为独立模式（修 WiFi OOM 崩溃）|
 | `verify_bootmedia.py` | 读回 flash 里 bootmedia 分区前 512 字节，验证动画烧写 |
 
-RS485/Modbus 硬件探针放在 `main/` 下：`main/python_quick_rs485_check.py`、
-`main/python_test.py`。
+RS485/Modbus 硬件探针：`python_quick_rs485_check.py`、`python_test.py`（同在本目录）。

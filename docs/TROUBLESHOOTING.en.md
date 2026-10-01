@@ -137,7 +137,7 @@ RS485 goes over UART, not Bluetooth — troubleshoot it separately:
 2. **Quick check**: attach a USB-TTL adapter to the PC and run
 
 ```bash
-python3 main/python_quick_rs485_check.py --port /dev/cu.usbserial-XXXX --baud 9600 --tries 5
+python3 tools/python_quick_rs485_check.py --port /dev/cu.usbserial-XXXX --baud 9600 --tries 5
 ```
 
 The script sends a standard Modbus read (addr=1, func=03, reg=0x0000) and
@@ -154,7 +154,7 @@ the **CHART page**; the log tag is `brake_temp`.
    path follow the profile) Is the BLE device name the intended adapter?
 3. Repeated init failures or NVS errors in the log: reflash over USB (a full
    first flash erases NVS anyway); for WiFi OOM crashes in master/slave mode,
-   run `python3 fix_nvs.py` to reset the role to standalone
+   run `python3 tools/fix_nvs.py` to reset the role to standalone
 
 ## Log keywords
 
