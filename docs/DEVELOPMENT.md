@@ -81,6 +81,18 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
+没有本地 IDF 环境时用 Docker——`tools/docker-build.sh` 是
+`docker run --rm … espressif/idf:v5.5.3` 的薄封装，参数原样传给 `idf.py`：
+
+```bash
+tools/docker-build.sh set-target esp32s3   # 首次
+tools/docker-build.sh build
+tools/docker-build.sh menuconfig
+```
+
+产物落在宿主机 `build/`。macOS 的容器无法直通 USB，烧录/监视在宿主机跑
+（`pip install esptool esp-idf-monitor`，烧录命令见 [FLASH.md](FLASH.md)）。
+
 `menuconfig → OBD DSP Configuration`：
 
 | 选项 | 值 | 说明 |

@@ -84,6 +84,21 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
+Without a local IDF installation, use Docker — `tools/docker-build.sh` is a
+thin wrapper around `docker run --rm … espressif/idf:v5.5.3` and forwards its
+arguments to `idf.py` verbatim:
+
+```bash
+tools/docker-build.sh set-target esp32s3   # first time
+tools/docker-build.sh build
+tools/docker-build.sh menuconfig
+```
+
+Artifacts land in the host's `build/`. macOS containers cannot reach USB
+devices, so flash/monitor from the host
+(`pip install esptool esp-idf-monitor`; flashing commands in
+[FLASH.en.md](FLASH.en.md)).
+
 `menuconfig → OBD DSP Configuration`:
 
 | Option | Values | Notes |
