@@ -63,28 +63,9 @@
 
 ## 快速开始
 
-### 方式一：烧录预编译固件
+### 源码编译烧录
 
-需要：开发板、USB 数据线、[esptool.py](https://github.com/espressif/esptool)（`pip install esptool`）。
-
-```bash
-esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_reset \
-  write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB \
-  0x0     firmware/release/bootloader/bootloader.bin \
-  0x8000  firmware/release/partition_table/partition-table.bin \
-  0xf000  firmware/release/ota_data_initial.bin \
-  0x20000 firmware/release/obd_brz_gauge.bin \
-  0xA20000 firmware/release/bootmedia.bin
-```
-
-- `PORT` 换成你的串口（Windows `COM3`，Linux `/dev/ttyUSB0`，macOS `/dev/cu.usbserial-*`）
-- 首次烧录会擦除全部数据（含 NVS 设置）
-- `bootmedia.bin`（开机动画）和可选的主题分区 `0x620000` 不烧也能正常开机
-- 完整分区布局见 [docs/FLASH.md](docs/FLASH.md)，烧录地址以 [partitions.csv](partitions.csv) 为准
-
-### 方式二：源码编译
-
-需要 [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/) 环境：
+需要 [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/) 环境、开发板和 USB 数据线：
 
 ```bash
 git clone https://github.com/steveEcode/obd_brz_gauge.git
@@ -94,8 +75,12 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
-首次构建会自动下载组件依赖到 `managed_components/`；换开发板编译前先在
-`idf.py menuconfig → OBD DSP Configuration` 里选硬件版本（见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)）。
+- `PORT` 换成你的串口（Windows `COM3`，Linux `/dev/ttyUSB0`，macOS `/dev/cu.usbserial-*`）
+- 首次烧录会擦除全部数据（含 NVS 设置）
+- 首次构建会自动下载组件依赖到 `managed_components/`；换开发板编译前先在
+  `idf.py menuconfig → OBD DSP Configuration` 里选硬件版本（见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)）
+- 不烧 `bootmedia.bin`（开机动画）和可选的主题分区 `0x620000` 也能正常开机
+- 完整分区布局见 [docs/FLASH.md](docs/FLASH.md)，烧录地址以 [partitions.csv](partitions.csv) 为准
 
 ## 仓库目录
 
@@ -109,8 +94,7 @@ main/
 themes/                 # 编译期主题源文件（TOML 清单 + 素材）
 theme_store/            # 打包好的主题二进制与目录索引（分发用）
 bootmedia/              # 开机动画源文件
-tools/                  # 工具脚本（主题生成、打包、PID 挖掘、发布）
-firmware/release/       # 预编译固件
+tools/                  # 工具脚本（主题生成、打包、PID 挖掘）
 android_app/            # 配套手机 App（APK）
 model/                  # 3D 打印模型（外壳、表座、支架）
 docs/                   # 文档（见上方索引）

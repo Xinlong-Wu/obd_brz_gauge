@@ -109,8 +109,7 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 | `tools/gen_themes.py` | 编译期主题代码生成（CMake 自动跑；`--check` 供 CI）|
 | `tools/theme_packer/pack_theme.py` | 运行时主题打包成 4MB theme.bin |
 | `tools/gen_theme_store.py` | 重新生成主题商店 catalog.json |
-| `tools/gen_release.py` | build/ 产物 → firmware/release/ + latest.json |
-| `tools/release.sh` | 一键发版（commit → build → gen_release → push）|
+| `tools/release.sh` | 一键发版（commit → build → push）|
 | `tools/make_boot_block.py` | 视频编码成 boot_block.bin/txt（ffmpeg + Pillow；帧数超 65535 自动切 v2 格式）|
 | `tools/convert_rpm_flash.py` | 3 张 PNG → RPM 报警闪烁图（imgRpmFlash1..3.c）|
 | `tools/fake_elm327.py` | 伪 ELM327 TCP 服务器：记录 App 发的每条请求，未知 PID 一律返回肯定应答 |
@@ -140,21 +139,20 @@ python3 tools/one_shot.py
 ## 发布流程
 
 `tools/release.sh` 一键发版：激活 ESP-IDF 环境（eim）→ 提交源码（**必须先提交**，
-`count` 取 git 提交数）→ `idf.py build` → `tools/gen_release.py` 把
-`build/` 产物拷进 `firmware/release/` 并重写 `latest.json`（每个文件记 sha256/size）→
-提交并推送。
+`count` 取 git 提交数）→ `idf.py build` → 推送。仓库不再托管预编译固件；
+烧录一律用本地 `build/` 产物（见 [FLASH.md](FLASH.md)）。
 
-App 侧发布目录最小布局：
+配套 App 的固件 OTA 从**自托管服务器**拉 manifest（不在本仓库）：
 
 ```text
-/releases/
+<OTA 服务器>/releases/obd_brz_gauge/
   latest.json
   firmware/    obd_brz_gauge.bin · partition-table.bin · bootloader.bin · ota_data_initial.bin
   bootmedia/   bootmedia.bin
 ```
 
-release 二进制有变动时要重跑 `gen_release.py` 更新 `latest.json`，
-否则 App 会拿旧 manifest 比对新固件。
+App 用 `latest.json` 里的 `firmware.count` 比对设备固件新旧；托管该目录的
+服务器由仓库所有者自行维护。
 
 ## 提交约定
 

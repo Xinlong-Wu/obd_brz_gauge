@@ -79,32 +79,10 @@ profiles are configured but some still need road testing.
 
 ## Quick start
 
-### Option 1: flash the pre-built firmware
+### Build and flash from source
 
-You need: the board, a USB data cable, and
-[esptool.py](https://github.com/espressif/esptool) (`pip install esptool`).
-
-```bash
-esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_reset \
-  write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB \
-  0x0     firmware/release/bootloader/bootloader.bin \
-  0x8000  firmware/release/partition_table/partition-table.bin \
-  0xf000  firmware/release/ota_data_initial.bin \
-  0x20000 firmware/release/obd_brz_gauge.bin \
-  0xA20000 firmware/release/bootmedia.bin
-```
-
-- Replace `PORT` with your serial port (Windows `COM3`, Linux `/dev/ttyUSB0`,
-  macOS `/dev/cu.usbserial-*`)
-- A first full flash erases everything, including NVS settings
-- `bootmedia.bin` (boot animation) and the optional theme partition at
-  `0x620000` are not required to boot
-- Full partition layout in [docs/FLASH.en.md](docs/FLASH.en.md); flash
-  addresses are governed by [partitions.csv](partitions.csv)
-
-### Option 2: build from source
-
-Requires the [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/) environment:
+Requires the [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/)
+environment, the board and a USB data cable:
 
 ```bash
 git clone https://github.com/steveEcode/obd_brz_gauge.git
@@ -114,10 +92,17 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
-The first build downloads component dependencies into `managed_components/`.
-Before building for a different board, pick the hardware version under
-`idf.py menuconfig → OBD DSP Configuration` (see
-[docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md)).
+- Replace `PORT` with your serial port (Windows `COM3`, Linux `/dev/ttyUSB0`,
+  macOS `/dev/cu.usbserial-*`)
+- A first full flash erases everything, including NVS settings
+- The first build downloads component dependencies into `managed_components/`.
+  Before building for a different board, pick the hardware version under
+  `idf.py menuconfig → OBD DSP Configuration` (see
+  [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md))
+- `bootmedia.bin` (boot animation) and the optional theme partition at
+  `0x620000` are not required to boot
+- Full partition layout in [docs/FLASH.en.md](docs/FLASH.en.md); flash
+  addresses are governed by [partitions.csv](partitions.csv)
 
 ## Repository layout
 
@@ -131,8 +116,7 @@ main/
 themes/                 # Compiled-theme sources (TOML manifests + artwork)
 theme_store/            # Packed theme binaries and catalog (distribution)
 bootmedia/              # Boot animation sources
-tools/                  # Helper scripts (theme codegen, packing, PID hunting, release)
-firmware/release/       # Pre-built firmware
+tools/                  # Helper scripts (theme codegen, packing, PID hunting)
 android_app/            # Companion phone app (APK)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)

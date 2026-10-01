@@ -117,8 +117,7 @@ on the version page — so commit *before* releasing, see
 | `tools/gen_themes.py` | compiled-theme codegen (runs from CMake; `--check` for CI) |
 | `tools/theme_packer/pack_theme.py` | packs a runtime theme into a 4 MB theme.bin |
 | `tools/gen_theme_store.py` | regenerates the theme-store catalog.json |
-| `tools/gen_release.py` | build/ artifacts → firmware/release/ + latest.json |
-| `tools/release.sh` | one-shot release (commit → build → gen_release → push) |
+| `tools/release.sh` | one-shot release (commit → build → push) |
 | `tools/make_boot_block.py` | encodes video into boot_block.bin/txt (ffmpeg + Pillow; auto _v2 when frames > 65535) |
 | `tools/convert_rpm_flash.py` | 3 PNGs → RPM warning flash images (imgRpmFlash1..3.c) |
 | `tools/fake_elm327.py` | fake ELM327 TCP server: logs every app request, answers unknown PIDs positively |
@@ -152,21 +151,21 @@ vehicle profile per [VEHICLES.en.md](VEHICLES.en.md#adding-a-vehicle).
 
 `tools/release.sh` is the one-shot flow: activate the ESP-IDF environment
 (eim) → commit sources (**commit first** — `count` is the git commit count) →
-`idf.py build` → `tools/gen_release.py` copies `build/` artifacts into
-`firmware/release/` and rewrites `latest.json` (sha256/size per file) →
-commit and push.
+`idf.py build` → push. The repo no longer hosts pre-built firmware; flashing
+always uses your local `build/` artifacts (see [FLASH.en.md](FLASH.en.md)).
 
-Minimal app-side release layout:
+The companion app pulls its firmware OTA manifest from a **self-hosted
+server** (not this repo):
 
 ```text
-/releases/
+<OTA server>/releases/obd_brz_gauge/
   latest.json
   firmware/    obd_brz_gauge.bin · partition-table.bin · bootloader.bin · ota_data_initial.bin
   bootmedia/   bootmedia.bin
 ```
 
-Re-run `gen_release.py` whenever release binaries change, or the app will
-compare fresh firmware against a stale manifest.
+The app compares the device firmware against `firmware.count` in
+`latest.json`; hosting that directory is up to the repo owner.
 
 ## Commit conventions
 

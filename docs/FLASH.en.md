@@ -18,17 +18,18 @@ English | [简体中文](FLASH.md)
 
 ## USB flashing
 
-Pre-built firmware lives in [firmware/release/](../firmware/release/); you
-need [esptool.py](https://github.com/espressif/esptool) (`pip install esptool`):
+Build the firmware yourself (see the [README](../README.en.md) quick start);
+after `idf.py build`, flash the artifacts from `build/` with
+[esptool.py](https://github.com/espressif/esptool) (`pip install esptool`):
 
 ```bash
 esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_reset \
   write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB \
-  0x0      firmware/release/bootloader/bootloader.bin \
-  0x8000   firmware/release/partition_table/partition-table.bin \
-  0xf000   firmware/release/ota_data_initial.bin \
-  0x20000  firmware/release/obd_brz_gauge.bin \
-  0xA20000 firmware/release/bootmedia.bin
+  0x0      build/bootloader/bootloader.bin \
+  0x8000   build/partition_table/partition-table.bin \
+  0xf000   build/ota_data_initial.bin \
+  0x20000  build/obd_brz_gauge.bin \
+  0xA20000 build/bootmedia.bin
 ```
 
 - `bootmedia.bin` (boot animation) is optional — without it you just don't get

@@ -7,6 +7,21 @@ cleanups live in the git history.
 
 ---
 
+## Pre-built firmware channel removed
+
+- **The repo no longer hosts pre-built firmware**: `firmware/release/`
+  (including `latest.json`) and the stray `firmware/obd_brz_gauge.bin` are
+  deleted; flashing always uses your local `build/` artifacts, and the
+  flashing instructions in the README and [FLASH.en.md](docs/FLASH.en.md)
+  have been rewritten accordingly. The companion app's OTA manifest lives on
+  a self-hosted server (not in this repo), so app OTA is unaffected
+- `tools/gen_release.py` is removed and `tools/release.sh` is simplified to
+  "commit → build → push"
+- `build/` is no longer tracked by git (the whole build directory had been
+  force-added before); it was already in `.gitignore`
+
+---
+
 ## Documentation system rebuild (bilingual)
 
 Everything this branch changes relative to main, summarized as one

@@ -1,4 +1,6 @@
 build/
+firmware/release/
+firmware/*.bin
 managed_components/
 sdkconfig.old
 sdkconfig
@@ -16,5 +18,6 @@ tools/elm_pids
 tools/pids_full.csv
 .mimosa
 .zcode
+.zcodeignore
 # per-developer AI preferences (see AGENTS.md self-update protocol)
 AGENTS.local.md

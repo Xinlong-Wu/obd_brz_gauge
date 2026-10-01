@@ -6,6 +6,17 @@
 
 ---
 
+## 移除预编译固件渠道
+
+- **仓库不再托管预编译固件**：删除 `firmware/release/`（含 `latest.json`）和游离的
+  `firmware/obd_brz_gauge.bin`；烧录一律用本地 `build/` 产物，README 与
+  [FLASH.md](docs/FLASH.md) 的烧录指引已同步改写。配套 App 的 OTA manifest 托管在
+  自建服务器上（不在本仓库），App OTA 不受影响
+- `tools/gen_release.py` 删除，`tools/release.sh` 简化为「commit → build → push」
+- `build/` 停止 git 跟踪（此前整个构建目录曾被强加入库）；该目录本就在 `.gitignore` 中
+
+---
+
 ## 文档体系重建（中英双语）
 
 本分支相对 main 的全部改动汇总为一次文档重建，不涉及任何固件行为：

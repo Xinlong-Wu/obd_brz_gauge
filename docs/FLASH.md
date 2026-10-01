@@ -18,17 +18,17 @@
 
 ## USB 烧录
 
-预编译固件在 [firmware/release/](../firmware/release/)，需要
-[esptool.py](https://github.com/espressif/esptool)（`pip install esptool`）：
+固件自行编译（见 [README](../README.md) 快速开始），`idf.py build` 之后用
+[esptool.py](https://github.com/espressif/esptool)（`pip install esptool`）烧录 `build/` 下的产物：
 
 ```bash
 esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_reset \
   write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB \
-  0x0      firmware/release/bootloader/bootloader.bin \
-  0x8000   firmware/release/partition_table/partition-table.bin \
-  0xf000   firmware/release/ota_data_initial.bin \
-  0x20000  firmware/release/obd_brz_gauge.bin \
-  0xA20000 firmware/release/bootmedia.bin
+  0x0      build/bootloader/bootloader.bin \
+  0x8000   build/partition_table/partition-table.bin \
+  0xf000   build/ota_data_initial.bin \
+  0x20000  build/obd_brz_gauge.bin \
+  0xA20000 build/bootmedia.bin
 ```
 
 - `bootmedia.bin`（开机动画）可选，不烧只是没有 VIDEO 模式动画
