@@ -117,7 +117,6 @@ themes/                 # Compiled-theme sources (TOML manifests + artwork)
 theme_store/            # Packed theme binaries and catalog (distribution)
 bootmedia/              # Boot animation sources
 tools/                  # Helper scripts (theme codegen, packing, PID hunting)
-android_app/            # Companion phone app (APK)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)
 partitions.csv          # Flash partition table (16MB)

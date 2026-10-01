@@ -95,7 +95,6 @@ themes/                 # 编译期主题源文件（TOML 清单 + 素材）
 theme_store/            # 打包好的主题二进制与目录索引（分发用）
 bootmedia/              # 开机动画源文件
 tools/                  # 工具脚本（主题生成、打包、PID 挖掘）
-android_app/            # 配套手机 App（APK）
 model/                  # 3D 打印模型（外壳、表座、支架）
 docs/                   # 文档（见上方索引）
 partitions.csv          # Flash 分区表（16MB）

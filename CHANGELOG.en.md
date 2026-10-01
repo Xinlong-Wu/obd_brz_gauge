@@ -19,6 +19,8 @@ cleanups live in the git history.
   "commit → build → push"
 - `build/` is no longer tracked by git (the whole build directory had been
   force-added before); it was already in `.gitignore`
+- The companion app APK (`android_app/`) is no longer distributed with the
+  repo either; docs now note it is "distributed separately"
 
 ---
 

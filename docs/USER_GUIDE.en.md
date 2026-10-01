@@ -118,7 +118,7 @@ interrupted upload never damages the existing animation.
 
 ## Updating from the phone app
 
-The companion app (`android_app/app-debug.apk`) can push three things; each
+The companion app (distributed separately, not in this repo) can push three things; each
 requires the gauge to be in OTA mode first (**version page → OTA button**):
 
 - **Firmware**: BLE handshake → WiFi hotspot (`OBD-Gauge-OTA-XXXX`, password

@@ -38,7 +38,7 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
 
 ## App OTA 升级（双槽回滚）
 
-配套手机 App（`android_app/app-debug.apk`）可以推送固件、开机动画和主题包，
+配套手机 App（不随本仓库分发）可以推送固件、开机动画和主题包，
 操作入口都在仪表 **版本页 → OTA 按钮**。升级固件时：
 
 1. App 取 `latest.json`，BLE 读设备清单比对硬件兼容性，不匹配会拒绝刷写

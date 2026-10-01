@@ -99,7 +99,7 @@
 
 ## 手机 App 升级
 
-配套 App（`android_app/app-debug.apk`）支持三种推送，都需要先在仪表
+配套 App（不随本仓库分发）支持三种推送，都需要先在仪表
 **版本页 → OTA 按钮** 进入 OTA 模式：
 
 - **固件升级**：BLE 握手 → WiFi 热点（`OBD-Gauge-OTA-XXXX`，密码 `obd2024`）高速传输，

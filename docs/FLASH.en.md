@@ -41,7 +41,7 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
 
 ## App OTA upgrade (dual-slot rollback)
 
-The companion phone app (`android_app/app-debug.apk`) can push firmware, boot
+The companion phone app (distributed separately, not in this repo) can push firmware, boot
 animations and theme packages; the entry point on the device is always
 **version page → OTA button**. For a firmware update:
 

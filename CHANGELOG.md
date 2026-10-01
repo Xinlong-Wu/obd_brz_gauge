@@ -14,6 +14,7 @@
   自建服务器上（不在本仓库），App OTA 不受影响
 - `tools/gen_release.py` 删除，`tools/release.sh` 简化为「commit → build → push」
 - `build/` 停止 git 跟踪（此前整个构建目录曾被强加入库）；该目录本就在 `.gitignore` 中
+- 配套 App 的 APK（`android_app/`）也不再随仓库分发，文档改为注明「不随本仓库分发」
 
 ---
 
