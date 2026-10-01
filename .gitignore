@@ -15,3 +15,6 @@ tools/probe_log
 tools/elm_pids
 tools/pids_full.csv
 .mimosa
+.zcode
+# per-developer AI preferences (see AGENTS.md self-update protocol)
+AGENTS.local.md
