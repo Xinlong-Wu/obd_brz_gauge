@@ -1,4 +1,5 @@
 build/
+simulator/build/
 firmware/release/
 firmware/*.bin
 managed_components/
