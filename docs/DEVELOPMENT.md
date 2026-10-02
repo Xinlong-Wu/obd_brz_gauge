@@ -114,6 +114,27 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 3. 屏幕分辨率 / 色深宏在 `ST77916.h`，UI 按 360×360 设计，换屏要动 `export_path/`
 4. 与车相关的都不用动 —— 车型逻辑全在 `app_obd_dsp/`
 
+## PC 模拟器（UI 预览）
+
+UI 源码**零改动**跑在电脑上（SDL2 窗口，鼠标当触摸，假数据当车），改 UI 不用烧板：
+
+```bash
+brew install cmake sdl2          # Linux: sudo apt install cmake libsdl2-dev
+cmake -S simulator -B simulator/build && cmake --build simulator/build -j
+./simulator/build/obd_gauge_sim --no-boot
+```
+
+- ESP-IDF 依赖由 `simulator/shims/`（include 路径遮蔽 + 桩实现）补齐，固件源码不动；
+  LVGL 直接用 `managed_components/` 里与固件同版本的那份（8.4.0）
+- 支持编译期/运行时主题切换（`--theme-slot` / `--theme theme.bin`）、模拟未连接
+  （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）
+- 无头截图验收：`SDL_VIDEODRIVER=dummy ... --frames 500 --screenshot x.bmp`，
+  或 `--tour N` 自动巡览一圈逐页截图
+- 里程统计、开机动画解码、主题 manifest 解析路径与固件完全一致；BLE/OTA/三连表
+  为桩，不可用
+
+参数表与架构说明见 [simulator/README.md](../simulator/README.md)。
+
 ## 工具脚本
 
 | 脚本 | 用途 |

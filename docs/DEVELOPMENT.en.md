@@ -125,6 +125,32 @@ on the version page — so commit *before* releasing, see
 4. Nothing vehicle-related needs to change — all car logic lives in
    `app_obd_dsp/`
 
+## PC simulator (UI preview)
+
+Run the UI sources **unmodified** on your computer (SDL2 window, mouse as
+touch, fake data as the car) — iterate on the UI without flashing a board:
+
+```bash
+brew install cmake sdl2          # Linux: sudo apt install cmake libsdl2-dev
+cmake -S simulator -B simulator/build && cmake --build simulator/build -j
+./simulator/build/obd_gauge_sim --no-boot
+```
+
+- ESP-IDF dependencies are satisfied by `simulator/shims/` (include-path
+  shadowing + stubs); no firmware file changes. LVGL is taken straight from
+  `managed_components/` — the exact copy the firmware builds against (8.4.0)
+- Compile-time / runtime theme switching (`--theme-slot` / `--theme
+  theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
+  (`--no-boot`), fake-data scenarios (`--scenario`)
+- Headless screenshot acceptance: `SDL_VIDEODRIVER=dummy ... --frames 500
+  --screenshot x.bmp`, or `--tour N` to walk the whole carousel with a
+  screenshot per page
+- Mileage stats, boot-video decoding and theme manifest parsing follow the
+  exact firmware code paths; BLE/OTA/triple-gauge are stubs (unavailable)
+
+Full option table and architecture notes in
+[simulator/README.en.md](../simulator/README.en.md).
+
 ## Tool scripts
 
 | Script | Purpose |

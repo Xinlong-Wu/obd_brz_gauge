@@ -116,6 +116,7 @@ main/
 themes/                 # Compiled-theme sources (TOML manifests + artwork)
 theme_store/            # Packed theme binaries and catalog (distribution)
 bootmedia/              # Boot animation sources
+simulator/              # PC UI simulator (SDL2; runs the firmware UI sources unmodified)
 tools/                  # Helper scripts (theme codegen, packing, PID hunting)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)
