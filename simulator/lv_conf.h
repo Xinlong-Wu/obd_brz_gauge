@@ -22,10 +22,12 @@
 #define LV_MEM_CUSTOM_INCLUDE "stdlib.h"
 #define LV_MEMCPY_MEMSET_STD 1
 
-/* Tick: SDL millis, so no separate tick thread is needed. */
+/* Tick: simulator clock (real = SDL millis, virtual = frame-locked for
+ * deterministic screenshots — see src/sim_clock.c). LVGL sources get the
+ * declaration from sim_clock.h; the definition lives in the sim binary. */
 #define LV_TICK_CUSTOM 1
-#define LV_TICK_CUSTOM_INCLUDE "SDL.h"
-#define LV_TICK_CUSTOM_SYS_TIME_EXPR ((uint32_t)SDL_GetTicks())
+#define LV_TICK_CUSTOM_INCLUDE "sim_clock.h"
+#define LV_TICK_CUSTOM_SYS_TIME_EXPR sim_clock_ms()
 
 /* Timings matching the firmware sdkconfig. */
 #define LV_DISP_DEF_REFR_PERIOD 16

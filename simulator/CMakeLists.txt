@@ -42,16 +42,12 @@ file(GLOB_RECURSE LVGL_SOURCES "${LVGL_DIR}/src/*.c")
 add_library(lvgl_sim STATIC ${LVGL_SOURCES})
 target_include_directories(lvgl_sim PUBLIC
     "${LVGL_DIR}"        # "lvgl.h" and "src/misc/lv_fs.h" (theme_loader.c)
-    "${SIM_DIR}")        # lv_conf.h via LV_CONF_INCLUDE_SIMPLE
+    "${SIM_DIR}"         # lv_conf.h via LV_CONF_INCLUDE_SIMPLE
+    "${SIM_DIR}/src")    # sim_clock.h (LV_TICK_CUSTOM calls sim_clock_ms())
 target_compile_definitions(lvgl_sim PUBLIC LV_CONF_INCLUDE_SIMPLE)
-if(TARGET SDL2::SDL2)
-    target_link_libraries(lvgl_sim PUBLIC SDL2::SDL2)
-else()
-    target_include_directories(lvgl_sim PUBLIC ${SDL2_INCLUDE_DIRS})
-    target_link_libraries(lvgl_sim PUBLIC ${SDL2_LIBRARIES})
-endif()
-# Note: lv_conf.h sets LV_TICK_CUSTOM, which pulls SDL.h into LVGL sources —
-# hence the SDL include dirs on lvgl_sim as well.
+# Note: LVGL's tick goes through src/sim_clock.c (in the sim binary), so
+# lvgl_sim itself no longer needs SDL; the executable links SDL directly
+# (see the SDL2 block after add_executable below).
 
 # ---- cJSON: theme manifest parser (theme_loader.c) ----
 # cJSON v1.7.18's CMakeLists predates the CMake 4.0 <3.5 removal.
@@ -133,3 +129,11 @@ target_compile_definitions(obd_gauge_sim PRIVATE
 target_link_libraries(obd_gauge_sim PRIVATE
     lvgl_sim
     cjson_shim)
+
+# SDL2: used by the sim sources (window, events, ticks in real mode).
+if(TARGET SDL2::SDL2)
+    target_link_libraries(obd_gauge_sim PRIVATE SDL2::SDL2)
+else()
+    target_include_directories(obd_gauge_sim PRIVATE ${SDL2_INCLUDE_DIRS})
+    target_link_libraries(obd_gauge_sim PRIVATE ${SDL2_LIBRARIES})
+endif()

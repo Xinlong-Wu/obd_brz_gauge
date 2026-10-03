@@ -27,6 +27,15 @@ static void prng_seed_once(void)
     }
 }
 
+bool sim_esp_random_seed(uint64_t seed)
+{
+    /* 0 keeps the wall-clock default; any other value pins the sequence. */
+    if (seed == 0) return false;
+    s_prng_state = seed ^ 0x9E3779B97F4A7C15ULL; /* decorrelate small seeds */
+    if (s_prng_state == 0) s_prng_state = 0x9E3779B97F4A7C15ULL;
+    return true;
+}
+
 uint32_t esp_random(void)
 {
     prng_seed_once();
@@ -37,8 +46,16 @@ uint32_t esp_random(void)
 }
 
 /* ---- monotonic clocks (POSIX; no SDL dependency here) ---- */
+static int64_t (*s_clock_us)(void);   /* optional virtual-clock override */
+
+void sim_esp_timer_use_clock(int64_t (*us)(void))
+{
+    s_clock_us = us;
+}
+
 static int64_t now_us(void)
 {
+    if (s_clock_us) return s_clock_us();
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (int64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;

@@ -37,6 +37,9 @@ void sim_opts_print_help(const char *prog)
         "  --screenshot FILE  save the final frame as BMP\n"
         "  --tour N           inject N alternating swipes, screenshotting after each\n"
         "  --shots-dir DIR    where --tour screenshots go (default sim_shots)\n"
+        "  --seed N           pin the fake-data PRNG (deterministic screenshots)\n"
+        "  --clock MODE       real (default) | virtual — frame-locked clock for\n"
+        "                     bit-identical headless screenshots (implies fast-run)\n"
         "  --tap X,Y,FRAME    scripted tap at screen coords on a given frame (headless)\n"
         "  --help\n"
         "\n"
@@ -112,6 +115,19 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
         } else if (strcmp(a, "--shots-dir") == 0) {
             o->shots_dir = NEXT();
             if (!o->shots_dir) return false;
+        } else if (strcmp(a, "--seed") == 0) {
+            const char *v = NEXT();
+            if (!v) return false;
+            o->seed = atol(v);
+        } else if (strcmp(a, "--clock") == 0) {
+            const char *v = NEXT();
+            if (!v) return false;
+            if (strcmp(v, "virtual") == 0) o->virtual_clock = true;
+            else if (strcmp(v, "real") == 0) o->virtual_clock = false;
+            else {
+                fprintf(stderr, "bad --clock value: %s (real|virtual)\n", v);
+                return false;
+            }
         } else if (strcmp(a, "--tap") == 0) {
             const char *v = NEXT();
             if (!v || sscanf(v, "%d,%d,%ld", &o->tap_x, &o->tap_y, &o->tap_frame) != 3) {

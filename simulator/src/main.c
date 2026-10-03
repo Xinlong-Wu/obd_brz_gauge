@@ -21,7 +21,9 @@
 #include "fake_data.h"
 #include "control_panel.h"
 #include "sim_platform.h"
+#include "sim_clock.h"
 #include "esp_timer.h"                     /* sim_esp_timer_poll() */
+#include "esp_random.h"                    /* sim_esp_random_seed() */
 
 #include "app_obd_dsp/obd_data_cache.h"
 #include "app_obd_dsp/vehicle_profiles.h"
@@ -295,6 +297,9 @@ int main(int argc, char **argv)
     }
     s_scale = opts.scale;
     s_panel_on = !opts.no_panel;
+    if (opts.seed != 0) sim_esp_random_seed((uint64_t)opts.seed); /* determinism */
+    sim_clock_set_virtual(opts.virtual_clock);
+    if (opts.virtual_clock) sim_esp_timer_use_clock(sim_clock_us);
 
     SDL_SetMainReady(); /* plain main() on macOS, not SDL_main */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
@@ -427,7 +432,7 @@ int main(int argc, char **argv)
 
     /* ---- main loop ---- */
     bool quit = false;
-    Uint32 last_ms = SDL_GetTicks();
+    Uint32 last_ms = sim_clock_ms();
     while (!quit) {
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
@@ -452,7 +457,7 @@ int main(int argc, char **argv)
             }
         }
 
-        Uint32 now_ms = SDL_GetTicks();
+        Uint32 now_ms = sim_clock_ms();
         Uint32 dt = now_ms - last_ms;
         last_ms = now_ms;
 
@@ -473,7 +478,8 @@ int main(int argc, char **argv)
             quit = true;
         }
 
-        SDL_Delay(5);
+        sim_clock_tick_frame();                 /* advance the virtual clock */
+        SDL_Delay(sim_clock_is_virtual() ? 0 : 5); /* virtual = as fast as it renders */
     }
 
     fprintf(stderr, "[sim] done after %ld frames\n", s_frame);

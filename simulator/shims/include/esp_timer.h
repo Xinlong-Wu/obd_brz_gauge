@@ -25,3 +25,9 @@ esp_err_t esp_timer_delete(esp_timer_handle_t timer);
 
 /* Simulator-only: fire any due periodic callbacks (called from the main loop). */
 void sim_esp_timer_poll(void);
+
+/* Simulator-only: redirect the esp_timer clock (screenshot determinism).
+ * NULL restores the default CLOCK_MONOTONIC source. The simulator's
+ * --clock virtual mode registers its frame-locked clock here so mileage
+ * statistics render identically run to run; unit tests never call this. */
+void sim_esp_timer_use_clock(int64_t (*us)(void));

@@ -86,6 +86,8 @@ CLT 滑条拉到 -40 即数据无效（无效哨兵）。`--no-panel` 隐藏面�
 | `--screenshot FILE` | 退出前保存最后一帧 BMP | 无 |
 | `--tour N` | 自动左右滑 N 次，每次截图到 `--shots-dir` | 0 |
 | `--shots-dir DIR` | 巡览截图输出目录 | `sim_shots` |
+| `--seed N` | 固定假数据 PRNG 种子（确定性截图，0 = 墙钟随机） | 0 |
+| `--clock MODE` | `real`（默认，墙钟）/ `virtual`（帧锁定时钟：截图位级可复现，headless 跑得更快） | real |
 
 ## 无头验证（CI / 自动截图）
 
@@ -98,6 +100,10 @@ SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --tour 14 --shots-dir /tmp/sim_shots
 ```
+
+正式的截图回归用 `python3 tools/sim_regress.py`：固定 `--seed` + `--clock virtual`
+跑一组场景，与 `tests/goldens/` 金图逐像素对比（见 [tools/README.md](../tools/README.md)）。
+有意改了 UI 后用 `--update-goldens` 刷新金图并入库。
 
 ## 架构
 

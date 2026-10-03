@@ -99,6 +99,8 @@ panel and restores the plain 360×360 window (used by CI screenshot runs).
 | `--screenshot FILE` | save the final frame as BMP | none |
 | `--tour N` | inject N swipes, screenshotting after each | 0 |
 | `--shots-dir DIR` | where tour screenshots go | `sim_shots` |
+| `--seed N` | pin the fake-data PRNG (deterministic screenshots; 0 = wall clock) | 0 |
+| `--clock MODE` | `real` (default, wall clock) / `virtual` (frame-locked clock: bit-identical screenshots, faster headless) | real |
 
 ## Headless verification (CI / automated screenshots)
 
@@ -112,6 +114,12 @@ SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --tour 14 --shots-dir /tmp/sim_shots
 ```
+
+The formal screenshot regression is `python3 tools/sim_regress.py`: it runs a
+set of scenarios with a fixed `--seed` + `--clock virtual` and compares them
+pixel-by-pixel against the `tests/goldens/` goldens (see
+[tools/README.en.md](../tools/README.en.md)). After an intentional UI change,
+refresh the goldens with `--update-goldens` and commit them.
 
 ## Architecture
 
