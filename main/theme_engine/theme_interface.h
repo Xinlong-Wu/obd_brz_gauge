@@ -167,8 +167,11 @@ void theme_unload(void);
  * Test function to verify theme engine integration
  * Prints theme info, colors, assets, and protected pages to log
  * Call from ui_init() for debugging
+ *
+ * @return true if all probes passed (info readable, protected boot pages
+ *         not themeable); false otherwise. Also run by tests/test_theme_engine.c.
  */
-void theme_engine_test(void);
+bool theme_engine_test(void);
 
 #ifdef __cplusplus
 }

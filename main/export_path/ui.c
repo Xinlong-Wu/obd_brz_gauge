@@ -1265,8 +1265,10 @@ void ui_init(void)
         if (theme_get_info(&info) == ESP_OK) {
             ESP_LOGI(TAG, "Theme loaded: %s v%s by %s", info.name, info.version, info.author);
         }
-        // Run test to print detailed theme info
-        theme_engine_test();
+        // Run self-test to print detailed theme info (fails loud, never blocks boot)
+        if (!theme_engine_test()) {
+            ESP_LOGE(TAG, "Theme engine self-test FAILED (protected page themeable?)");
+        }
     } else {
         ESP_LOGW(TAG, "Theme partition system initialization failed, using built-in themes");
     }
