@@ -9,6 +9,7 @@
 
 #include "test_util.h"
 #include "ui_disp_item.h"
+#include "ui_disp_item_logic.h"
 #include "lvgl.h"
 
 /** 注册最小 display(无 flush 实现),让 lv_label_create 可用。 */
@@ -146,6 +147,13 @@ int main(void)
                 == lv_color_hex(0xFFFFFF).full);
 
     // ---- 自适应平滑:小差值 ±1 步进,大差值按 1/3 比例逼近 ----
+    // (直接测 *_logic.h 的 static inline,不经过 label)
+    TEST_ASSERT_EQ_INT(101, ui_disp_item_anim_step_i32(100, 102, 10));   // |diff|=2 ≤ 10 → +1
+    TEST_ASSERT_EQ_INT(166, ui_disp_item_anim_step_i32(100, 300, 10));   // |diff|=200 → 200/3 = 66
+    TEST_ASSERT_EQ_INT(68,  ui_disp_item_anim_step_i32(100, 2, 10));     // |diff|=98 → 98/3 = 32,负方向
+    TEST_ASSERT_EQ_INT(100, ui_disp_item_anim_step_i32(100, 100, 10));   // 已到位不动
+    TEST_ASSERT_EQ_INT(101, ui_disp_item_anim_step_i32(100, 101, 0));    // 大步路径 clamp 到 abs_diff,不越过目标
+    TEST_ASSERT_EQ_INT(102, ui_disp_item_anim_step_i32(100, 102, 0));    // rapid=2 恰好到位
     int32_t state = 100;
     disp_item_update(&state, label, DISP_ITEM_CLT, 102, true, 10);
     TEST_ASSERT_EQ_INT(101, state);   // |diff|=2 ≤ 10 → +1
@@ -160,6 +168,14 @@ int main(void)
     state = 1000;
     disp_item_update(&state, label, DISP_ITEM_RPM, 5600, true, 10);
     TEST_ASSERT_EQ_INT(5600, state);
+
+    // ---- 报警判定(*_logic.h) ----
+    TEST_ASSERT(ui_disp_item_alarm_over_threshold(80, 85, true));    // 越限
+    TEST_ASSERT(ui_disp_item_alarm_over_threshold(80, 80, true));    // 等于阈值也算
+    TEST_ASSERT(!ui_disp_item_alarm_over_threshold(80, 79, true));   // 未越限
+    TEST_ASSERT(!ui_disp_item_alarm_over_threshold(80, 999, false)); // 无效值不报警
+    TEST_ASSERT(!ui_disp_item_alarm_over_threshold(32767, 99999, true)); // 哨兵 = 报警关闭
+    TEST_ASSERT(ui_disp_item_alarm_over_threshold(-5, -3, true));   // 负阈值按数值比较:-3 ≥ -5
 
     return TEST_RESULT();
 }

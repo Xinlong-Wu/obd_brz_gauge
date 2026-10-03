@@ -3,13 +3,13 @@
 // ================================================================
 
 #include "ui_disp_item.h"
+#include "ui_disp_item_logic.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #define DISP_ITEM_ALARM_COOLDOWN_MS 30000U
-#define DISP_ITEM_ALARM_OFF         32767
 
 const disp_item_meta_t s_disp_meta[DISP_ITEM_COUNT] = {
     {"CLT", "'C", 0x44AAFF},
@@ -146,7 +146,7 @@ static void disp_item_set_value_color_throttled(lv_obj_t *label, disp_item_t ite
     if (!label) return;
 
     int16_t thr = nvs_chart_alarm_get((uint8_t)item);   // raw-value units; 32767=disabled
-    bool over_threshold = valid && thr < DISP_ITEM_ALARM_OFF && value >= (int32_t)thr;
+    bool over_threshold = ui_disp_item_alarm_over_threshold(thr, value, valid);
     bool use_cooldown = (item == DISP_ITEM_OILP || item == DISP_ITEM_BKT);
     lv_color_t color = lv_color_hex(0xFFFFFF);
 
@@ -175,23 +175,6 @@ static void disp_item_set_value_color_throttled(lv_obj_t *label, disp_item_t ite
     }
 }
 
-// Adaptive step: diff ≤ threshold steps by ±1, diff > threshold approaches proportionally
-static int32_t anim_step_i32(int32_t displayed, int32_t target, int32_t threshold)
-{
-    int32_t diff = target - displayed;
-    if (diff == 0) return displayed;
-    int32_t abs_diff = (diff > 0) ? diff : -diff;
-    int32_t step = (diff > 0) ? 1 : -1;
-
-    if (abs_diff > threshold) {
-        int32_t rapid = abs_diff / 3;     // eat ~33% of the gap per tick
-        if (rapid < 2) rapid = 2;          // minimum 2 steps
-        if (rapid > abs_diff) rapid = abs_diff;
-        step = (diff > 0) ? rapid : -rapid;
-    }
-    return displayed + step;
-}
-
 void disp_item_update(int32_t *state, lv_obj_t *label, disp_item_t item,
                       int32_t raw, bool valid, int32_t threshold)
 {
@@ -203,7 +186,7 @@ void disp_item_update(int32_t *state, lv_obj_t *label, disp_item_t item,
     was_placeholder = (strcmp(lv_label_get_text(label), "--") == 0);
     if (valid) {
         // RPM is output directly, without the +1/+1 stepping animation: large range and fast changes — smoothing would just look "stuck"
-        *state = (item == DISP_ITEM_RPM) ? raw : anim_step_i32(*state, raw, threshold);
+        *state = (item == DISP_ITEM_RPM) ? raw : ui_disp_item_anim_step_i32(*state, raw, threshold);
     }
     // invalid: keep *state unchanged, avoiding a climb from 0 when data returns
     // Only rebuild the label text when the rendered value actually changed; color follows
