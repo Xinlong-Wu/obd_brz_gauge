@@ -27,8 +27,8 @@ void sim_opts_print_help(const char *prog)
         "  --profile N        vehicle profile index (default 0 = OBD2 Generic)\n"
         "  --theme-slot N     compile-time theme slot in themes/registry.txt (default 0)\n"
         "  --role ROLE        master | slave | standalone (default standalone)\n"
-        "  --disconnected     pretend the bound adapter is not connected\n"
-        "  --unbound          no saved adapter in NVS (boots to the BLE scan page)\n"
+        "  --disconnected     with --bound: show the adapter as not connected\n"
+        "  --bound            pre-saved adapter in NVS (boots straight to the gauges)\n"
         "  --no-boot          skip the boot video (intro mode OFF)\n"
         "  --theme FILE       load theme.bin as the runtime-theme partition\n"
         "  --bootmedia DIR    dir with boot_block.txt/bin (default <repo>/bootmedia/slot_a)\n"
@@ -85,8 +85,8 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
             }
         } else if (strcmp(a, "--disconnected") == 0) {
             o->disconnected = true;
-        } else if (strcmp(a, "--unbound") == 0) {
-            o->unbound = true;
+        } else if (strcmp(a, "--bound") == 0) {
+            o->bound = true;
         } else if (strcmp(a, "--no-boot") == 0) {
             o->no_boot = true;
         } else if (strcmp(a, "--theme") == 0) {

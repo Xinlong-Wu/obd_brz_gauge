@@ -227,11 +227,10 @@ void gauge_pair_ble_connect(const uint8_t addr[6], const char *name, gauge_pair_
 void rs485_brake_temp_pause(void) {}
 void rs485_brake_temp_resume(void) {}
 
-/* Keep the CLI flag wired in (called from main). */
+/* Keep the CLI flags wired in (called from main): --disconnected starts with
+ * the adapter offline; otherwise it only comes online via the simulated
+ * connect flow (or immediately when --bound skips the scan page). */
 void sim_bsp_apply_opts(const sim_opts_t *opts)
 {
-    if (opts && opts->disconnected) {
-        s_elm_connected = false;
-        s_elm_name[0] = '\0';
-    }
+    s_elm_connected = opts ? !opts->disconnected : true;
 }

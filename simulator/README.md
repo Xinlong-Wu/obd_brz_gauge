@@ -32,27 +32,27 @@ cmake --build simulator/build -j
 ## 常用玩法
 
 ```bash
-# 跳过开机动画，直接看表盘
-./simulator/build/obd_gauge_sim --no-boot
+# 默认流程：开机动画 → BLE 扫描页（OBDII / V-LINK / ELM327 v2.3 陆续出现）
+#   → 鼠标点一台 → "Connecting..." 1.2s → 进入表盘，假数据开跑
+./simulator/build/obd_gauge_sim
+
+# 跳过扫描，直接看表盘（NVS 预存了 SIM-ELM327）
+./simulator/build/obd_gauge_sim --bound
+
+# 表盘页 + 模拟适配器未上电的未连接态
+./simulator/build/obd_gauge_sim --bound --disconnected
+
+# 跳过开机动画
+./simulator/build/obd_gauge_sim --bound --no-boot
 
 # 换编译期主题（themes/registry.txt 槽位号）
-./simulator/build/obd_gauge_sim --theme-slot 1      # amber
+./simulator/build/obd_gauge_sim --bound --theme-slot 1      # amber
 
 # 加载运行时主题（theme.bin 当 theme_0 分区）
-./simulator/build/obd_gauge_sim --theme theme_store/boost_oil_example/theme.bin
+./simulator/build/obd_gauge_sim --bound --theme theme_store/boost_oil_example/theme.bin
 
-# 模拟从表（不连 ELM327，等主表数据——模拟器里永远等不到）
+# 从表模式：FIND MASTER 列表点 SkyGauge-XXXX，1s 配对成功后表盘出数据
 ./simulator/build/obd_gauge_sim --role slave
-
-# 走一遍"扫描 → 选择 → 连接"：--unbound 开机进 BLE 扫描页，
-# 数秒内列表出现 OBDII / V-LINK / ELM327 v2.3，点击即模拟连接（1.2s 后就绪）
-./simulator/build/obd_gauge_sim --unbound
-
-# 从表模式同样可配对：FIND MASTER 列表出现 SkyGauge-XXXX，点击 1s 配对成功
-./simulator/build/obd_gauge_sim --role slave --unbound
-
-# 模拟未连接适配器的界面
-./simulator/build/obd_gauge_sim --disconnected
 ```
 
 ## CLI 参数
@@ -64,8 +64,8 @@ cmake --build simulator/build -j
 | `--profile N` | 车型配置序号（同设置页 VEHICLE 顺序） | 0（OBD2 Generic）|
 | `--theme-slot N` | 编译期主题槽位（`themes/registry.txt` 行号） | 0 |
 | `--role ROLE` | `master` / `slave` / `standalone` | standalone |
-| `--disconnected` | 模拟已绑定的适配器未上电（开机仍进表盘，页面显示未连接态） | 关 |
-| `--unbound` | NVS 无已保存适配器（开机进 BLE 扫描页，即真机首烧状态） | 关 |
+| `--bound` | NVS 预存适配器 SIM-ELM327（跳过扫描页，开机直达表盘） | 关 |
+| `--disconnected` | 配合 `--bound`：适配器显示为未连接态 | 关 |
 | `--no-boot` | 跳过开机动画（intro 模式 OFF） | 关 |
 | `--theme FILE` | theme.bin 路径，作为 theme_0 伪分区 | 无（走内置主题回退）|
 | `--bootmedia DIR` | 开机动画文件目录 | `<repo>/bootmedia/slot_a` |
@@ -113,11 +113,11 @@ SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
   `--theme` 提供的 theme.bin 即整个 theme_0 分区镜像（可用
   `tools/theme_packer/pack_theme.py` 打包自己的主题目录生成）。
 - **事件**：`app_event_recv` 恒空（模拟器单线程，无 ESP-NOW/BLE 生产者）
-- **BLE 全流程模拟**：扫描按 700ms/台 分批发现 3 台假适配器；点击后 1.2s 置为
-  已连接；从表 FIND MASTER 列出 2 台 SkyGauge，配对 1s 成功并绑定主表 MAC
-  （此后 `slave_has_data` 为真，从表页显示数据）。脚本化点击用
-  `--tap X,Y,FRAME`，无头回归示例：
-  `SDL_VIDEODRIVER=dummy ... --unbound --tap 180,165,900 --frames 1400 --screenshot out.bmp`。
+- **BLE 全流程模拟**：默认未绑定，开机进扫描页；扫描按 700ms/台 分批发现
+  3 台假适配器，点击后 1.2s 置为已连接并跳转表盘；从表 FIND MASTER 列出
+  2 台 SkyGauge，配对 1s 成功并绑定主表 MAC（此后 `slave_has_data` 为真，
+  从表页显示数据）。脚本化点击用 `--tap X,Y,FRAME`，无头回归示例：
+  `SDL_VIDEODRIVER=dummy ... --tap 180,165,400 --frames 900 --screenshot out.bmp`。
 
 ## 已知限制
 

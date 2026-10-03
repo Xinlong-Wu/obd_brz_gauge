@@ -37,28 +37,27 @@ cmake --build simulator/build -j
 ## Common recipes
 
 ```bash
-# Skip the boot video, go straight to the gauges
-./simulator/build/obd_gauge_sim --no-boot
+# Default flow: boot video → BLE scan page (OBDII / V-LINK / ELM327 v2.3 appear
+#   over a few seconds) → click one → "Connecting..." 1.2s → gauges with fake data
+./simulator/build/obd_gauge_sim
+
+# Skip the scan page entirely (NVS pre-saved with SIM-ELM327)
+./simulator/build/obd_gauge_sim --bound
+
+# Gauge pages with the adapter shown as offline
+./simulator/build/obd_gauge_sim --bound --disconnected
+
+# Skip the boot video
+./simulator/build/obd_gauge_sim --bound --no-boot
 
 # Switch the compile-time theme (slot in themes/registry.txt)
-./simulator/build/obd_gauge_sim --theme-slot 1      # amber
+./simulator/build/obd_gauge_sim --bound --theme-slot 1      # amber
 
 # Load a runtime theme (theme.bin served as the theme_0 partition)
-./simulator/build/obd_gauge_sim --theme theme_store/boost_oil_example/theme.bin
+./simulator/build/obd_gauge_sim --bound --theme theme_store/boost_oil_example/theme.bin
 
-# Act as a slave gauge (no ELM327, waits for master data that never comes)
+# Slave mode: FIND MASTER lists SkyGauge-XXXX units; a tap pairs in 1s and data flows
 ./simulator/build/obd_gauge_sim --role slave
-
-# Walk the "scan → pick → connect" flow: --unbound boots to the BLE scan page,
-# OBDII / V-LINK / ELM327 v2.3 appear over a few seconds, tapping one
-# "connects" after 1.2s
-./simulator/build/obd_gauge_sim --unbound
-
-# Slave pairing works too: FIND MASTER lists SkyGauge-XXXX units, a tap pairs in 1s
-./simulator/build/obd_gauge_sim --role slave --unbound
-
-# UI as it looks with no adapter connected
-./simulator/build/obd_gauge_sim --disconnected
 ```
 
 ## CLI options
@@ -70,8 +69,8 @@ cmake --build simulator/build -j
 | `--profile N` | vehicle profile index (same order as Settings → VEHICLE) | 0 (OBD2 Generic) |
 | `--theme-slot N` | compile-time theme slot (`themes/registry.txt` line) | 0 |
 | `--role ROLE` | `master` / `slave` / `standalone` | standalone |
-| `--disconnected` | simulate the bound adapter being powered off (still boots to the gauges, pages show the disconnected state) | off |
-| `--unbound` | no saved adapter in NVS (boots to the BLE scan page, i.e. a freshly flashed device) | off |
+| `--bound` | pre-saved adapter SIM-ELM327 in NVS (skips the scan page, boots to the gauges) | off |
+| `--disconnected` | with `--bound`: show the adapter as not connected | off |
 | `--no-boot` | skip the boot video (intro mode OFF) | off |
 | `--theme FILE` | theme.bin path, served as the theme_0 pseudo partition | none (built-in fallback) |
 | `--bootmedia DIR` | dir holding the boot animation files | `<repo>/bootmedia/slot_a` |
@@ -123,12 +122,13 @@ Key points:
   (pack your own with `tools/theme_packer/pack_theme.py`).
 - **Events**: `app_event_recv` is always empty (single-threaded simulator, no
   ESP-NOW/BLE producers).
-- **BLE flow simulation**: scanning discovers 3 fake adapters at 700ms
-  intervals; a tap "connects" after 1.2s; FIND MASTER lists 2 SkyGauge units
-  and pairing succeeds after 1s, binding the master MAC (after which
+- **BLE flow simulation**: unbound by default, so a plain run boots to the
+  scan page; scanning discovers 3 fake adapters at 700ms intervals, a tap
+  "connects" after 1.2s and jumps to the gauges; FIND MASTER lists 2 SkyGauge
+  units and pairing succeeds after 1s, binding the master MAC (after which
   `slave_has_data` is true and slave pages show data). Scripted taps via
   `--tap X,Y,FRAME`; headless regression example:
-  `SDL_VIDEODRIVER=dummy ... --unbound --tap 180,165,900 --frames 1400 --screenshot out.bmp`
+  `SDL_VIDEODRIVER=dummy ... --tap 180,165,400 --frames 900 --screenshot out.bmp`
 
 ## Known limitations
 

@@ -53,15 +53,9 @@ static void ensure_defaults(void)
     s_cfg.rpm_warn_anim_en = 0;
     s_cfg.rpm_warn_linked_en = 0;
     s_cfg.rc_enabled = 0;
-    /* A "bound" adapter by default, so the plain `obd_gauge_sim` run boots
-     * into the gauge pages (firmware navigates to the BLE scan page when
-     * ble_device_name is empty). --unbound clears this again. */
-    snprintf(s_cfg.ble_device_name, sizeof(s_cfg.ble_device_name), "SIM-ELM327");
-    {
-        const uint8_t fake_mac[6] = {0x02, 0x42, 0x53, 0x49, 0x4D, 0x01}; /* locally administered, "SIM" */
-        memcpy(s_cfg.ble_obd_mac, fake_mac, 6);
-    }
-    /* macs for espnow_master stay all-zero (unbound) */
+    /* Unbound by default: the plain `obd_gauge_sim` run boots to the BLE scan
+     * page, where the fake adapters can be picked and "connected" manually.
+     * --bound pre-fills a saved adapter so boot lands straight on the gauges. */
 
     memset(&s_stat, 0, sizeof(s_stat));
 
@@ -80,9 +74,11 @@ void sim_nvs_mock_configure(const sim_opts_t *opts)
     if (opts->role >= 0)        s_cfg.device_role = (uint8_t)opts->role;
     if (opts->theme_slot >= 0)  s_cfg.theme_cfg.theme = (uint8_t)opts->theme_slot;
     if (opts->no_boot)          s_intro_enable = 0;   /* OFF */
-    if (opts->unbound) {
-        s_cfg.ble_device_name[0] = '\0';
-        memset(s_cfg.ble_obd_mac, 0, sizeof(s_cfg.ble_obd_mac));
+    if (opts->bound) {
+        /* Pre-saved adapter: boot skips the BLE scan page. */
+        snprintf(s_cfg.ble_device_name, sizeof(s_cfg.ble_device_name), "SIM-ELM327");
+        const uint8_t fake_mac[6] = {0x02, 0x42, 0x53, 0x49, 0x4D, 0x01}; /* locally administered, "SIM" */
+        memcpy(s_cfg.ble_obd_mac, fake_mac, 6);
     }
 }
 
