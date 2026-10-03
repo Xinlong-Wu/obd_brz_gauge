@@ -24,3 +24,4 @@ tools/pids_full.csv
 .zcodeignore
 # per-developer AI preferences (see AGENTS.md self-update protocol)
 AGENTS.local.md
+sdkconfig.ws175.old
