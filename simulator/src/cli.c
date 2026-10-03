@@ -36,6 +36,7 @@ void sim_opts_print_help(const char *prog)
         "  --screenshot FILE  save the final frame as BMP\n"
         "  --tour N           inject N alternating swipes, screenshotting after each\n"
         "  --shots-dir DIR    where --tour screenshots go (default sim_shots)\n"
+        "  --tap X,Y,FRAME    scripted tap at screen coords on a given frame (headless)\n"
         "  --help\n"
         "\n"
         "Headless (CI/screenshot) mode: SDL_VIDEODRIVER=dummy ./obd_gauge_sim --frames 300 ...\n",
@@ -108,6 +109,12 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
         } else if (strcmp(a, "--shots-dir") == 0) {
             o->shots_dir = NEXT();
             if (!o->shots_dir) return false;
+        } else if (strcmp(a, "--tap") == 0) {
+            const char *v = NEXT();
+            if (!v || sscanf(v, "%d,%d,%ld", &o->tap_x, &o->tap_y, &o->tap_frame) != 3) {
+                fprintf(stderr, "--tap expects X,Y,FRAME (e.g. --tap 180,170,300)\n");
+                return false;
+            }
         } else {
             fprintf(stderr, "unknown option: %s\n", a);
             return false;

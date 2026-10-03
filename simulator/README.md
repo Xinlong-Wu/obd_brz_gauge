@@ -44,6 +44,13 @@ cmake --build simulator/build -j
 # 模拟从表（不连 ELM327，等主表数据——模拟器里永远等不到）
 ./simulator/build/obd_gauge_sim --role slave
 
+# 走一遍"扫描 → 选择 → 连接"：--unbound 开机进 BLE 扫描页，
+# 数秒内列表出现 OBDII / V-LINK / ELM327 v2.3，点击即模拟连接（1.2s 后就绪）
+./simulator/build/obd_gauge_sim --unbound
+
+# 从表模式同样可配对：FIND MASTER 列表出现 SkyGauge-XXXX，点击 1s 配对成功
+./simulator/build/obd_gauge_sim --role slave --unbound
+
 # 模拟未连接适配器的界面
 ./simulator/build/obd_gauge_sim --disconnected
 ```
@@ -62,6 +69,7 @@ cmake --build simulator/build -j
 | `--no-boot` | 跳过开机动画（intro 模式 OFF） | 关 |
 | `--theme FILE` | theme.bin 路径，作为 theme_0 伪分区 | 无（走内置主题回退）|
 | `--bootmedia DIR` | 开机动画文件目录 | `<repo>/bootmedia/slot_a` |
+| `--tap X,Y,FRAME` | 脚本化点击：第 FRAME 帧在屏幕坐标 (X,Y) 注入一次触摸 | 关 |
 | `--frames N` | 跑 N 帧后退出（无头模式用） | 0（窗口关闭才退）|
 | `--screenshot FILE` | 退出前保存最后一帧 BMP | 无 |
 | `--tour N` | 自动左右滑 N 次，每次截图到 `--shots-dir` | 0 |
@@ -104,13 +112,18 @@ SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
 - **运行时主题**：`theme_loader.c` 的 `esp_partition_*` 调用打到内存伪分区，
   `--theme` 提供的 theme.bin 即整个 theme_0 分区镜像（可用
   `tools/theme_packer/pack_theme.py` 打包自己的主题目录生成）。
-- **事件**：`app_event_recv` 恒空（模拟器单线程，无 ESP-NOW/BLE 生产者）。
+- **事件**：`app_event_recv` 恒空（模拟器单线程，无 ESP-NOW/BLE 生产者）
+- **BLE 全流程模拟**：扫描按 700ms/台 分批发现 3 台假适配器；点击后 1.2s 置为
+  已连接；从表 FIND MASTER 列出 2 台 SkyGauge，配对 1s 成功并绑定主表 MAC
+  （此后 `slave_has_data` 为真，从表页显示数据）。脚本化点击用
+  `--tap X,Y,FRAME`，无头回归示例：
+  `SDL_VIDEODRIVER=dummy ... --unbound --tap 180,165,900 --frames 1400 --screenshot out.bmp`。
 
 ## 已知限制
 
 - 挡位由假数据显式给定，不按车型传动比估算（`--profile` 影响的是设置页显示的
   车型名，以及依赖 profile 的解码逻辑）
-- BLE 扫描页永远没有结果；配对、OTA、RaceChrono、三连表联动均不可用（桩返回
-  失败/空）
+- BLE 扫描/连接与从表配对为模拟数据（设备名、MAC、RSSI 固定）；OTA 上传、
+  RaceChrono 输出、真实 OBD 通信不可用
 - NVS 不持久化，重启即回默认值
 - 帧率/触摸手感与真机（QSPI 80MHz + CST816）无关，视觉验收以真机为准

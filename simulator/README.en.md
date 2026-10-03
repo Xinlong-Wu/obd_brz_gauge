@@ -49,6 +49,14 @@ cmake --build simulator/build -j
 # Act as a slave gauge (no ELM327, waits for master data that never comes)
 ./simulator/build/obd_gauge_sim --role slave
 
+# Walk the "scan → pick → connect" flow: --unbound boots to the BLE scan page,
+# OBDII / V-LINK / ELM327 v2.3 appear over a few seconds, tapping one
+# "connects" after 1.2s
+./simulator/build/obd_gauge_sim --unbound
+
+# Slave pairing works too: FIND MASTER lists SkyGauge-XXXX units, a tap pairs in 1s
+./simulator/build/obd_gauge_sim --role slave --unbound
+
 # UI as it looks with no adapter connected
 ./simulator/build/obd_gauge_sim --disconnected
 ```
@@ -67,6 +75,7 @@ cmake --build simulator/build -j
 | `--no-boot` | skip the boot video (intro mode OFF) | off |
 | `--theme FILE` | theme.bin path, served as the theme_0 pseudo partition | none (built-in fallback) |
 | `--bootmedia DIR` | dir holding the boot animation files | `<repo>/bootmedia/slot_a` |
+| `--tap X,Y,FRAME` | scripted tap: injects a touch at screen coords on the given frame | off |
 | `--frames N` | run N frames then exit (headless mode) | 0 (until window closed) |
 | `--screenshot FILE` | save the final frame as BMP | none |
 | `--tour N` | inject N swipes, screenshotting after each | 0 |
@@ -114,14 +123,21 @@ Key points:
   (pack your own with `tools/theme_packer/pack_theme.py`).
 - **Events**: `app_event_recv` is always empty (single-threaded simulator, no
   ESP-NOW/BLE producers).
+- **BLE flow simulation**: scanning discovers 3 fake adapters at 700ms
+  intervals; a tap "connects" after 1.2s; FIND MASTER lists 2 SkyGauge units
+  and pairing succeeds after 1s, binding the master MAC (after which
+  `slave_has_data` is true and slave pages show data). Scripted taps via
+  `--tap X,Y,FRAME`; headless regression example:
+  `SDL_VIDEODRIVER=dummy ... --unbound --tap 180,165,900 --frames 1400 --screenshot out.bmp`
 
 ## Known limitations
 
 - Gear is set explicitly by the fake data, not derived from per-vehicle gear
   ratio tables (`--profile` affects the vehicle name in Settings and any
   profile-driven decoding, not the shown gear)
-- The BLE scan page never finds devices; pairing, OTA, RaceChrono and
-  triple-gauge sync are unavailable (stubs fail/return empty)
+- BLE scan/connect and slave pairing run on simulated data (fixed names, MACs,
+  RSSI); OTA upload, RaceChrono output and real OBD communication are
+  unavailable
 - NVS does not persist; settings reset on relaunch
 - Frame pacing and touch feel differ from the real board (QSPI 80MHz +
   CST816); visual acceptance is done on hardware

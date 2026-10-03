@@ -183,6 +183,39 @@ static void sim_tour_tick(int dt_ms, bool *quit)
     }
 }
 
+/* ---- scripted tap injector (--tap X,Y,FRAME) ---- */
+static struct {
+    int x, y;
+    long frame;
+    int state;      /* 0=armed 1=pressing 2=done */
+    int hold;
+} s_tap;
+
+static void sim_tap_start(const sim_opts_t *opts)
+{
+    s_tap.x = opts->tap_x;
+    s_tap.y = opts->tap_y;
+    s_tap.frame = opts->tap_frame;
+    s_tap.state = opts->tap_frame > 0 ? 0 : 2;
+}
+
+static void sim_tap_tick(void)
+{
+    if (s_tap.state == 0 && s_frame >= s_tap.frame) {
+        s_inject_active = true;
+        s_inject.x = s_tap.x;
+        s_inject.y = s_tap.y;
+        s_inject.pressed = true;
+        s_tap.state = 1;
+        s_tap.hold = 0;
+        fprintf(stderr, "[sim] tap injected at (%d,%d)\n", s_tap.x, s_tap.y);
+    } else if (s_tap.state == 1 && ++s_tap.hold >= 10) {
+        s_inject.pressed = false;
+        s_inject_active = false;
+        s_tap.state = 2;
+    }
+}
+
 int main(int argc, char **argv)
 {
     sim_opts_t opts;
@@ -270,6 +303,7 @@ int main(int argc, char **argv)
     vMileageDataStatisticTask();   /* real odometer timer (esp_timer shim) */
     fake_data_start(&opts);
     if (opts.tour > 0) sim_tour_start(&opts);
+    sim_tap_start(&opts);
 
     /* ---- main loop ---- */
     bool quit = false;
@@ -296,6 +330,7 @@ int main(int argc, char **argv)
 
         sim_esp_timer_poll();
         sim_tour_tick((int)dt, &quit);
+        sim_tap_tick();
 
         lv_timer_handler();
 
