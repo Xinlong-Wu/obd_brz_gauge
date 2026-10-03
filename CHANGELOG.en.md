@@ -7,6 +7,25 @@ cleanups live in the git history.
 
 ---
 
+## PC simulator and Docker build (no firmware behavior change)
+
+- **New `simulator/` PC simulator**: the firmware UI sources (`export_path/`,
+  `theme_engine/`, the data cache, the boot-video player) are compiled
+  **unmodified** into an SDL2 window (LVGL 8.4 multi-display). Features: a
+  fake-data driving scenario, the full BLE scan→connect and slave-pairing
+  flows simulated, a side data-adjustment panel (11 channel sliders / gear
+  roller / engine switch — dragging a slider takes the channel over), boot
+  video and runtime-theme (theme.bin) loading, and headless screenshot
+  acceptance (`--frames/--screenshot/--tour/--tap`). ESP-IDF dependencies are
+  satisfied by `simulator/shims/` — not a single firmware line changes;
+  see [simulator/README.en.md](simulator/README.en.md)
+- **New `tools/docker-build.sh`**: thin wrapper around the
+  espressif/idf:v5.5.3 container for machines without a local IDF
+  environment (e.g. macOS, where containers cannot flash); build in the
+  container, flash from the host
+
+---
+
 ## Pre-built firmware channel removed
 
 - **The repo no longer hosts pre-built firmware**: `firmware/release/`

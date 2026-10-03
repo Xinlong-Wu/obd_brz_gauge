@@ -6,6 +6,20 @@
 
 ---
 
+## PC 模拟器与 Docker 构建（不影响固件行为）
+
+- **新增 `simulator/` PC 端模拟器**：固件 UI 源码（`export_path/`、`theme_engine/`、
+  数据缓存、开机动画播放器）**零改动**编进 SDL2 窗口（LVGL 8.4 多显示器）。
+  功能：假数据行驶场景、BLE 扫描→连接与从表配对全流程模拟、右侧数据调节面板
+  （11 通道滑条 / 挡位旋轮 / 引擎开关，拖动即接管通道）、开机动画与运行时主题
+  （theme.bin）加载、无头截图验收（`--frames/--screenshot/--tour/--tap`）。
+  ESP-IDF 依赖由 `simulator/shims/` 遮蔽补齐，固件源码无一行改动；
+  详见 [simulator/README.md](simulator/README.md)
+- **新增 `tools/docker-build.sh`**：espressif/idf:v5.5.3 容器构建的薄封装，
+  无本地 IDF 环境（如 macOS 容器无法烧录）时用容器编译、宿主机烧录
+
+---
+
 ## 移除预编译固件渠道
 
 - **仓库不再托管预编译固件**：删除 `firmware/release/`（含 `latest.json`）和游离的
