@@ -6,12 +6,13 @@
 它被 `main/CMakeLists.txt` 在 CMake 配置阶段自动调用。逐工具速查表见
 [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md#工具脚本)。
 
-## 构建 / 发布
+## 构建 / 发布 / 测试
 
 | 脚本 | 用途 |
 |------|------|
 | `gen_themes.py` | 编译期主题代码生成：`themes/registry.txt` + 各主题 `theme.toml` → `ui_theme_generated.c` + `theme_assets/`。CMake 配置期自动跑；`--check` 校验入库生成物是否过期（零第三方依赖）|
 | `release.sh` | 一键发版：commit（**必须先提交**，build tag 的 count 取 git 提交数）→ `idf.py build` → push |
+| `sim_regress.py` | 模拟器截图回归（Pillow）：固定 seed + 虚拟时钟无头跑场景，逐像素对比 `tests/goldens/` 金图。`--update-goldens` 在有意改 UI 后刷新金图。CI 的 unit-sim job 调用 |
 
 ## 离线资源转换（产物入库，改素材时手动跑）
 

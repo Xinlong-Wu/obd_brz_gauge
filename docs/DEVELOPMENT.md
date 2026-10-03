@@ -135,6 +135,31 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 
 参数表与架构说明见 [simulator/README.md](../simulator/README.md)。
 
+## 测试与 CI
+
+三层验证,全部在主机跑,不需要开发板:
+
+```bash
+# 1) 主机端单元测试(tests/,CTest;复用 simulator/shims 编译固件纯逻辑模块)
+cmake -S tests -B tests/build && cmake --build tests/build -j
+ctest --test-dir tests/build -R '^test_' --output-on-failure
+
+# 2) 模拟器截图回归(金图对比;改 UI 后 --update-goldens 刷新并入库)
+python3 tools/sim_regress.py
+
+# 3) 主题生成物一致性(零依赖)
+python3 tools/gen_themes.py --check
+```
+
+- 单测新增用例:在 `tests/` 加 `test_xxx.c` + `tests/CMakeLists.txt` 注册
+  (`add_gauge_test`),断言宏见 `tests/test_util.h`;纯逻辑优先抽成
+  `*_logic.h`(`static inline`,不依赖 LVGL/ESP-IDF)再测
+- 截图回归依赖 `--seed` + `--clock virtual` 的确定性(同参数位级一致);
+  金图在 `tests/goldens/`(PNG)
+- CI(`.github/workflows/ci.yml`)三 job:themes-check / unit-sim(单测+
+  截图回归,失败上传差图)/ firmware(Docker `espressif/idf:v5.5.3` 构建,
+  产物上传 artifact)
+
 ## 工具脚本
 
 | 脚本 | 用途 |

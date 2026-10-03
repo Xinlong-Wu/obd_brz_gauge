@@ -7,6 +7,30 @@ cleanups live in the git history.
 
 ---
 
+## Testing & CI foundation (no firmware behavior change)
+
+- **New host-side unit tests `tests/`** (CTest, zero test-framework deps):
+  firmware pure-logic modules compiled through the `simulator/shims` header
+  shadowing. First suites cover the data cache (sentinels/snapshot/RPM
+  override/gear derivation), vehicle profiles (count/out-of-range clamping/
+  data self-consistency), the display-item system (validity/formatting/
+  ranges) and the theme engine (default fallback + theme.bin v1 loading +
+  corruption tolerance)
+- **New screenshot regression `tools/sim_regress.py`** (Pillow): with the
+  simulator's new `--seed` (pinned fake-data PRNG) and `--clock virtual`
+  (frame-locked clock), screenshots are **bit-identical** for identical
+  args; 8 scenarios compare pixel-by-pixel against the `tests/goldens/`
+  goldens, and headless runs finish ~2x faster
+- **New CI `.github/workflows/ci.yml`** with three jobs: themes-check
+  (theme codegen freshness) / unit-sim (unit tests + screenshot regression,
+  diff overlays uploaded on failure) / firmware (Docker build with
+  espressif/idf:v5.5.3, binaries uploaded as artifacts)
+- `theme_engine_test()` now returns bool instead of void (reports failure
+  when a protected page becomes themeable); boot-time self-test wiring
+  unchanged
+
+---
+
 ## PC simulator and Docker build (no firmware behavior change)
 
 - **New `simulator/` PC simulator**: the firmware UI sources (`export_path/`,

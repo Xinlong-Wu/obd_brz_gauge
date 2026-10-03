@@ -151,6 +151,36 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 Full option table and architecture notes in
 [simulator/README.en.md](../simulator/README.en.md).
 
+## Testing & CI
+
+Three layers of verification, all host-side, no board required:
+
+```bash
+# 1) Host unit tests (tests/, CTest; firmware pure-logic modules compiled
+#    through the simulator/shims header shadowing)
+cmake -S tests -B tests/build && cmake --build tests/build -j
+ctest --test-dir tests/build -R '^test_' --output-on-failure
+
+# 2) Simulator screenshot regression (golden comparison; after an
+#    intentional UI change, refresh with --update-goldens and commit)
+python3 tools/sim_regress.py
+
+# 3) Theme codegen freshness (zero deps)
+python3 tools/gen_themes.py --check
+```
+
+- New unit tests: add `test_xxx.c` under `tests/` and register it in
+  `tests/CMakeLists.txt` (`add_gauge_test`); assert macros live in
+  `tests/test_util.h`. Prefer extracting pure logic into `*_logic.h`
+  (`static inline`, no LVGL/ESP-IDF deps) before testing it
+- Screenshot regression relies on the determinism of `--seed` +
+  `--clock virtual` (bit-identical for identical args); goldens are PNGs
+  under `tests/goldens/`
+- CI (`.github/workflows/ci.yml`) has three jobs: themes-check /
+  unit-sim (unit tests + screenshot regression, diff overlays uploaded
+  on failure) / firmware (Docker build with `espressif/idf:v5.5.3`,
+  binaries uploaded as artifacts)
+
 ## Tool scripts
 
 | Script | Purpose |

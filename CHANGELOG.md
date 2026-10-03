@@ -6,6 +6,24 @@
 
 ---
 
+## 测试与 CI 地基（不影响固件行为）
+
+- **新增主机端单元测试 `tests/`**（CTest，零测试框架依赖）：复用
+  `simulator/shims` 头遮蔽编译固件纯逻辑模块,首批覆盖数据缓存
+  （哨兵/快照/RPM 覆盖层/挡位推算）、车型表（数量/越界钳制/数据自洽）、
+  数据项系统（有效性判定/格式化/量程）、主题引擎（默认回退 + theme.bin v1
+  加载 + 损坏容错）
+- **新增截图回归 `tools/sim_regress.py`**（Pillow）：模拟器新增 `--seed`
+  （固定假数据 PRNG）与 `--clock virtual`（帧锁定时钟）后截图**位级可复现**,
+  8 个场景与 `tests/goldens/` 金图逐像素对比,headless 跑速约快 2 倍
+- **新增 CI `.github/workflows/ci.yml`** 三 job:themes-check（主题生成物
+  一致性）/ unit-sim（单测 + 截图回归,失败上传差图）/ firmware
+  （Docker espressif/idf:v5.5.3 构建,产物上传 artifact）
+- `theme_engine_test()` 由 void 改为 bool 返回（受保护页可主题化时报告失败）,
+  开机自检接线不变
+
+---
+
 ## PC 模拟器与 Docker 构建（不影响固件行为）
 
 - **新增 `simulator/` PC 端模拟器**：固件 UI 源码（`export_path/`、`theme_engine/`、

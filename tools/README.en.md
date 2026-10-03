@@ -7,12 +7,13 @@ firmware. The only build-time exception is `gen_themes.py`: it is invoked
 automatically by `main/CMakeLists.txt` at CMake configure time. Quick
 reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts).
 
-## Build / release
+## Build / release / test
 
 | Script | Purpose |
 |--------|---------|
 | `gen_themes.py` | Compile-time theme codegen: `themes/registry.txt` + per-theme `theme.toml` → `ui_theme_generated.c` + `theme_assets/`. Runs automatically at CMake configure; `--check` verifies the checked-in artifacts are fresh (zero third-party deps) |
 | `release.sh` | One-shot release: commit (**commit first** — the build tag's count is the git commit count) → `idf.py build` → push |
+| `sim_regress.py` | Simulator screenshot regression (Pillow): headless scenarios with a fixed seed + virtual clock, compared pixel-by-pixel against the `tests/goldens/` goldens. `--update-goldens` refreshes them after an intentional UI change. Called by the CI unit-sim job |
 
 ## Offline asset conversion (outputs are committed; run manually after changing assets)
 
