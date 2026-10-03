@@ -106,7 +106,9 @@ panel and restores the plain 360×360 window (used by CI screenshot runs).
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --no-boot --frames 500 --screenshot /tmp/gauge.bmp
 
-# walk the carousel automatically, one screenshot per page
+# walk the carousel automatically, one screenshot per page (measured ~2-3s
+# per step, 14 steps ≈ 40-60s; if a page renders unusually slow in software,
+# the mtime gaps between screenshots point at it)
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --tour 14 --shots-dir /tmp/sim_shots
 ```
@@ -122,8 +124,11 @@ Firmware sources (unmodified)          Shim layer (all inside simulator/)
 ├── app_obd_dsp/boot_block_player.c        ├── esp_partition_file.c theme.bin pseudo partition
 └── (main/app_main.c is NOT compiled)      ├── ota_boot_stubs.c     boot-media file backend
                                             ├── bsp_stubs.c          BLE/ESP-NOW canned answers
-        src/main.c: SDL2 window + flush byte-swap + mouse indev + app_main-style boot
-        src/fake_data.c: lv_timer driving a scenario straight into obd_data_set_*
+        src/main.c: SDL2 window + dual-display flush byte-swap + mouse routing + app_main-style boot
+        src/fake_data.c: pure scenario calculator (fake_data_compute), never touches the cache
+        src/control_panel.c: panel tick — writes channels into obd_data_cache
+                            (engine/manual); with --no-panel, main.c's
+                            engine_apply_tick applies them instead
 ```
 
 Key points:

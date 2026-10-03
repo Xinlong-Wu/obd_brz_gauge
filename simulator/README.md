@@ -93,7 +93,8 @@ CLT 滑条拉到 -40 即数据无效（无效哨兵）。`--no-panel` 隐藏面�
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --no-boot --frames 500 --screenshot /tmp/gauge.bmp
 
-# 自动巡览一圈页面，逐页截图
+# 自动巡览一圈页面，逐页截图（实测每步约 2-3s，14 步约 40-60s；
+# 若个别页面在软件渲染下明显变慢，截图文件的 mtime 间隔即为定位线索）
 SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
     --tour 14 --shots-dir /tmp/sim_shots
 ```
@@ -109,8 +110,10 @@ SDL_VIDEODRIVER=dummy ./simulator/build/obd_gauge_sim \
 ├── app_obd_dsp/boot_block_player.c      ├── esp_partition_file.c theme.bin 伪分区
 └──（main/app_main.c 不编译）            ├── ota_boot_stubs.c     开机动画文件后端
                                         ├── bsp_stubs.c          BLE/ESP-NOW 假应答
-        src/main.c: SDL2 窗口 + flush 字节序换回 + 鼠标 indev + 启动序列复刻
-        src/fake_data.c: lv_timer 驱动行驶场景，直接调 obd_data_set_*
+        src/main.c: SDL2 窗口 + 双显示器 flush 字节序换回 + 鼠标路由 + 启动序列复刻
+        src/fake_data.c: 纯场景计算器（fake_data_compute），不碰缓存
+        src/control_panel.c: 面板 tick——按引擎/手动把通道值写入 obd_data_cache
+                            （--no-panel 时由 main.c 的 engine_apply_tick 代写）
 ```
 
 要点：
