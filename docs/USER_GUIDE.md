@@ -60,6 +60,7 @@
 | VEHICLE | 17 个车型配置，切换立即生效（影响挡位识别、油温策略、协议锁定等）|
 | THEME | 编译期内置主题（default / amber / ocean 及社区主题），选中后**自动重启生效** |
 | 亮度 | 10–100% |
+| OBD POLL | 轮询档位 NORMAL / FAST / TURBO（默认间隔 30 / 15 / 5ms，下一轮询周期即生效，无需重启）。车型已锁定轮询间隔的（如 ZN/C6 CAN、MX-5）不受影响；TURBO 档对廉价克隆适配器可能过快，出现数据不稳时退回 NORMAL |
 | RACECHRONO | ON=完整 BLE 服务（RaceChrono + 配对 + OTA）；OFF=最小模式（仅 Info + OTA 服务，不广播），省内存 |
 | 下滑 → MULTI-GAUGE | 三连表角色设置（见下）|
 

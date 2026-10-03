@@ -22,6 +22,7 @@ static lv_obj_t *s_roller_vehicle = NULL;
 static lv_obj_t *s_roller_theme = NULL;
 static lv_obj_t *s_slider_bright = NULL;
 static lv_obj_t *s_label_bright_val = NULL;
+static lv_obj_t *s_roller_poll = NULL;
 static lv_obj_t *s_btn_rc = NULL;
 static lv_obj_t *s_label_rc = NULL;
 static bool s_rc_enabled = false;
@@ -38,7 +39,7 @@ static void on_bright_slider_change(lv_event_t *e)
 {
     int32_t val = lv_slider_get_value(s_slider_bright);
     if(val < 10) val = 10;
-    lv_label_set_text_fmt(s_label_bright_val, "%ld%%", val);
+    lv_label_set_text_fmt(s_label_bright_val, "%d%%", (int)val);
     nvs_user_cfg_t cfg = *nvs_cfg_get();
     cfg.brightness_day = (uint8_t)val;
     nvs_cfg_set(&cfg);
@@ -55,6 +56,15 @@ static void on_rc_toggle(lv_event_t *e)
         LV_PART_MAIN);
     nvs_user_cfg_t cfg = *nvs_cfg_get();
     cfg.rc_enabled = s_rc_enabled ? 1 : 0;
+    nvs_cfg_set(&cfg);
+}
+
+// OBD poll tier: takes effect from the next poll slot (the gap is re-read
+// every cycle in elm327_ble_client.c), no restart needed.
+static void on_poll_roller_change(lv_event_t *e)
+{
+    nvs_user_cfg_t cfg = *nvs_cfg_get();
+    cfg.obd_poll_mode = (uint8_t)lv_roller_get_selected(s_roller_poll);
     nvs_cfg_set(&cfg);
 }
 
@@ -209,18 +219,40 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_obj_set_style_text_color(s_label_bright_val, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(s_label_bright_val, LV_ALIGN_CENTER, 0, 95);
 
-    // ====== Row 5: RaceChrono Toggle ======
+    // ====== Row 5: OBD POLL tier (left) + RaceChrono toggle (right) ======
+    // One band, two half-width settings — vertical space is exhausted above
+    // and the circle narrows fast below. Poll tier only applies to vehicles
+    // that don't pin their own poll_gap_ms (see elm327_ble_client.c).
+    lv_obj_t *label_poll = lv_label_create(ui_ScreenPageSettings);
+    lv_label_set_text(label_poll, "OBD POLL");
+    lv_obj_set_style_text_font(label_poll, &ui_font_FontTypoderSize16, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label_poll, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
+    lv_obj_align(label_poll, LV_ALIGN_CENTER, -70, 104);
+
+    s_roller_poll = lv_roller_create(ui_ScreenPageSettings);
+    lv_obj_set_style_clip_corner(s_roller_poll, true, 0);
+    lv_obj_clear_flag(s_roller_poll, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_roller_set_options(s_roller_poll, "NORMAL\nFAST\nTURBO", LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_visible_row_count(s_roller_poll, 1);
+    lv_roller_set_selected(s_roller_poll,
+        (cfg->obd_poll_mode < NVS_OBD_POLL_MODE_COUNT) ? cfg->obd_poll_mode : 0, LV_ANIM_OFF);
+    lv_obj_set_width(s_roller_poll, 80);
+    lv_obj_set_height(s_roller_poll, 26);
+    ui_helpers_style_dark_roller(s_roller_poll, &ui_font_FontTypoderSize16);
+    lv_obj_align(s_roller_poll, LV_ALIGN_CENTER, -70, 126);
+    lv_obj_add_event_cb(s_roller_poll, on_poll_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
+
     lv_obj_t *label_rc = lv_label_create(ui_ScreenPageSettings);
     lv_label_set_text(label_rc, "RACECHRONO");
     lv_obj_set_style_text_font(label_rc, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_rc, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_rc, LV_ALIGN_CENTER, -40, 122);   // label + button share one row to save height
+    lv_obj_align(label_rc, LV_ALIGN_CENTER, 62, 104);
 
     s_rc_enabled = cfg->rc_enabled;
     s_btn_rc = lv_btn_create(ui_ScreenPageSettings);
     lv_obj_set_style_clip_corner(s_btn_rc, true, 0);
-    lv_obj_set_size(s_btn_rc, 60, 26);
-    lv_obj_align(s_btn_rc, LV_ALIGN_CENTER, 70, 122);
+    lv_obj_set_size(s_btn_rc, 56, 26);
+    lv_obj_align(s_btn_rc, LV_ALIGN_CENTER, 62, 126);
     lv_obj_set_style_bg_color(s_btn_rc, s_rc_enabled ? lv_color_hex(0x00AA55) : lv_color_hex(0x333333), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(s_btn_rc, 255, LV_PART_MAIN);
     lv_obj_set_style_radius(s_btn_rc, 13, LV_PART_MAIN);

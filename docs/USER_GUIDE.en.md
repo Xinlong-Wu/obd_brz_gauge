@@ -69,6 +69,7 @@ When data times out or BLE drops, gauge pages show a **NO SIGNAL** banner.
 | VEHICLE | The 17 vehicle profiles; switching applies immediately (affects gear detection, oil-temp strategy, protocol lock, …)|
 | THEME | Compiled-in themes (default / amber / ocean plus community themes); selecting **reboots** the device to apply |
 | Brightness | 10–100% |
+| OBD POLL | Poll tier NORMAL / FAST / TURBO (default slot gap 30 / 15 / 5 ms; takes effect on the next poll cycle, no reboot). Vehicles that pin their own poll gap (ZN/C6 CAN, MX-5, ...) are unaffected; TURBO can overwhelm cheap clone adapters — drop back to NORMAL if data gets unstable |
 | RACECHRONO | ON = full BLE services (RaceChrono + pairing + OTA); OFF = minimal mode (Info + OTA only, no advertising) to save memory |
 | Swipe down → MULTI-GAUGE | Triple-gauge role setting (see below)|
 

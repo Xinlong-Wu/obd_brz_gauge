@@ -158,6 +158,8 @@ esp_err_t nvs_storage_init(void)
     if(s_cfg.oil_pressure_warn_x10 > 100) s_cfg.oil_pressure_warn_x10 = 80;
     // 0=unset/legacy out-of-range -> default 6000; clamped here centrally so callers (ui.c / ui_ScreenPageRpmWarn.c) don't repeat the check
     if(s_cfg.rpm_warn_threshold < 1000) s_cfg.rpm_warn_threshold = 6000;
+    // poll mode tier: 0=NORMAL 1=FAST 2=TURBO (0 is also the grow-default for old blobs)
+    if(s_cfg.obd_poll_mode >= NVS_OBD_POLL_MODE_COUNT) s_cfg.obd_poll_mode = NVS_OBD_POLL_MODE_NORMAL;
 
     // Validate TEMP/INFO custom display-item maps: 0..(DISP_ITEM_COUNT-1)
     for (int i = 0; i < 3; ++i) {

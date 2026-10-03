@@ -107,7 +107,8 @@ static oil_temp_query_mode_t s_oil_mode_priority[4] = {
 };  // default priority, updated from the vehicle profile config after boot
 static uint32_t s_oil_mode_fail_count[12] = {0};  // consecutive failure count per mode (poll idx 0~11)
 #define OIL_MODE_FAIL_THRESHOLD 5  // switch to the next mode only after a mode fails this many times
-#define OBD_POLL_SLOT_GAP_MS   30  // idle gap between poll slots (ms); was 100, lowered to raise refresh rate — too small overwhelms clone adapters
+// Historical global poll-slot gap (30ms) now lives in nvs_obd_poll_mode_default_gap_ms()
+// (Settings → OBD POLL tier); kept here only as documentation of the baseline.
 static bool s_vehicle_profile_inited = false;
 
 // Oil-temp diagnostic stats
@@ -1259,7 +1260,8 @@ static void obd_poll_task(void *arg) {
             }
         }
 
-        // Inter-slot idle gap: prefer the override's poll_gap_ms first, then the profile's poll_gap_ms (e.g. ZC/N6, MX-5 ND use 1ms); fall back to the global default 30ms.
+        // Inter-slot idle gap: prefer the override's poll_gap_ms first, then the profile's poll_gap_ms (e.g. ZC/N6, MX-5 ND use 1ms);
+        // fall back to the user's poll-mode tier (Settings → OBD POLL: NORMAL 30 / FAST 15 / TURBO 5ms).
         // Too small overwhelms cheap BLE adapters; profiles with fast CAN-bus response can safely go smaller.
         // If the user sets poll_gap_ms = 0, skip vTaskDelay and move on directly.
         {
@@ -1268,7 +1270,8 @@ static void obd_poll_task(void *arg) {
             uint32_t gap = (ov_gap && ov_gap->poll_gap_ms > 0)
                            ? ov_gap->poll_gap_ms
                            : ((vp_gap && vp_gap->poll_gap_ms > 0)
-                              ? vp_gap->poll_gap_ms : OBD_POLL_SLOT_GAP_MS);
+                              ? vp_gap->poll_gap_ms
+                              : nvs_obd_poll_mode_default_gap_ms(nvs_cfg_get()->obd_poll_mode));
             if (gap > 0) vTaskDelay(pdMS_TO_TICKS(gap));
         }
     }

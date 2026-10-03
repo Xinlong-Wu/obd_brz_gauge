@@ -7,6 +7,23 @@ cleanups live in the git history.
 
 ---
 
+## OBD poll tier (NORMAL / FAST / TURBO)
+
+- New **OBD POLL** roller in Settings (shares a two-column row with
+  RACECHRONO): NORMAL 30ms (default, matches historical behavior) /
+  FAST 15ms / TURBO 5ms — effective on the next poll cycle, no reboot
+- Resolution order unchanged: the vehicle override's `poll_gap_ms` >
+  the profile's `poll_gap_ms` > the user tier; vehicles that pin their
+  gap (ZN/C6 CAN, MX-5, ...) are unaffected — the tier only sets the
+  default for unpinned vehicles
+- NVS `nvs_user_cfg_t` gains `obd_poll_mode` appended at the end (old
+  devices grow-compatible, zero = NORMAL); tested in
+  `tests/test_nvs_poll_mode.c`
+- Ported from Hokori23/obd_brz_gauge's turbo poll mode, re-scaled to
+  this repo's 30ms baseline
+
+---
+
 ## ZC6 CAN monitor extension: direct gear, g-force, TPMS
 
 - The `ZN/C6 CAN` profile's ATMA monitor now decodes three more frames

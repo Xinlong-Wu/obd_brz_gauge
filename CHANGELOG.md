@@ -6,6 +6,21 @@
 
 ---
 
+## OBD 轮询档位（NORMAL / FAST / TURBO）
+
+- 设置页新增 **OBD POLL** 滚轮（与 RACECHRONO 同排双列布局）：
+  NORMAL 30ms（默认，兼容历史行为）/ FAST 15ms / TURBO 5ms，下一轮询周期
+  即生效，无需重启
+- 解析优先级不变：车型 override 的 `poll_gap_ms` > 车型 profile 的
+  `poll_gap_ms` > 用户档位；已锁定间隔的车型（ZN/C6 CAN、MX-5 等）不受
+  影响，档位只调"未锁定"车型的默认间隔
+- NVS `nvs_user_cfg_t` 末尾追加 `obd_poll_mode`（老设备 grow 兼容，
+  零值即 NORMAL）；单测 `tests/test_nvs_poll_mode.c`
+- 移植自 Hokori23/obd_brz_gauge 的 turbo poll mode，间隔档位按本仓库
+  30ms 基线重新定标
+
+---
+
 ## ZC6 CAN 监听扩展：挡位直读 / G 力 / 胎压
 
 - `ZN/C6 CAN` 车型的 ATMA 监听新增三个数据帧的解码（移植自

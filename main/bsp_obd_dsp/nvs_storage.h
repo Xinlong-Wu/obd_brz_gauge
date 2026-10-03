@@ -37,9 +37,31 @@ typedef struct {
     uint8_t rpm_warn_linked_en;  // multi-gauge linked flash: 0=off 1=on (gauges turn red in sequence by
                                  // position, then all flash at threshold; logic in ui.c)
     uint8_t rc_enabled;          // RaceChrono BLE service: 0=off (minimal mode), 1=on (full RC+Pair+Info+OTA)
+    uint8_t obd_poll_mode;       // OBD poll default gap tier: 0=NORMAL 30ms, 1=FAST 15ms, 2=TURBO 5ms.
+                                 // Only applies when neither the vehicle override nor the profile pins
+                                 // poll_gap_ms (see elm327_ble_client.c gap resolution). Appended LAST
+                                 // for old-device NVS compatibility.
                                  // NOTE: new fields MUST be appended at the END of this struct;
                                  // see the load_blob grow logic comment in nvs_storage.c.
 } nvs_user_cfg_t;
+
+/*------------------ OBD poll mode helpers ------------------*/
+
+#define NVS_OBD_POLL_MODE_NORMAL 0u
+#define NVS_OBD_POLL_MODE_FAST   1u
+#define NVS_OBD_POLL_MODE_TURBO  2u
+#define NVS_OBD_POLL_MODE_COUNT  3u
+
+/** 全局默认轮询槽间隔(ms):按用户档位取值,越界回退 NORMAL。
+ *  车型 override/profile 锁定的 poll_gap_ms 优先于此值(可快不可慢被锁车拖累)。 */
+static inline uint32_t nvs_obd_poll_mode_default_gap_ms(uint8_t mode)
+{
+    switch (mode) {
+    case NVS_OBD_POLL_MODE_FAST:   return 15u;
+    case NVS_OBD_POLL_MODE_TURBO:  return 5u;
+    default:                       return 30u;   // NORMAL / 越界
+    }
+}
 
 /*------------------ Runtime statistics (persisted periodically) ------------------*/
 typedef struct {
