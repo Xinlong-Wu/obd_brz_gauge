@@ -150,7 +150,7 @@ static void compute_drive_segment(fake_values_t *v)
         tps = 0;
         boost = 0;
         afr = 1490;
-        s_st.brake_x10 = lerp(2500, 3300, p, d);   /* brake disc heats up */
+        s_st.brake_x10 = lerp(s_st.brake_x10, 3300, p, d); /* brake disc heats up */
         break;
     case PH_COOL:
         speed = 35;
@@ -159,7 +159,7 @@ static void compute_drive_segment(fake_values_t *v)
         tps = 8;
         boost = 1;
         afr = 1470;
-        s_st.brake_x10 = lerp(3300, 2600, p, d);   /* discs cool back down */
+        s_st.brake_x10 = lerp(s_st.brake_x10, 2600, p, d); /* discs cool back down */
         break;
     default:
         break;

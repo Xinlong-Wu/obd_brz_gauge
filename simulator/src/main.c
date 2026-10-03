@@ -112,12 +112,26 @@ static void sim_touch_cb_panel(lv_indev_drv_t *drv, lv_indev_data_t *data)
 }
 
 /* ---- screenshot helpers ---- */
+
+/* Compose the current frame into the SDL backbuffer (gauge + optional panel),
+ * using the same destination rects as the main loop. ReadPixels-ready. */
+static void sim_render_frame(void)
+{
+    SDL_Rect gauge_dst = { 0, 0, SIM_RES * s_scale, SIM_RES * s_scale };
+    SDL_RenderCopy(s_renderer, s_gauge_tex, NULL, &gauge_dst);
+    if (s_panel_on) {
+        SDL_Rect panel_dst = { SIM_RES * s_scale, 0, PANEL_RES * s_scale, SIM_RES * s_scale };
+        SDL_RenderCopy(s_renderer, s_panel_tex, NULL, &panel_dst);
+    }
+}
+
 static void sim_save_screenshot(const char *path)
 {
     int w = (SIM_RES + (s_panel_on ? PANEL_RES : 0)) * s_scale;
     SDL_Surface *shot = SDL_CreateRGBSurfaceWithFormat(0, w, SIM_RES * s_scale, 24,
                                                        SDL_PIXELFORMAT_RGB24);
     if (!shot) return;
+    sim_render_frame();
     if (SDL_RenderReadPixels(s_renderer, NULL, SDL_PIXELFORMAT_RGB24,
                              shot->pixels, shot->pitch) == 0) {
         SDL_SaveBMP(shot, path);
@@ -199,7 +213,6 @@ static void sim_tour_tick(int dt_ms, bool *quit)
     case TOUR_SHOT: {
         char path[512];
         snprintf(path, sizeof(path), "%s/tour_%03d.bmp", s_tour.opts->shots_dir, s_tour.shot_idx++);
-        SDL_RenderCopy(s_renderer, s_gauge_tex, NULL, NULL);
         sim_save_screenshot(path);
         s_tour.remaining--;
         /* first half: swipe left around the carousel ring; second half: back */
@@ -449,12 +462,7 @@ int main(int argc, char **argv)
 
         lv_timer_handler();
 
-        SDL_Rect gauge_dst = { 0, 0, SIM_RES * s_scale, SIM_RES * s_scale };
-        SDL_RenderCopy(s_renderer, s_gauge_tex, NULL, &gauge_dst);
-        if (s_panel_on) {
-            SDL_Rect panel_dst = { SIM_RES * s_scale, 0, PANEL_RES * s_scale, SIM_RES * s_scale };
-            SDL_RenderCopy(s_renderer, s_panel_tex, NULL, &panel_dst);
-        }
+        sim_render_frame();
         SDL_RenderPresent(s_renderer);
 
         s_frame++;

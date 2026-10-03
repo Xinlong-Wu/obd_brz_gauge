@@ -201,11 +201,17 @@ static void panel_tick(lv_timer_t *t)
 {
     (void)t;
     fake_values_t v;
-    fake_data_compute(100, &v);
-    obd_data_set_brake_rs485_status(v.brake_ok ? BRAKE_RS485_OK : BRAKE_RS485_IDLE);
+    bool engine = s_pan.engine_on;
+
+    /* Engine OFF freezes the scenario clock entirely — re-enabling resumes
+     * where it left off instead of jumping ahead by the paused time. */
+    if (engine) {
+        fake_data_compute(100, &v);
+        obd_data_set_brake_rs485_status(v.brake_ok ? BRAKE_RS485_OK : BRAKE_RS485_IDLE);
+    }
 
     for (int i = 0; i < CH_COUNT; i++) {
-        if (s_pan.engine_on && !s_pan.manual[i]) {
+        if (engine && !s_pan.manual[i]) {
             int ev;
             if (!engine_value((ch_id_t)i, &v, &ev)) continue; /* engine: channel invalid, leave it */
             lv_slider_set_value(s_pan.slider[i], (int16_t)ev, LV_ANIM_OFF);
@@ -220,9 +226,12 @@ static void panel_tick(lv_timer_t *t)
 
     /* gear: engine value unless the user picked a gear (or engine is off) */
     uint16_t sel = lv_roller_get_selected(s_pan.gear_roller);
-    int gear = (s_pan.engine_on && sel == 0 && !s_pan.gear_manual)
-                   ? v.gear
-                   : (int)sel - 1; /* index 1 = N(0), 2..9 = gears 1..8 */
+    int gear;
+    if (engine) {
+        gear = (sel == 0 && !s_pan.gear_manual) ? v.gear : (int)sel - 1;
+    } else {
+        gear = (sel == 0) ? 0 : (int)sel - 1; /* manual AUTO falls back to N */
+    }
     obd_data_set_gear((int8_t)gear);
 
     /* connection status line + button label */
