@@ -105,10 +105,10 @@ set(FW_SOURCES
 
 file(GLOB SHIM_SOURCES "${SIM_DIR}/shims/src/*.c")
 
+file(GLOB SIM_SOURCES "${SIM_DIR}/src/*.c")
+
 add_executable(obd_gauge_sim
-    "${SIM_DIR}/src/main.c"
-    "${SIM_DIR}/src/cli.c"
-    "${SIM_DIR}/src/fake_data.c"
+    ${SIM_SOURCES}
     ${SHIM_SOURCES}
     ${FW_SOURCES})
 

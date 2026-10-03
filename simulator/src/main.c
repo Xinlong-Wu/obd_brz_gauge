@@ -1,10 +1,14 @@
 /* obd_gauge_sim — PC SDL2 host for the obd_brz_gauge LVGL UI.
  *
- * Mirrors app_main.c's LVGL bring-up (theme → Logo → ui_init → ui_ext_init),
- * replacing only the display/touch transport: LVGL renders into RAM, the
- * flush callback byte-swaps (LV_COLOR_16_SWAP=1, matching the firmware image
- * arrays) into an SDL texture that is presented in an OS window. Mouse acts
- * as the CST816 touch.
+ * Two LVGL displays side by side in one SDL window:
+ *   - left (360x360): the firmware UI, rendered exactly like on the device;
+ *   - right (240x360, optional): the simulator control panel (control_panel.c)
+ *     with sliders that drive the fake-data engine / obd_data_cache.
+ *
+ * Mirrors app_main.c's LVGL bring-up (theme → Logo → ui_init → ui_ext_init).
+ * The flush callback byte-swaps (LV_COLOR_16_SWAP=1, matching the firmware
+ * image arrays) into SDL textures. Mouse acts as the CST816 touch; presses
+ * are routed to whichever half they started in.
  *
  * The firmware UI sources are compiled unmodified; all ESP-IDF dependencies
  * live in ../shims. */
@@ -15,6 +19,7 @@
 #include "ui_ext.h"
 #include "cli.h"
 #include "fake_data.h"
+#include "control_panel.h"
 #include "sim_platform.h"
 #include "esp_timer.h"                     /* sim_esp_timer_poll() */
 
@@ -28,29 +33,36 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define SIM_RES 360
+#define SIM_RES   360
+#define PANEL_RES 240
+
+enum { REGION_NONE = 0, REGION_GAUGE, REGION_PANEL };
 
 static SDL_Window   *s_window;
 static SDL_Renderer *s_renderer;
-static SDL_Texture  *s_texture;
+static SDL_Texture  *s_gauge_tex;
+static SDL_Texture  *s_panel_tex;
 static int           s_scale = 2;
+static bool          s_panel_on = true;
 static long          s_frame;
 
-/* ---- pointer state (fed by SDL events, or by the tour injector) ---- */
+/* ---- pointer state (fed by SDL events, or by the injectors) ---- */
 typedef struct {
-    int  x, y;        /* 0..359 screen space */
+    int  x, y;        /* logical screen coords within the owning display */
     bool pressed;
 } sim_pointer_t;
 
-static sim_pointer_t s_mouse;    /* real mouse */
-static sim_pointer_t s_inject;   /* tour override */
+static sim_pointer_t s_mouse;    /* real mouse, window coords / scale */
+static sim_pointer_t s_inject;   /* tour/tap override (gauge region only) */
 static bool s_inject_active;
+static int  s_press_region = REGION_NONE;
 
-/* ---- LVGL flush: byte-swap RGB565 into the SDL texture ---- */
+/* ---- LVGL flush: byte-swap RGB565 into the SDL texture (drv->user_data) ---- */
 static uint16_t s_stage[SIM_RES * SIM_RES];
 
 static void sim_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
 {
+    SDL_Texture *tex = (SDL_Texture *)drv->user_data;
     int w = area->x2 - area->x1 + 1;
     int h = area->y2 - area->y1 + 1;
 
@@ -64,25 +76,47 @@ static void sim_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *
     }
 
     SDL_Rect rect = { area->x1, area->y1, w, h };
-    SDL_UpdateTexture(s_texture, &rect, s_stage, (int)(w * sizeof(uint16_t)));
+    SDL_UpdateTexture(tex, &rect, s_stage, (int)(w * sizeof(uint16_t)));
     lv_disp_flush_ready(drv);
 }
 
-/* ---- touch: mouse (or tour injector) ---- */
-static void sim_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+/* ---- touch: region-routed mouse (+ injectors on the gauge) ---- */
+static void feed_pointer(lv_indev_data_t *data, const sim_pointer_t *p)
 {
-    const sim_pointer_t *p = s_inject_active ? &s_inject : &s_mouse;
     data->point.x = p->x;
     data->point.y = p->y;
     data->state = p->pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+}
+
+static void sim_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+{
+    if (s_inject_active) {
+        feed_pointer(data, &s_inject); /* injectors always drive the gauge */
+        return;
+    }
+    sim_pointer_t p = { s_mouse.x, s_mouse.y,
+                        s_mouse.pressed && s_press_region == REGION_GAUGE };
+    feed_pointer(data, &p);
+    (void)drv;
+}
+
+static void sim_touch_cb_panel(lv_indev_drv_t *drv, lv_indev_data_t *data)
+{
+    sim_pointer_t p = { s_mouse.x - SIM_RES, s_mouse.y,
+                        s_mouse.pressed && s_press_region == REGION_PANEL };
+    if (p.x < 0) p.x = 0;
+    if (p.x >= PANEL_RES) p.x = PANEL_RES - 1;
+    if (p.y >= SIM_RES) p.y = SIM_RES - 1;
+    feed_pointer(data, &p);
     (void)drv;
 }
 
 /* ---- screenshot helpers ---- */
 static void sim_save_screenshot(const char *path)
 {
-    SDL_Surface *shot = SDL_CreateRGBSurfaceWithFormat(
-        0, SIM_RES * s_scale, SIM_RES * s_scale, 24, SDL_PIXELFORMAT_RGB24);
+    int w = (SIM_RES + (s_panel_on ? PANEL_RES : 0)) * s_scale;
+    SDL_Surface *shot = SDL_CreateRGBSurfaceWithFormat(0, w, SIM_RES * s_scale, 24,
+                                                       SDL_PIXELFORMAT_RGB24);
     if (!shot) return;
     if (SDL_RenderReadPixels(s_renderer, NULL, SDL_PIXELFORMAT_RGB24,
                              shot->pixels, shot->pitch) == 0) {
@@ -165,7 +199,7 @@ static void sim_tour_tick(int dt_ms, bool *quit)
     case TOUR_SHOT: {
         char path[512];
         snprintf(path, sizeof(path), "%s/tour_%03d.bmp", s_tour.opts->shots_dir, s_tour.shot_idx++);
-        SDL_RenderCopy(s_renderer, s_texture, NULL, NULL);
+        SDL_RenderCopy(s_renderer, s_gauge_tex, NULL, NULL);
         sim_save_screenshot(path);
         s_tour.remaining--;
         /* first half: swipe left around the carousel ring; second half: back */
@@ -183,7 +217,7 @@ static void sim_tour_tick(int dt_ms, bool *quit)
     }
 }
 
-/* ---- scripted tap injector (--tap X,Y,FRAME) ---- */
+/* ---- scripted tap injector (--tap X,Y,FRAME, gauge region) ---- */
 static struct {
     int x, y;
     long frame;
@@ -216,6 +250,28 @@ static void sim_tap_tick(void)
     }
 }
 
+/* ---- --no-panel fallback: apply the scenario straight to the cache ---- */
+static void engine_apply_tick(lv_timer_t *t)
+{
+    (void)t;
+    fake_values_t v;
+    fake_data_compute(100, &v);
+    obd_data_set_rpm((uint16_t)v.rpm);
+    obd_data_set_speed((uint8_t)v.speed);
+    obd_data_set_gear((int8_t)v.gear);
+    obd_data_set_coolant_temp((int16_t)v.coolant);
+    if (v.oil_valid) obd_data_set_oil_temp((int16_t)v.oil);
+    obd_data_set_intake_temp((int16_t)v.intake);
+    obd_data_set_bat_mv((int32_t)v.bat_mv);
+    obd_data_set_oil_pressure_x10((int16_t)v.oilp_x10);
+    obd_data_set_boost_x10((int16_t)v.boost_x10);
+    obd_data_set_brake_temp_x10((int16_t)v.brake_x10);
+    obd_data_set_tps((int16_t)v.tps);
+    obd_data_set_load_pct((int16_t)v.load);
+    obd_data_set_afr_x100((int16_t)v.afr_x100);
+    obd_data_set_brake_rs485_status(v.brake_ok ? BRAKE_RS485_OK : BRAKE_RS485_IDLE);
+}
+
 int main(int argc, char **argv)
 {
     sim_opts_t opts;
@@ -225,6 +281,7 @@ int main(int argc, char **argv)
         return 1;
     }
     s_scale = opts.scale;
+    s_panel_on = !opts.no_panel;
 
     SDL_SetMainReady(); /* plain main() on macOS, not SDL_main */
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
@@ -232,10 +289,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    int win_w = (SIM_RES + (s_panel_on ? PANEL_RES : 0)) * s_scale;
+    int win_h = SIM_RES * s_scale;
     char title[128];
-    snprintf(title, sizeof(title), "obd_gauge_sim (360x360 @ %dx)", s_scale);
+    snprintf(title, sizeof(title), "obd_gauge_sim (gauge 360x360%s @ %dx)",
+             s_panel_on ? " + panel" : "", s_scale);
     s_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                SIM_RES * s_scale, SIM_RES * s_scale, SDL_WINDOW_SHOWN);
+                                win_w, win_h, SDL_WINDOW_SHOWN);
     if (!s_window) {
         fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
         return 1;
@@ -246,9 +306,13 @@ int main(int argc, char **argv)
         fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
         return 1;
     }
-    s_texture = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_RGB565,
-                                  SDL_TEXTUREACCESS_STREAMING, SIM_RES, SIM_RES);
-    if (!s_texture) {
+    s_gauge_tex = SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_RGB565,
+                                    SDL_TEXTUREACCESS_STREAMING, SIM_RES, SIM_RES);
+    s_panel_tex = s_panel_on
+        ? SDL_CreateTexture(s_renderer, SDL_PIXELFORMAT_RGB565,
+                            SDL_TEXTUREACCESS_STREAMING, PANEL_RES, SIM_RES)
+        : NULL;
+    if (!s_gauge_tex || (s_panel_on && !s_panel_tex)) {
         fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
         return 1;
     }
@@ -262,30 +326,59 @@ int main(int argc, char **argv)
     /* ---- LVGL bring-up, mirroring app_main.c ---- */
     lv_init();
 
-    static lv_disp_draw_buf_t disp_buf;
-    static lv_color_t framebuf[SIM_RES * SIM_RES];   /* full-frame buffer; PC RAM is cheap */
-    lv_disp_draw_buf_init(&disp_buf, framebuf, NULL, SIM_RES * SIM_RES);
+    static lv_disp_draw_buf_t gauge_buf;
+    static lv_color_t gauge_fb[SIM_RES * SIM_RES];   /* full-frame buffer; PC RAM is cheap */
+    lv_disp_draw_buf_init(&gauge_buf, gauge_fb, NULL, SIM_RES * SIM_RES);
 
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = SIM_RES;
-    disp_drv.ver_res = SIM_RES;
-    disp_drv.flush_cb = sim_flush_cb;
-    disp_drv.draw_buf = &disp_buf;
-    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
+    static lv_disp_drv_t gauge_drv;
+    lv_disp_drv_init(&gauge_drv);
+    gauge_drv.hor_res = SIM_RES;
+    gauge_drv.ver_res = SIM_RES;
+    gauge_drv.flush_cb = sim_flush_cb;
+    gauge_drv.draw_buf = &gauge_buf;
+    gauge_drv.user_data = s_gauge_tex;
+    lv_disp_t *gauge_disp = lv_disp_drv_register(&gauge_drv);
 
     /* app_main.c step 7: default theme before any screen exists */
-    lv_theme_t *theme = lv_theme_default_init(disp, lv_palette_main(LV_PALETTE_BLUE),
+    lv_theme_t *theme = lv_theme_default_init(gauge_disp, lv_palette_main(LV_PALETTE_BLUE),
                                               lv_palette_main(LV_PALETTE_RED),
                                               false, LV_FONT_DEFAULT);
-    lv_disp_set_theme(disp, theme);
+    lv_disp_set_theme(gauge_disp, theme);
 
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.disp = disp;
+    indev_drv.disp = gauge_disp;
     indev_drv.read_cb = sim_touch_cb;
     lv_indev_drv_register(&indev_drv);
+
+    /* ---- panel display (second LVGL display, same window) ---- */
+    static lv_disp_draw_buf_t panel_buf;
+    static lv_color_t panel_fb[PANEL_RES * SIM_RES];
+    static lv_disp_drv_t panel_drv;
+    static lv_indev_drv_t panel_indev;
+    lv_disp_t *panel_disp = NULL;
+    if (s_panel_on) {
+        lv_disp_draw_buf_init(&panel_buf, panel_fb, NULL, PANEL_RES * SIM_RES);
+        lv_disp_drv_init(&panel_drv);
+        panel_drv.hor_res = PANEL_RES;
+        panel_drv.ver_res = SIM_RES;
+        panel_drv.flush_cb = sim_flush_cb;
+        panel_drv.draw_buf = &panel_buf;
+        panel_drv.user_data = s_panel_tex;
+        panel_disp = lv_disp_drv_register(&panel_drv);
+        /* theme is per-display; dark variant so labels read on the dark panel */
+        lv_theme_t *panel_theme = lv_theme_default_init(
+            panel_disp, lv_palette_main(LV_PALETTE_ORANGE), lv_palette_main(LV_PALETTE_AMBER),
+            true, LV_FONT_DEFAULT);
+        lv_disp_set_theme(panel_disp, panel_theme);
+
+        lv_indev_drv_init(&panel_indev);
+        panel_indev.type = LV_INDEV_TYPE_POINTER;
+        panel_indev.disp = panel_disp;
+        panel_indev.read_cb = sim_touch_cb_panel;
+        lv_indev_drv_register(&panel_indev);
+    }
 
     vehicle_profile_set_active(nvs_cfg_get()->vehicle_profile_idx);
 
@@ -300,8 +393,22 @@ int main(int argc, char **argv)
     ui_init();
     ui_ext_init();
 
+    /* build the control panel on its own display */
+    if (s_panel_on) {
+        lv_disp_t *def = lv_disp_get_default();
+        lv_disp_set_default(panel_disp);   /* lv_obj_create(NULL) lands on default */
+        control_panel_build();
+        lv_disp_set_default(def);
+    }
+
     vMileageDataStatisticTask();   /* real odometer timer (esp_timer shim) */
-    fake_data_start(&opts);
+
+    /* data engine: panel tick drives it when visible, else a plain timer */
+    fake_data_init(&opts);
+    if (!s_panel_on) {
+        lv_timer_create(engine_apply_tick, 100, NULL);
+    }
+
     if (opts.tour > 0) sim_tour_start(&opts);
     sim_tap_start(&opts);
 
@@ -318,9 +425,17 @@ int main(int argc, char **argv)
                 SDL_GetMouseState(&mx, &my);
                 s_mouse.x = mx / s_scale;
                 s_mouse.y = my / s_scale;
-                if (s_mouse.x >= SIM_RES) s_mouse.x = SIM_RES - 1;
+                if (s_mouse.x >= SIM_RES + (s_panel_on ? PANEL_RES : 0))
+                    s_mouse.x = SIM_RES + (s_panel_on ? PANEL_RES : 0) - 1;
                 if (s_mouse.y >= SIM_RES) s_mouse.y = SIM_RES - 1;
-                s_mouse.pressed = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) != 0;
+                bool down = (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) != 0;
+                s_mouse.pressed = down;
+                if (down && s_press_region == REGION_NONE) {
+                    s_press_region = (s_mouse.x < SIM_RES || !s_panel_on)
+                                         ? REGION_GAUGE : REGION_PANEL;
+                } else if (!down) {
+                    s_press_region = REGION_NONE;
+                }
             }
         }
 
@@ -334,7 +449,12 @@ int main(int argc, char **argv)
 
         lv_timer_handler();
 
-        SDL_RenderCopy(s_renderer, s_texture, NULL, NULL);
+        SDL_Rect gauge_dst = { 0, 0, SIM_RES * s_scale, SIM_RES * s_scale };
+        SDL_RenderCopy(s_renderer, s_gauge_tex, NULL, &gauge_dst);
+        if (s_panel_on) {
+            SDL_Rect panel_dst = { SIM_RES * s_scale, 0, PANEL_RES * s_scale, SIM_RES * s_scale };
+            SDL_RenderCopy(s_renderer, s_panel_tex, NULL, &panel_dst);
+        }
         SDL_RenderPresent(s_renderer);
 
         s_frame++;
@@ -349,7 +469,8 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "[sim] done after %ld frames\n", s_frame);
-    SDL_DestroyTexture(s_texture);
+    SDL_DestroyTexture(s_gauge_tex);
+    if (s_panel_tex) SDL_DestroyTexture(s_panel_tex);
     SDL_DestroyRenderer(s_renderer);
     SDL_DestroyWindow(s_window);
     SDL_Quit();

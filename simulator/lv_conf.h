@@ -74,6 +74,10 @@
 #define LV_USE_SPINBOX 1
 #define LV_USE_BTNMATRIX 1
 
+/* Simulator-panel widgets (not used by the firmware UI, but by the second
+ * LVGL display that renders the data-adjustment panel). */
+#define LV_USE_SWITCH 1
+
 /* Widgets NOT used by the UI — kept off so stray usage fails at build. */
 #define LV_USE_ANIMIMG 0
 #define LV_USE_CALENDAR 0
@@ -83,7 +87,6 @@
 #define LV_USE_MENU 0
 #define LV_USE_MSGBOX 0
 #define LV_USE_SPAN 0
-#define LV_USE_SWITCH 0
 #define LV_USE_TABLE 0
 #define LV_USE_TABVIEW 0
 #define LV_USE_TILEVIEW 0

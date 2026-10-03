@@ -30,6 +30,7 @@ void sim_opts_print_help(const char *prog)
         "  --disconnected     with --bound: show the adapter as not connected\n"
         "  --bound            pre-saved adapter in NVS (boots straight to the gauges)\n"
         "  --no-boot          skip the boot video (intro mode OFF)\n"
+        "  --no-panel         hide the side data panel (plain 360x360 window)\n"
         "  --theme FILE       load theme.bin as the runtime-theme partition\n"
         "  --bootmedia DIR    dir with boot_block.txt/bin (default <repo>/bootmedia/slot_a)\n"
         "  --frames N         run N frames then exit (default: run until closed)\n"
@@ -89,6 +90,8 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
             o->bound = true;
         } else if (strcmp(a, "--no-boot") == 0) {
             o->no_boot = true;
+        } else if (strcmp(a, "--no-panel") == 0) {
+            o->no_panel = true;
         } else if (strcmp(a, "--theme") == 0) {
             o->theme = NEXT();
             if (!o->theme) return false;

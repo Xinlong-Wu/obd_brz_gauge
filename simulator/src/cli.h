@@ -13,6 +13,7 @@ typedef struct {
     bool         disconnected; // pretend the (bound) adapter is not connected
     bool         bound;        // pre-saved adapter in NVS → boots straight to the gauges
     bool         no_boot;      // skip the boot video (intro_enable=0)
+    bool         no_panel;     // hide the side data-adjustment panel (old 360x360 window)
     long         frames;       // run N frames then exit (0 = run until window closed)
     const char  *screenshot;   // save a BMP of the final frame to this path
     int          tour;         // inject N alternating swipes, screenshotting after each

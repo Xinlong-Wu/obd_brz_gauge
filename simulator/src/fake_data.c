@@ -1,5 +1,5 @@
-/* Fake vehicle-data scenarios, feeding the REAL obd_data_cache setters from
- * an lv_timer (same thread as the UI — no locking concerns on the simulator).
+/* Fake vehicle-data scenarios — pure calculator (no timers, no cache writes;
+ * callers apply values, see fake_data.h).
  *
  * "drive": ignition → warm-up idle → repeated accelerate/cruise/WOT/brake
  *          cycles. Gear is SET explicitly (as a CAN gear-read would be), so
@@ -8,10 +8,7 @@
  */
 #include "fake_data.h"
 
-#include "app_obd_dsp/obd_data_cache.h"
-
 #include "esp_random.h"
-#include "lvgl.h"
 
 #include <string.h>
 
@@ -73,33 +70,44 @@ static void next_phase(void)
     s_st.phase_ms = 0;
 }
 
-/* Idle segment shared by warm-up and the "idle" scenario. */
-static void run_idle(int32_t ramp_ms)
+void fake_data_init(const sim_opts_t *opts)
 {
-    obd_data_set_rpm((uint16_t)(850 + jitter(40)));
-    obd_data_set_speed(0);
-    obd_data_set_gear(0); /* N */
+    memset(&s_st, 0, sizeof(s_st));
+    s_st.opts = *opts;
+    s_st.phase = PH_IGNITION;
+    s_st.coolant = -40;  /* invalid sentinel, same as the cache default */
+    s_st.oil = -100;     /* invalid sentinel */
+    s_st.brake_x10 = 2500;
+}
+
+/* Idle segment shared by warm-up and the "idle" scenario. */
+static void compute_idle(fake_values_t *v, int32_t ramp_ms)
+{
+    v->rpm = 850 + jitter(40);
+    v->speed = 0;
+    v->gear = 0; /* N */
 
     s_st.coolant = lerp(-40, 88, s_st.phase_ms, ramp_ms);
-    obd_data_set_coolant_temp((int16_t)s_st.coolant);
-    obd_data_set_intake_temp((int16_t)lerp(25, 40, s_st.phase_ms, ramp_ms));
+    v->coolant = s_st.coolant;
+    v->intake = lerp(25, 40, s_st.phase_ms, ramp_ms);
 
     /* Oil stays invalid until the coolant has warmed, then climbs from 25 C. */
     if (s_st.coolant > 20) {
         s_st.oil = lerp(25, 88, s_st.phase_ms - 6000, ramp_ms);
-        obd_data_set_oil_temp((int16_t)s_st.oil);
+        v->oil = s_st.oil;
+        v->oil_valid = true;
     }
 
-    obd_data_set_bat_mv(14000 + jitter(150));
-    obd_data_set_tps((int16_t)(1 + jitter(1)));
-    obd_data_set_load_pct((int16_t)(10 + jitter(3)));
-    obd_data_set_oil_pressure_x10((int16_t)(17 + jitter(2)));   /* 1.7 bar */
-    obd_data_set_boost_x10(0);
-    obd_data_set_afr_x100(1470 + jitter(15));
-    obd_data_set_brake_temp_x10((int16_t)s_st.brake_x10);
+    v->bat_mv = 14000 + jitter(150);
+    v->tps = 1 + jitter(1);
+    v->load = 10 + jitter(3);
+    v->oilp_x10 = 17 + jitter(2);   /* 1.7 bar */
+    v->boost_x10 = 0;
+    v->afr_x100 = 1470 + jitter(15);
+    v->brake_x10 = s_st.brake_x10;
 }
 
-static void run_drive_segment(void)
+static void compute_drive_segment(fake_values_t *v)
 {
     int32_t p = s_st.phase_ms;
     int32_t d = PHASE_MS[s_st.phase];
@@ -157,60 +165,49 @@ static void run_drive_segment(void)
         break;
     }
 
-    obd_data_set_speed((uint8_t)speed);
-    obd_data_set_gear((int8_t)gear);
-    obd_data_set_rpm((uint16_t)rpm);
-    obd_data_set_tps((int16_t)tps);
-    obd_data_set_load_pct((int16_t)(tps + jitter(4)));
-    obd_data_set_boost_x10((int16_t)boost);
-    obd_data_set_afr_x100((int16_t)afr);
-    obd_data_set_oil_pressure_x10((int16_t)(100 + (rpm * 8) / 1000 + jitter(3))); /* 0.1 bar */
-    obd_data_set_bat_mv(13900 + jitter(200));
+    v->speed = speed;
+    v->gear = gear;
+    v->rpm = rpm;
+    v->tps = tps;
+    v->load = tps + jitter(4);
+    v->boost_x10 = boost;
+    v->afr_x100 = afr;
+    v->oilp_x10 = 10 + rpm / 125 + jitter(3); /* 0.1 bar: ~1.7 idle, ~5.0 at 5k rpm */
+    v->bat_mv = 13900 + jitter(200);
 
     /* Temps keep creeping while driving. */
     if (s_st.coolant < 92) s_st.coolant += 1;
     if (s_st.oil < 105) s_st.oil += 1;
-    obd_data_set_coolant_temp((int16_t)s_st.coolant);
-    obd_data_set_oil_temp((int16_t)s_st.oil);
-    obd_data_set_intake_temp((int16_t)(38 + jitter(6)));
-    obd_data_set_brake_temp_x10((int16_t)s_st.brake_x10);
+    v->coolant = s_st.coolant;
+    v->oil = s_st.oil;
+    v->oil_valid = true;
+    v->intake = 38 + jitter(6);
+    v->brake_x10 = s_st.brake_x10;
 }
 
-static void fake_tick(lv_timer_t *t)
+void fake_data_compute(int dt_ms, fake_values_t *out)
 {
-    (void)t;
-    s_st.phase_ms += 100;
+    memset(out, 0, sizeof(*out));
+    out->brake_ok = true;
 
-    obd_data_set_brake_rs485_status(BRAKE_RS485_OK);
+    s_st.phase_ms += dt_ms;
 
     if (s_st.opts.scenario && strcmp(s_st.opts.scenario, "idle") == 0) {
-        run_idle(8000);
+        compute_idle(out, 8000);
         return;
     }
 
     if (s_st.phase_ms >= PHASE_MS[s_st.phase]) next_phase();
 
     if (s_st.phase == PH_IGNITION) {
-        obd_data_set_rpm(0);
-        obd_data_set_speed(0);
-        obd_data_set_gear(0);
-        obd_data_set_bat_mv(12200 + jitter(80));
-        obd_data_set_coolant_temp((int16_t)s_st.coolant); /* stays -40 = invalid */
+        out->rpm = 0;
+        out->speed = 0;
+        out->gear = 0;
+        out->bat_mv = 12200 + jitter(80);
+        out->coolant = s_st.coolant; /* stays -40 = invalid */
     } else if (s_st.phase == PH_WARMUP) {
-        run_idle(PHASE_MS[PH_WARMUP]);
+        compute_idle(out, PHASE_MS[PH_WARMUP]);
     } else {
-        run_drive_segment();
+        compute_drive_segment(out);
     }
-}
-
-void fake_data_start(const sim_opts_t *opts)
-{
-    memset(&s_st, 0, sizeof(s_st));
-    s_st.opts = *opts;
-    s_st.phase = PH_IGNITION;
-    s_st.coolant = -40;  /* invalid sentinel, same as the cache default */
-    s_st.oil = -100;     /* invalid sentinel */
-    s_st.brake_x10 = 2500;
-
-    lv_timer_create(fake_tick, 100, NULL);
 }
