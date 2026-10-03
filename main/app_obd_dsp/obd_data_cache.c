@@ -19,6 +19,9 @@ static int16_t  s_brake_temp_x10 = -1000;
 static int16_t  s_boost_x10 = -32768;
 static int8_t   s_gear = 127;
 static int16_t  s_afr_x100 = -1;
+static int16_t  s_gforce_lat_x100 = -32768;   // 0.01g, ZC6 0x0D0 / IMU
+static int16_t  s_gforce_lon_x100 = -32768;
+static int16_t  s_tpms_bar_x10[4] = {-1, -1, -1, -1};  // 0.1 bar, FL/FR/RL/RR
 static brake_rs485_status_t s_brake_rs485_status = BRAKE_RS485_IDLE;
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -287,6 +290,50 @@ int16_t obd_data_get_afr_x100(void)
     int16_t val;
     portENTER_CRITICAL(&s_mux);
     val = s_afr_x100;
+    portEXIT_CRITICAL(&s_mux);
+    return val;
+}
+
+void obd_data_set_gforce_x100(int16_t lat_x100, int16_t lon_x100)
+{
+    portENTER_CRITICAL(&s_mux);
+    s_gforce_lat_x100 = lat_x100;
+    s_gforce_lon_x100 = lon_x100;
+    portEXIT_CRITICAL(&s_mux);
+}
+
+int16_t obd_data_get_gforce_lat_x100(void)
+{
+    int16_t val;
+    portENTER_CRITICAL(&s_mux);
+    val = s_gforce_lat_x100;
+    portEXIT_CRITICAL(&s_mux);
+    return val;
+}
+
+int16_t obd_data_get_gforce_lon_x100(void)
+{
+    int16_t val;
+    portENTER_CRITICAL(&s_mux);
+    val = s_gforce_lon_x100;
+    portEXIT_CRITICAL(&s_mux);
+    return val;
+}
+
+void obd_data_set_tpms_bar_x10(uint8_t wheel, int16_t bar_x10)
+{
+    if (wheel > 3) return;
+    portENTER_CRITICAL(&s_mux);
+    s_tpms_bar_x10[wheel] = bar_x10;
+    portEXIT_CRITICAL(&s_mux);
+}
+
+int16_t obd_data_get_tpms_bar_x10(uint8_t wheel)
+{
+    int16_t val = -1;
+    if (wheel > 3) return val;
+    portENTER_CRITICAL(&s_mux);
+    val = s_tpms_bar_x10[wheel];
     portEXIT_CRITICAL(&s_mux);
     return val;
 }

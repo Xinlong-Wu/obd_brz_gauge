@@ -52,6 +52,19 @@ int main(void)
     obd_data_set_oil_temp_invalid();
     TEST_ASSERT_EQ_INT(-100, obd_data_get_oil_temp());
 
+    // ---- G 力 / 胎压(ZC6 扩展通道):初始哨兵 + 读写往返 ----
+    TEST_ASSERT_EQ_INT(-32768, obd_data_get_gforce_lat_x100());
+    TEST_ASSERT_EQ_INT(-32768, obd_data_get_gforce_lon_x100());
+    TEST_ASSERT_EQ_INT(-1, obd_data_get_tpms_bar_x10(0));
+    obd_data_set_gforce_x100(87, -42);
+    TEST_ASSERT_EQ_INT(87, obd_data_get_gforce_lat_x100());
+    TEST_ASSERT_EQ_INT(-42, obd_data_get_gforce_lon_x100());
+    obd_data_set_tpms_bar_x10(2, 228);
+    TEST_ASSERT_EQ_INT(228, obd_data_get_tpms_bar_x10(2));
+    TEST_ASSERT_EQ_INT(-1, obd_data_get_tpms_bar_x10(3));    // 未写过的轮保持无效
+    obd_data_set_tpms_bar_x10(9, 100);                        // 轮号越界:忽略
+    TEST_ASSERT_EQ_INT(-1, obd_data_get_tpms_bar_x10(9));
+
     // ---- 快照:与单通道 getter 一致 ----
     obd_data_snapshot_t snap;
     obd_data_get_snapshot(&snap);

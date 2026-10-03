@@ -7,6 +7,28 @@ cleanups live in the git history.
 
 ---
 
+## ZC6 CAN monitor extension: direct gear, g-force, TPMS
+
+- The `ZN/C6 CAN` profile's ATMA monitor now decodes three more frames
+  (ported from Hokori23/obd_brz_gauge; its three copy-pasted line
+  tokenizers were folded into our existing `can_monitor_parse_line_fast`
+  pipeline — zero extra polling load):
+  - **0x141 direct gear**: N/1-6/R written straight to the data cache,
+    taking precedence over the rpm/speed ratio estimate (cars that do
+    not emit the frame are unaffected and keep the ratio fallback)
+  - **0x0D0 g-force**: lateral/longitudinal acceleration lands in the
+    data cache (0.01g; display pages arrive in a later milestone)
+  - **0x6E2 TPMS**: four wheels in 0.1 bar; the unit (PSI/BAR/KPA) is
+    auto-detected with the "cold-tire pressure sits in 1.4–3.6 bar"
+    heuristic and stays sticky until reconnection
+- New data-cache accessors `obd_data_{set,get}_gforce_x100` and
+  `obd_data_{set,get}_tpms_bar_x10` (snapshot struct untouched, theme
+  ABI unchanged)
+- Decode logic is the pure header `zc6_monitor_decode.h` with the
+  `tests/test_zc6_monitor_decode.c` suite (28+ assertions)
+
+---
+
 ## Testing & CI foundation (no firmware behavior change)
 
 - **New host-side unit tests `tests/`** (CTest, zero test-framework deps):

@@ -26,7 +26,7 @@ Settings page):
 | # | Name | Protocol | PID addressing | Oil temp | Gear | Boost | Notes |
 |---|------|----------|----------------|----------|------|-------|-------|
 | 0 | `OBD2 Generic` | Auto | Physical 7E0 | `01 5C` | Ratio estimate | — | Generic SAE J1979; 6MT placeholder ratios |
-| 1 | `ZN/C6 CAN` | 6 locked | Physical 7E0 | Toyota `21 01` | Ratio estimate | — | **The only CAN ATMA profile**: 0x140 throttle, 0x360 oil/coolant; RPM stays on OBD. Fully verified on a real car |
+| 1 | `ZN/C6 CAN` | 6 locked | Physical 7E0 | Toyota `21 01` | **0x141 direct read** (R=-1) | — | **The only CAN ATMA profile**: 0x140 throttle, 0x360 oil/coolant, 0x141 direct gear, 0x0D0 g-force, 0x6E2 TPMS (auto unit detection); RPM stays on OBD. Fully verified on a real car |
 | 2 | `ZN/C6 PID` | 6 locked | Physical 7E0 | Toyota `21 01` | Ratio estimate | — | Pure-OBD fallback for cheap adapters without ATMA |
 | 3 | `ZD8 OBD` | 6 locked | Physical 7E0 | `01 5C` | Ratio estimate | — | BRZ Gen2 FA24, OBD-only |
 | 4 | `ZD8` | 6 locked | Physical 7E0 | `01 5C` | Ratio estimate | — | Same config as #3, standard-PID fallback variant |

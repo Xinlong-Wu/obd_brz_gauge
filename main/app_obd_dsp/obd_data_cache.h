@@ -63,6 +63,13 @@ void obd_data_set_brake_temp_x10(int16_t temp_x10); // brake temp, 0.1°C
 void obd_data_set_gear(int8_t gear);               // direct gear value: -1=R, 0=N, 1+=forward gear, 127=invalid
 void obd_data_set_brake_rs485_status(brake_rs485_status_t status);
 void obd_data_set_afr_x100(int16_t afr_x100);      // air-fuel ratio AFR, ×100 (1470=14.7:1), -1=invalid
+// G-force (ZC6 OBD 0x0D0 frame or on-board IMU), in 0.01g; -32768 = invalid
+void obd_data_set_gforce_x100(int16_t lat_x100, int16_t lon_x100);
+int16_t  obd_data_get_gforce_lat_x100(void);
+int16_t  obd_data_get_gforce_lon_x100(void);
+// Tire pressure (ZC6 0x6E2 frame), in 0.1 bar; wheel: 0=FL 1=FR 2=RL 3=RR; -1 = invalid
+void obd_data_set_tpms_bar_x10(uint8_t wheel, int16_t bar_x10);
+int16_t  obd_data_get_tpms_bar_x10(uint8_t wheel);
 uint16_t obd_data_get_rpm(void);
 uint8_t  obd_data_get_speed(void);
 int16_t  obd_data_get_coolant_temp(void);

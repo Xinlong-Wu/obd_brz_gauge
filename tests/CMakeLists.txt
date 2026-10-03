@@ -105,6 +105,10 @@ add_gauge_test(test_obd_data_cache
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
 
+# ---- ZC6 CAN 监听帧解码:挡位直读 / G 力 / 胎压(纯逻辑头,无 .c 依赖) ----
+add_gauge_test(test_zc6_monitor_decode
+    SOURCES test_zc6_monitor_decode.c)
+
 # ---- 车型表:数量 / 越界钳制 / 数据自洽 ----
 # (set_active 内部会触碰数据缓存,一并编入)
 add_gauge_test(test_vehicle_profiles

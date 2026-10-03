@@ -6,6 +6,24 @@
 
 ---
 
+## ZC6 CAN 监听扩展：挡位直读 / G 力 / 胎压
+
+- `ZN/C6 CAN` 车型的 ATMA 监听新增三个数据帧的解码（移植自
+  Hokori23/obd_brz_gauge，三个行级解析器合并进现有
+  `can_monitor_parse_line_fast` 管线，零新增轮询负载）：
+  - **0x141 挡位直读**：N/1-6/R 直接写入数据缓存，优先于转速比值估算
+    （未收到该帧的车型不受影响，自动回退比值估算）
+  - **0x0D0 G 力**：纵向/横向加速度落入数据缓存（0.01g，显示页面
+    属于后续里程碑）
+  - **0x6E2 胎压**：四轮 0.1bar，单位（PSI/BAR/KPA）按"冷胎压力
+    1.4~3.6 bar"启发式自动判定，判定结果重连前保持
+- 数据缓存新增 `obd_data_{set,get}_gforce_x100` 与
+  `obd_data_{set,get}_tpms_bar_x10`（快照结构未动，主题 ABI 不变）
+- 解码逻辑为纯头文件 `zc6_monitor_decode.h`，配套单测
+  `tests/test_zc6_monitor_decode.c`（28+ 断言）
+
+---
+
 ## 测试与 CI 地基（不影响固件行为）
 
 - **新增主机端单元测试 `tests/`**（CTest，零测试框架依赖）：复用
