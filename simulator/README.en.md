@@ -60,6 +60,25 @@ cmake --build simulator/build -j
 ./simulator/build/obd_gauge_sim --role slave
 ```
 
+## Data-adjustment panel
+
+The window hosts a 240×360 LVGL panel on the right (a second LVGL display,
+orange dark theme); the gauge keeps its own rendering path:
+
+- **Engine switch** (top-right, ON by default): ON = the fake-data scenario
+  drives every channel and the sliders follow it live; OFF = fully manual,
+  slider values go straight into the data cache
+- **11 channel sliders**: RPM / SPD / CLT / OIL / IAT / OILP / BST / BAT /
+  AFR / TPS / BRAKE — dragging one takes that channel over (the engine steps
+  aside until AUTO or an engine toggle); engine-invalid channels (cold-oil
+  temp) show `--` and are not written
+- **GEAR roller**: AUTO follows the scenario; picking N/1-8 pins it manually
+- **Connection row**: BLE status + CONNECT/DISCONNECT (reuses the simulated
+  connect flow)
+
+CLT at -40 means "invalid" (the invalid sentinel). `--no-panel` hides the
+panel and restores the plain 360×360 window (used by CI screenshot runs).
+
 ## CLI options
 
 | Option | Meaning | Default |
@@ -72,6 +91,7 @@ cmake --build simulator/build -j
 | `--bound` | pre-saved adapter SIM-ELM327 in NVS (skips the scan page, boots to the gauges) | off |
 | `--disconnected` | with `--bound`: show the adapter as not connected | off |
 | `--no-boot` | skip the boot video (intro mode OFF) | off |
+| `--no-panel` | hide the side data panel (plain 360x360 window) | off |
 | `--theme FILE` | theme.bin path, served as the theme_0 pseudo partition | none (built-in fallback) |
 | `--bootmedia DIR` | dir holding the boot animation files | `<repo>/bootmedia/slot_a` |
 | `--tap X,Y,FRAME` | scripted tap: injects a touch at screen coords on the given frame | off |

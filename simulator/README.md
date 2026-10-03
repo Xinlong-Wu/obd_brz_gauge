@@ -55,6 +55,17 @@ cmake --build simulator/build -j
 ./simulator/build/obd_gauge_sim --role slave
 ```
 
+## 数据调节面板
+
+窗口右侧内嵌一个 240×360 的 LVGL 面板（第二显示器，橙色 dark 主题），表盘渲染机制不变：
+
+- **引擎开关**（右上，默认 ON）：ON = 假数据场景驱动所有通道，滑条位置实时跟随；OFF = 全部通道手动，滑条值直接写数据缓存
+- **11 个通道滑条**：RPM / SPD / CLT / OIL / IAT / OILP / BST / BAT / AFR / TPS / BRAKE——拖动某一路即接管该通道（引擎让位，直到按 AUTO 或重开引擎）；引擎值为无效态时（如冷车油温）该行显示 `--` 且不写缓存
+- **GEAR 旋轮**：AUTO 跟随场景，选 N/1-8 即手动指定
+- **连接区**：BLE 状态 + CONNECT/DISCONNECT 按钮（复用模拟连接流程）
+
+CLT 滑条拉到 -40 即数据无效（无效哨兵）。`--no-panel` 隐藏面板，恢复纯 360×360 窗口（CI 截图回归用此模式）。
+
 ## CLI 参数
 
 | 参数 | 说明 | 默认 |
@@ -67,6 +78,7 @@ cmake --build simulator/build -j
 | `--bound` | NVS 预存适配器 SIM-ELM327（跳过扫描页，开机直达表盘） | 关 |
 | `--disconnected` | 配合 `--bound`：适配器显示为未连接态 | 关 |
 | `--no-boot` | 跳过开机动画（intro 模式 OFF） | 关 |
+| `--no-panel` | 隐藏右侧数据调节面板（旧 360×360 窗口） | 关 |
 | `--theme FILE` | theme.bin 路径，作为 theme_0 伪分区 | 无（走内置主题回退）|
 | `--bootmedia DIR` | 开机动画文件目录 | `<repo>/bootmedia/slot_a` |
 | `--tap X,Y,FRAME` | 脚本化点击：第 FRAME 帧在屏幕坐标 (X,Y) 注入一次触摸 | 关 |
