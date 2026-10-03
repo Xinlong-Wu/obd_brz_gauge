@@ -7,6 +7,24 @@ cleanups live in the git history.
 
 ---
 
+## NVS diagnostics error log and init hardening
+
+- New **runtime error log** (64-entry ring, ~5.9KB, persisted to NVS
+  `diag/errors`): `nvs_error_log_record/recordf` capture module tag,
+  esp_err, uptime and message; corrupted version/cursors are repaired
+  on load; seq stays monotonic across reboots. Pure logic in
+  `nvs_error_log_logic.h` (`static inline`, 20+ test assertions);
+  NVS write failures self-record with recursion protection. Reader
+  surfaces (settings/App/BLE) arrive with the M4 diagnostics page
+- `nvs_storage_init()` now returns `ESP_ERR_NO_MEM` when mutex creation
+  fails instead of crashing at the first lock (ported from ref; the
+  flush-task stack increase does not apply here — this repo keeps
+  stats in RAM with no background flush task)
+- The simulator NVS mock provides the same error-log APIs (in-memory
+  ring, shared logic header)
+
+---
+
 ## OBD poll tier (NORMAL / FAST / TURBO)
 
 - New **OBD POLL** roller in Settings (shares a two-column row with

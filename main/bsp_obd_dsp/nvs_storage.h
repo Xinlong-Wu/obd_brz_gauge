@@ -74,6 +74,40 @@ typedef struct {
     uint8_t  rsv[2];
 } nvs_stat_t;
 
+/*------------------ Error log (diagnostics ring buffer) ------------------*/
+// Ring buffer of recent runtime errors, persisted to NVS so a crash/reboot
+// loop can be diagnosed afterwards. Pure sanitize/append logic lives in
+// nvs_error_log_logic.h (host-testable). Readers (settings/App/BLE) arrive
+// with the diagnostics UI; call sites throttle their own repetition.
+#define NVS_ERROR_LOG_VERSION  1u
+#define NVS_ERROR_LOG_CAPACITY 64u   // 64 x 92B entries ≈ 5.9KB blob
+#define NVS_ERROR_TAG_LEN      16u
+#define NVS_ERROR_MSG_LEN      64u
+
+typedef struct {
+    uint32_t seq;                     // monotonic across reboots (next_seq persists)
+    uint32_t uptime_s;                // seconds since boot when recorded
+    int32_t  err_code;                // esp_err_t or domain-specific code
+    char     tag[NVS_ERROR_TAG_LEN];  // module tag, e.g. "nvs", "elm327"
+    char     message[NVS_ERROR_MSG_LEN];
+} nvs_error_entry_t;
+
+typedef struct {
+    uint32_t version;                 // NVS_ERROR_LOG_VERSION; mismatch → wiped on load
+    uint32_t next_seq;
+    uint8_t  head;                    // next write slot
+    uint8_t  count;                   // valid entries (saturates at capacity)
+    uint8_t  rsv[2];
+    nvs_error_entry_t entries[NVS_ERROR_LOG_CAPACITY];
+} nvs_error_log_t;
+
+// Append an entry (records uptime automatically). Safe before nvs_storage_init()
+// (single-threaded early boot falls back to an unlocked path).
+void nvs_error_log_record(const char *tag, esp_err_t err, const char *message);
+void nvs_error_log_recordf(const char *tag, esp_err_t err, const char *fmt, ...);
+uint8_t nvs_error_log_count(void);             // number of valid entries
+void nvs_error_log_copy(nvs_error_log_t *out); // snapshot for readers (oldest first: idx = (head - count + i) % CAPACITY)
+
 esp_err_t nvs_storage_init(void);
 
 /* User config accessors */

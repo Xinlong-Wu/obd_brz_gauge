@@ -6,6 +6,21 @@
 
 ---
 
+## NVS 诊断错误日志与初始化加固
+
+- 新增**运行时错误日志**（64 条环形缓冲，约 5.9KB，持久化到 NVS
+  `diag/errors`）：`nvs_error_log_record/recordf` 记录模块 tag、esp_err、
+  开机秒数与消息；载入时自动修复损坏的版本号/游标；seq 跨重启单调。
+  纯逻辑在 `nvs_error_log_logic.h`（`static inline`，单测 20+ 断言）；
+  NVS 写失败会自记录（带递归保护）。读取入口（设置页/App/BLE）随
+  M4 诊断页提供
+- `nvs_storage_init()` 互斥量创建失败改为返回 `ESP_ERR_NO_MEM`，
+  不再在首次上锁时随机崩溃（移植 ref 的加固；ref 的 flush 任务栈
+  扩容不适用——本仓库统计不落盘、无后台 flush 任务）
+- 模拟器 NVS mock 同步提供错误日志 API（内存环形缓冲，同一逻辑头）
+
+---
+
 ## OBD 轮询档位（NORMAL / FAST / TURBO）
 
 - 设置页新增 **OBD POLL** 滚轮（与 RACECHRONO 同排双列布局）：

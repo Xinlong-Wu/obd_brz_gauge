@@ -7,8 +7,10 @@
  * settings reset on relaunch, which is fine for a preview tool. */
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/espnow_link.h"   /* ESPNOW_ROLE_* */
+#include "bsp_obd_dsp/nvs_error_log_logic.h"
 #include "sim_platform.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -158,4 +160,36 @@ nvs_stat_t nvs_stat_get_mileage(void)
 {
     ensure_defaults();
     return s_stat;
+}
+
+/* ---- Diagnostics error log: in-memory ring, same logic as the firmware ---- */
+
+static nvs_error_log_t s_errlog = { .version = NVS_ERROR_LOG_VERSION };
+
+void nvs_error_log_record(const char *tag, esp_err_t err, const char *message)
+{
+    nvs_error_log_logic_append(&s_errlog, 0 /* sim: uptime not tracked */, (int32_t)err, tag, message);
+}
+
+void nvs_error_log_recordf(const char *tag, esp_err_t err, const char *fmt, ...)
+{
+    char buf[NVS_ERROR_MSG_LEN];
+    va_list ap;
+    if (fmt == NULL) { nvs_error_log_record(tag, err, NULL); return; }
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    nvs_error_log_record(tag, err, buf);
+}
+
+uint8_t nvs_error_log_count(void)
+{
+    nvs_error_log_logic_sanitize(&s_errlog);
+    return s_errlog.count;
+}
+
+void nvs_error_log_copy(nvs_error_log_t *out)
+{
+    if (out == NULL) return;
+    *out = s_errlog;
 }

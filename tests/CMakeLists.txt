@@ -114,6 +114,11 @@ add_gauge_test(test_nvs_poll_mode
     SOURCES test_nvs_poll_mode.c
             ${TEST_SHIMS})
 
+# ---- 错误日志环形缓冲:sanitize / append 回绕饱和 / mock API ----
+add_gauge_test(test_nvs_error_log
+    SOURCES test_nvs_error_log.c
+            ${TEST_SHIMS})
+
 # ---- 车型表:数量 / 越界钳制 / 数据自洽 ----
 # (set_active 内部会触碰数据缓存,一并编入)
 add_gauge_test(test_vehicle_profiles
