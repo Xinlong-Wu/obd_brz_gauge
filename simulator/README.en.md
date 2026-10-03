@@ -62,7 +62,8 @@ cmake --build simulator/build -j
 | `--profile N` | vehicle profile index (same order as Settings → VEHICLE) | 0 (OBD2 Generic) |
 | `--theme-slot N` | compile-time theme slot (`themes/registry.txt` line) | 0 |
 | `--role ROLE` | `master` / `slave` / `standalone` | standalone |
-| `--disconnected` | simulate a disconnected ELM327 adapter | off |
+| `--disconnected` | simulate the bound adapter being powered off (still boots to the gauges, pages show the disconnected state) | off |
+| `--unbound` | no saved adapter in NVS (boots to the BLE scan page, i.e. a freshly flashed device) | off |
 | `--no-boot` | skip the boot video (intro mode OFF) | off |
 | `--theme FILE` | theme.bin path, served as the theme_0 pseudo partition | none (built-in fallback) |
 | `--bootmedia DIR` | dir holding the boot animation files | `<repo>/bootmedia/slot_a` |

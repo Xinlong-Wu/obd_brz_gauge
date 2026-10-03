@@ -11,6 +11,7 @@ typedef struct {
     int          theme_slot;   // compile-time theme slot in registry.txt (default 0 = default)
     int          role;         // 0=master 1=slave 2=standalone (default 2)
     bool         disconnected; // pretend the ELM327 adapter is not connected
+    bool         unbound;      // no saved adapter in NVS → boots to the BLE scan page
     bool         no_boot;      // skip the boot video (intro_enable=0)
     long         frames;       // run N frames then exit (0 = run until window closed)
     const char  *screenshot;   // save a BMP of the final frame to this path

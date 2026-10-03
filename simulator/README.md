@@ -57,7 +57,8 @@ cmake --build simulator/build -j
 | `--profile N` | 车型配置序号（同设置页 VEHICLE 顺序） | 0（OBD2 Generic）|
 | `--theme-slot N` | 编译期主题槽位（`themes/registry.txt` 行号） | 0 |
 | `--role ROLE` | `master` / `slave` / `standalone` | standalone |
-| `--disconnected` | 模拟 ELM327 未连接 | 关 |
+| `--disconnected` | 模拟已绑定的适配器未上电（开机仍进表盘，页面显示未连接态） | 关 |
+| `--unbound` | NVS 无已保存适配器（开机进 BLE 扫描页，即真机首烧状态） | 关 |
 | `--no-boot` | 跳过开机动画（intro 模式 OFF） | 关 |
 | `--theme FILE` | theme.bin 路径，作为 theme_0 伪分区 | 无（走内置主题回退）|
 | `--bootmedia DIR` | 开机动画文件目录 | `<repo>/bootmedia/slot_a` |
