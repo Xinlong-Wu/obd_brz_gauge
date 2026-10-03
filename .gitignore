@@ -6,6 +6,8 @@ firmware/*.bin
 managed_components/
 sdkconfig.old
 sdkconfig
+sdkconfig.ws175
+build_ws175/
 .vscode/
 .qwen/
 .DS_Store

@@ -7,6 +7,34 @@ cleanups live in the git history.
 
 ---
 
+## Board abstraction and WS175 AMOLED support
+
+- New board layer `bsp_obd_dsp/boards/` (ported from the validated
+  Hokori23/obd_brz_gauge implementation): `board_api.h` unifies
+  init/display-context/brightness/shared-I2C/register access;
+  `board_dispatch.c` dispatches statically on the Kconfig **Display
+  board**; board files self-guard with `#if CONFIG_OBD_BOARD_*` (the
+  component CMake requirements phase has no CONFIG_ variables, so the
+  split cannot happen in CMake)
+- **New WS175 target** (Waveshare ESP32-S3-Touch-AMOLED-1.75, 466x466):
+  CO5300 QSPI panel (CASET/RASET factory-gap compensation, black until
+  first frame), CST9217 touch (degrades to no-touch with an error-log
+  entry on failure), brightness via command 0x51, 180-degree mount via
+  LVGL `sw_rotate`. New component deps: esp_lcd_co5300 /
+  esp_lcd_touch_cst9217 / esp_lcd_panel_io_additions;
+  `sdkconfig.defaults.ws175` overlay, build commands in
+  docs/DEVELOPMENT.en.md (deviation from ref: rotation fixed at 180 for
+  now, NVS runtime rotation not ported)
+- **WS185 behavior unchanged**: app_main now calls board_* (which wrap
+  the original I2C_Init/EXIO_Init/LCD_Init chain); UI screen symbols go
+  through the `board_display_compat.h` facade. Both board builds verified
+  in Docker
+- Not yet ported: the QMI8658 IMU driver and g-force plot (on-board
+  peripherals of WS175 — next focused session together with hardware
+  validation)
+
+---
+
 ## NVS diagnostics error log and init hardening
 
 - New **runtime error log** (64-entry ring, ~5.9KB, persisted to NVS

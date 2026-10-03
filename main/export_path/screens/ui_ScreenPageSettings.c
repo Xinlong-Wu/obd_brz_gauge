@@ -6,7 +6,7 @@
 #include "../ui.h"
 #include <string.h>
 #include "bsp_obd_dsp/nvs_storage.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "esp_system.h"
 

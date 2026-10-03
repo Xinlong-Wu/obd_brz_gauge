@@ -17,7 +17,7 @@
 #include "ui.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/espnow_link.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "app_obd_dsp/boot_block_player.h"

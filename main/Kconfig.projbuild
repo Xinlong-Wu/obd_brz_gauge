@@ -1,4 +1,22 @@
 menu "OBD DSP Configuration"
+    # Board abstraction: see main/bsp_obd_dsp/boards/board_api.h.
+    # The WS185 hardware-version variants (V1/V2/V3) live one level below.
+
+    choice OBD_BOARD
+        prompt "Display board"
+        default OBD_BOARD_WS_185
+        help
+            Which physical board this firmware is built for. The selection
+            dispatches main/bsp_obd_dsp/boards/ at compile time; see
+            docs/DEVELOPMENT.md (适配新开发板).
+
+        config OBD_BOARD_WS_185
+            bool "WS185: Waveshare ESP32-S3-Touch-LCD-1.85 (360x360 IPS)"
+
+        config OBD_BOARD_WS_175_AMOLED
+            bool "WS175: Waveshare ESP32-S3-Touch-AMOLED-1.75 (466x466 AMOLED)"
+    endchoice
+
     # Waveshare ESP32-S3-Touch-LCD-1.85
     # LCD: ST77916 (360x360 QSPI)
     # Touch: CST816 (I2C)
@@ -7,6 +25,9 @@ menu "OBD DSP Configuration"
     choice OBD_HW_VERSION
         prompt "OBD display hardware version"
         default OBD_HW_VERSION_V1_WAVESHARE
+        help
+            WS185 hardware variant (ignored when the WS175 board is selected —
+            kept selectable everywhere so the ST77916 driver always compiles).
         help
             Select which display board this firmware is built for.
             The two new boards share the same pins (LCD QSPI + CST816 touch on

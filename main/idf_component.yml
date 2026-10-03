@@ -6,6 +6,9 @@ dependencies:
   espressif/esp_lcd_touch:
     public: true
     version: "^1"
+  espressif/esp_lcd_co5300: "^2.0.0"        # WS175 AMOLED panel (only compiled when that board is selected)
+  espressif/esp_lcd_panel_io_additions: "^1.0.0"
+  waveshare/esp_lcd_touch_cst9217: "^2.0.0"  # WS175 touch
   lvgl/lvgl:
     public: true
     version: "^8"

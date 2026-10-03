@@ -72,6 +72,13 @@ endif()
 string(REGEX REPLACE "[^A-Za-z0-9._-]" "_" OBD_GAUGE_GIT_BRANCH_SAFE "${OBD_GAUGE_GIT_BRANCH}")
 set(OBD_GAUGE_BUILD_TAG "${OBD_GAUGE_GIT_BRANCH_SAFE}-${OBD_GAUGE_GIT_COUNT}-${OBD_GAUGE_GIT_HASH}")
 
+# Board layer: every boards/*.c always compiles and self-guards with
+# #if CONFIG_OBD_BOARD_* — the component CMakeLists runs in the requirements
+# phase where CONFIG_ variables are not injected yet, so CMake-level gating
+# is not possible here (see board_dispatch.c for the dispatch pattern).
+# The WS185 driver dirs also always compile: OBD_HW_VERSION keeps its default
+# selection on WS175 builds, the unused LCD/touch/exio code is never called
+# there and is dropped by the linker's --gc-sections.
 idf_component_register(SRC_DIRS
                     "."
                     "export_path/components"
@@ -82,6 +89,7 @@ idf_component_register(SRC_DIRS
                     "export_path"
                     "app_obd_dsp"
                     "bsp_obd_dsp"
+                    "bsp_obd_dsp/boards"
                     "bsp_obd_dsp/lcd_driver"
                     "bsp_obd_dsp/lcd_driver/esp_lcd_st77916"
                     "bsp_obd_dsp/exio"
@@ -98,7 +106,9 @@ idf_component_register(SRC_DIRS
                     mbedtls
                     nvs_flash
                     app_update
-                    json)
+                    json
+                    esp_lcd
+                    driver)
 
 # Auto-generate the bootmedia SPIFFS image; flashed together via idf.py flash
 spiffs_create_partition_image(bootmedia ${CMAKE_CURRENT_SOURCE_DIR}/../bootmedia/slot_a FLASH_IN_PROJECT)

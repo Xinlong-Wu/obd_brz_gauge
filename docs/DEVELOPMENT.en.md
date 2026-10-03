@@ -116,6 +116,29 @@ on the version page — so commit *before* releasing, see
 
 ## Porting a new board
 
+The board layer lives in `main/bsp_obd_dsp/boards/` (`board_api.h` is the
+unified interface; `board_dispatch.c` dispatches statically on the Kconfig
+`OBD DSP Configuration -> Display board`). A new board = one `board_<id>.c`
++ spec header + Kconfig option, self-guarded with `#if CONFIG_OBD_BOARD_<ID>`
+(the component CMake requirements phase has no CONFIG_ variables, so the
+split cannot happen in CMake). Existing boards:
+
+- **WS185** (default): Waveshare 1.85" IPS, ST77916 QSPI + CST816 + TCA9554
+  (V1/V2/V3 variants under `OBD_HW_VERSION`)
+- **WS175**: Waveshare 1.75" AMOLED 466x466, CO5300 QSPI + CST9217 (shared
+  I2C for QMI8658/ADS1115), 180-degree mount handled by LVGL `sw_rotate`.
+  Build:
+
+```bash
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
+```
+
+UI code should include screen symbols via `boards/board_display_compat.h`
+(WS185 forwards ST77916.h; WS175 provides same-name macros/shims) instead
+of including ST77916.h directly.
+
 1. Add a hardware-version option in `Kconfig.projbuild` (if LCD / touch /
    IO expander differ)
 2. Focus on `bsp_obd_dsp/`: `lcd_driver/` (init sequence, QSPI parameters),

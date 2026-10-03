@@ -1,0 +1,32 @@
+#pragma once
+// WS175 AMOLED 板卡静态规格(Waveshare ESP32-S3-Touch-AMOLED-1.75)。
+// CO5300 面板带 CASET/RASET 出厂偏移(gap),点亮黑屏时序见 init 表。
+#include <stdint.h>
+
+#define BOARD_WS_175_AMOLED_NAME "Waveshare ESP32-S3-Touch-AMOLED-1.75"
+#define BOARD_WS_175_AMOLED_H_RES 466
+#define BOARD_WS_175_AMOLED_V_RES 466
+#define BOARD_WS_175_AMOLED_COLOR_BITS 16
+#define BOARD_WS_175_AMOLED_DRAW_BUFFER_LINES 50
+#define BOARD_WS_175_AMOLED_HAS_TOUCH 1
+#define BOARD_WS_175_AMOLED_BRIGHTNESS_CMD 0x51
+#define BOARD_WS_175_AMOLED_LCD_GAP_X 0x06
+#define BOARD_WS_175_AMOLED_LCD_GAP_Y 0
+#define BOARD_WS_175_AMOLED_LCD_CASET_X0 0x0006
+#define BOARD_WS_175_AMOLED_LCD_CASET_X1 0x01D7
+#define BOARD_WS_175_AMOLED_LCD_RASET_Y0 0x0000
+#define BOARD_WS_175_AMOLED_LCD_RASET_Y1 0x01D1
+
+// 本仓库适配差异:ref 支持从 NVS 运行时选旋转,本仓库 NVS 保留位不可挪用,
+// 先固定 180°(LVGL sw_rotate 实现),需要时可再追加 NVS 字段(只能末尾)。
+#define BOARD_WS_175_AMOLED_DISPLAY_ROTATION 180
+
+#define BOARD_WS_175_AMOLED_TOUCH_SWAP_XY 0
+#define BOARD_WS_175_AMOLED_TOUCH_MIRROR_X 1
+#define BOARD_WS_175_AMOLED_TOUCH_MIRROR_Y 1
+
+#define BOARD_WS_175_AMOLED_TRANSFER_BYTES(lines) \
+    ((uint32_t)BOARD_WS_175_AMOLED_H_RES * (uint32_t)(lines) * sizeof(uint16_t))
+
+#define BOARD_WS_175_AMOLED_BRIGHTNESS_PARAM(percent) \
+    ((uint8_t)(((uint32_t)(percent) * 255U) / 100U))

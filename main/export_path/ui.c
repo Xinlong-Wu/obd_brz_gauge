@@ -14,7 +14,7 @@
 #include <driver/gpio.h>
 #include "bsp_obd_dsp/bsp_board.h"
 #include "bsp_obd_dsp/nvs_storage.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
 #include "bsp_obd_dsp/elm327_ble_client.h"
 #include "bsp_obd_dsp/espnow_link.h"
 #include "bsp_obd_dsp/gauge_pair_ble_client.h"

@@ -108,6 +108,25 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 
 ## 适配新开发板
 
+板级抽象在 `main/bsp_obd_dsp/boards/`(`board_api.h` 统一接口,`board_dispatch.c`
+按 Kconfig `OBD DSP Configuration → Display board` 静态分发;新板=新增一个
+`board_<id>.c` + spec 头 + Kconfig 选项,板文件用 `#if CONFIG_OBD_BOARD_<ID>`
+自守卫——组件 CMake 的 requirements 阶段拿不到 CONFIG_ 变量,不能在 CMake 里分流)。
+现有两块:
+
+- **WS185**(默认):微雪 1.85" IPS,ST77916 QSPI + CST816 + TCA9554(V1/V2/V3 细分见 `OBD_HW_VERSION`)
+- **WS175**:微雪 1.75" AMOLED 466×466,CO5300 QSPI + CST9217(共享 I2C 可挂
+  QMI8658/ADS1115),180° 由 LVGL `sw_rotate` 处理;构建:
+
+```bash
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
+```
+
+UI 层包含屏幕符号请用 `boards/board_display_compat.h`(WS185 转发 ST77916.h,
+WS175 提供同名宏/兼容壳),不要再直接 include ST77916.h。
+
 1. `Kconfig.projbuild` 加硬件版本选项（若 LCD / 触摸 / IO 扩展不同）
 2. 重点检查 `bsp_obd_dsp/`：`lcd_driver/`（初始化序列、QSPI 参数）、`touch_driver/`、
    `exio/`（有无 IO 扩展）、引脚定义

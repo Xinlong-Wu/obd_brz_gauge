@@ -6,6 +6,27 @@
 
 ---
 
+## 板级抽象与 WS175 AMOLED 支持
+
+- 新增板级抽象层 `bsp_obd_dsp/boards/`(移植自 Hokori23/obd_brz_gauge,
+  实机验证过的实现):`board_api.h` 统一 init/显示上下文/亮度/共享 I2C/
+  寄存器读写接口,`board_dispatch.c` 按 Kconfig **Display board** 静态分发;
+  板文件以 `#if CONFIG_OBD_BOARD_*` 自守卫(组件 CMake 的 requirements 阶段
+  取不到 CONFIG_ 变量,CMake 层不可分流)
+- **新增 WS175**(微雪 ESP32-S3-Touch-AMOLED-1.75,466×466)构建目标:
+  CO5300 QSPI 面板(CASET/RASET 出厂偏移补偿、首帧前保持黑屏)、CST9217
+  触摸(失败降级无触摸并记入错误日志)、亮度命令 0x51、180° 安装由 LVGL
+  `sw_rotate` 处理;新增组件依赖 esp_lcd_co5300 / esp_lcd_touch_cst9217 /
+  esp_lcd_panel_io_additions;`sdkconfig.defaults.ws175` + 构建Overlay见
+  docs/DEVELOPMENT.md(与 ref 的差异:旋转暂固定 180°,NVS 运行时旋转未引入)
+- **WS185 行为零变化**:app_main 改经 board_* 调用(内部仍是原
+  I2C_Init/EXIO_Init/LCD_Init 链),UI 屏幕符号统一走
+  `board_display_compat.h` 门面;双板构建均通过 Docker 验证
+- 未竟:QMI8658 IMU 驱动与 G-force 曲线(WS175 板上外设,下个专项随
+  实机验证一起移植)
+
+---
+
 ## NVS 诊断错误日志与初始化加固
 
 - 新增**运行时错误日志**（64 条环形缓冲，约 5.9KB，持久化到 NVS
