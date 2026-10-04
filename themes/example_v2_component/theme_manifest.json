@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0",
+  "theme": {
+    "id": "v2_component_demo",
+    "name": "V2 DEMO",
+    "version": "1.0.0",
+    "author": "example",
+    "description": "Component-orchestrated theme demo (schema 2.0)"
+  },
+  "compatibility": { "min_firmware": "1.2.0", "max_firmware": "2.x.x" },
+  "colors": {
+    "bg": "0x0A0A0A", "ring": "0xFF6B00", "arc_track": "0x2A2A2A",
+    "arc_indicator": "0xFFFF00", "text_primary": "0xFFFFFF",
+    "text_secondary": "0x888888", "needle": "0xFF3030", "panel": "0x1A1A1A"
+  }
+}

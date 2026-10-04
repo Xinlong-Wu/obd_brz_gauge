@@ -143,6 +143,8 @@ lv_obj_t *ui_comp_create(const ui_comp_desc_t *desc, lv_obj_t *parent)
         lv_obj_set_size(bar, desc->w, desc->h / 3);
         lv_obj_align(bar, LV_ALIGN_CENTER, 0, 0);
         lv_bar_set_range(bar, 0, 100);
+        lv_obj_set_style_radius(bar, 3, LV_PART_MAIN);
+        lv_obj_set_style_radius(bar, 3, LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(bar, ui_theme_color_lv(UI_COLOR_ARC_TRACK), LV_PART_MAIN);
         lv_obj_set_style_bg_color(bar, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_INDICATOR);
         p->main = bar;
@@ -215,9 +217,9 @@ bool ui_comp_update(lv_obj_t *comp)
         }
         return false;
     }
-    p->shown_valid = true;
-    if (raw == p->shown && p->shown_valid) return true;   // 脏检查
+    if (p->shown_valid && raw == p->shown) return true;   // 脏检查
     p->shown = raw;
+    p->shown_valid = true;   // 写入后才算有效(首写 0 值也必须渲染)
 
     int32_t pct = 0;
     int32_t span = ns->nmax - ns->nmin;

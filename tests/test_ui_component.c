@@ -102,6 +102,13 @@ int main(void)
     }
     TEST_ASSERT_EQ_INT(74, pct);          // (92-(-20))/150 = 74.7 → 74
 
+    // ---- 首写零值必须渲染(SPD 静止为 0,不能停留占位文本) ----
+    d.type = UI_COMP_VALUE; d.channel = DISP_ITEM_SPEED; d.x = 0; d.y = 200; d.w = 100; d.h = 80;
+    lv_obj_t *spd = ui_comp_create(&d, scr);
+    TEST_ASSERT(spd != NULL);
+    TEST_ASSERT(ui_comp_update(spd));
+    TEST_ASSERT_EQ_STR("0", lv_label_get_text(find_value_label(spd)));
+
     // ---- GFORCE:双通道驱动,点在圆内移动 ----
     d.type = UI_COMP_GFORCE; d.channel = DISP_ITEM_GFORCE_LAT; d.w = 120; d.h = 120;
     lv_obj_t *gf = ui_comp_create(&d, scr);

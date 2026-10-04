@@ -41,52 +41,62 @@ def rgb888_to_rgb565(r: int, g: int, b: int) -> int:
 
 
 def pack_image_rgb565(img_path: Path, offset: int, data: bytearray) -> int:
-    """Pack 360x360 RGB image as RGB565"""
+    """Pack RGB image as RGB565 (dial/ring stay 360x360; named assets any size)"""
     if not PIL_AVAILABLE:
         print(f"Skipping {img_path} (Pillow not installed)")
         return 0
 
     img = Image.open(img_path).convert('RGB')
-    if img.size != (360, 360):
+    w, h = img.size
+    if img_path.name in ("dial.png", "ring.png") and (w, h) != (360, 360):
         raise ValueError(f"Image {img_path} must be 360x360, got {img.size}")
 
-    print(f"  Packing {img_path.name} as RGB565...")
+    print(f"  Packing {img_path.name} as RGB565 ({w}x{h})...")
     pixels = img.load()
 
-    for y in range(360):
-        for x in range(360):
+    for y in range(h):
+        for x in range(w):
             r, g, b = pixels[x, y]
             rgb565 = rgb888_to_rgb565(r, g, b)
-            pos = offset + (y * 360 + x) * 2
+            pos = offset + (y * w + x) * 2
             struct.pack_into('<H', data, pos, rgb565)
 
-    size = 360 * 360 * 2  # 259200 bytes
+    size = w * h * 2
     print(f"    Packed {size} bytes at offset 0x{offset:06X}")
     return size
 
 
 def pack_image_rgba8888(img_path: Path, offset: int, data: bytearray) -> int:
-    """Pack 360x360 RGBA image as RGBA8888"""
+    """Pack RGBA image as RGBA8888 (dial/ring stay 360x360; named assets any size)"""
     if not PIL_AVAILABLE:
         print(f"Skipping {img_path} (Pillow not installed)")
         return 0
 
     img = Image.open(img_path).convert('RGBA')
-    if img.size != (360, 360):
+    w, h = img.size
+    if img_path.name in ("dial.png", "ring.png") and (w, h) != (360, 360):
         raise ValueError(f"Image {img_path} must be 360x360, got {img.size}")
 
-    print(f"  Packing {img_path.name} as RGBA8888...")
+    print(f"  Packing {img_path.name} as RGBA8888 ({w}x{h})...")
     pixels = img.load()
 
-    for y in range(360):
-        for x in range(360):
+    for y in range(h):
+        for x in range(w):
             r, g, b, a = pixels[x, y]
-            pos = offset + (y * 360 + x) * 4
+            pos = offset + (y * w + x) * 4
             struct.pack_into('BBBB', data, pos, r, g, b, a)
 
-    size = 360 * 360 * 4  # 518400 bytes
+    size = w * h * 4
     print(f"    Packed {size} bytes at offset 0x{offset:06X}")
     return size
+
+
+def pack_raw_bytes(raw_path: Path, offset: int, data: bytearray) -> int:
+    """Pack a raw binary asset verbatim (e.g. lv_font_bin)."""
+    raw = raw_path.read_bytes()
+    data[offset:offset + len(raw)] = raw
+    print(f"  Packing {raw_path.name} verbatim ({len(raw)} bytes)")
+    return len(raw)
 
 
 def pack_layout_json(layout_path: Path, offset: int, data: bytearray) -> int:
@@ -187,34 +197,92 @@ def pack_theme(theme_dir: Path, output_bin: Path) -> None:
     else:
         print(f"\nWarning: ring.png not found, skipping")
 
-    # Pack layout JSON (optional)
-    layout_path = theme_dir / "layout.json"
-    if layout_path.exists():
-        # Store layout data offset in manifest
+    # ---- Named assets (M3.4): anything in assets/ besides dial/ring ----
+    #   foo.png        -> name "foo", rgb565 (any size)
+    #   foo.rgba.png   -> name "foo", rgba8888 (any size)
+    #   foo.lv_font_bin-> name "foo", lv_font_bin (verbatim)
+    if (theme_dir / "assets").is_dir():
+        for f in sorted((theme_dir / "assets").iterdir()):
+            if not f.is_file():
+                continue
+            if f.name in ("dial.png", "ring.png"):
+                continue   # legacy pair, packed above
+            if f.name.endswith(".rgba.png"):
+                name, fmt, packer = f.name[:-len(".rgba.png")], "rgba8888", pack_image_rgba8888
+                meta_w = meta_h = None
+            elif f.name.endswith(".png"):
+                name, fmt, packer = f.name[:-len(".png")], "rgb565", pack_image_rgb565
+                meta_w = meta_h = None
+            elif f.name.endswith(".lv_font_bin"):
+                name, fmt, packer = f.name[:-len(".lv_font_bin")], "lv_font_bin", pack_raw_bytes
+                meta_w = meta_h = None
+            else:
+                print(f"  Skipping unrecognized asset {f.name}")
+                continue
+            if name in assets_info:
+                raise ValueError(f"Duplicate asset name '{name}'")
+
+            size = packer(f, current_offset, data)
+            if size <= 0:
+                continue
+            entry = {"offset": current_offset, "size": size, "format": fmt}
+            if PIL_AVAILABLE and fmt != "lv_font_bin":
+                with Image.open(f) as im:
+                    entry["width"], entry["height"] = im.size
+            assets_info[name] = entry
+            current_offset += size
+
+    # ---- components.json (M3.4): theme-defined components, embedded verbatim ----
+    components_path = theme_dir / "components.json"
+    if components_path.exists():
+        components = json.load(open(components_path, 'r'))
+        if not isinstance(components, dict):
+            raise ValueError("components.json must be a JSON object")
+        manifest["components"] = components
+
+    # ---- Multi-page layouts (M3.4): layouts/<page_id>.json, one entry each ----
+    # The legacy single layout.json keeps working (page id "main_gauge").
+    layout_files = []
+    legacy = theme_dir / "layout.json"
+    if legacy.exists():
+        layout_files.append(("main_gauge", legacy))
+    layouts_dir = theme_dir / "layouts"
+    if layouts_dir.is_dir():
+        for f in sorted(layouts_dir.glob("*.json")):
+            layout_files.append((f.stem, f))
+
+    if layout_files:
         if "pages" not in manifest:
             manifest["pages"] = {}
-        if "theme_pages" not in manifest["pages"]:
-            manifest["pages"]["theme_pages"] = []
+        theme_pages = manifest["pages"].setdefault("theme_pages", [])
 
-        size = pack_layout_json(layout_path, current_offset, data)
-        if size > 0:
-            # Update or add theme page entry
-            if len(manifest["pages"]["theme_pages"]) == 0:
-                manifest["pages"]["theme_pages"].append({
-                    "id": "main_gauge",
-                    "type": "custom_layout",
-                    "replaces": ["page_rpm", "page_boost", "page_multi_gauge"]
-                })
-
-            manifest["pages"]["theme_pages"][0]["layout_data_offset"] = current_offset
-            manifest["pages"]["theme_pages"][0]["layout_data_size"] = size
+        for page_id, path in layout_files:
+            size = pack_layout_json(path, current_offset, data)
+            if size <= 0:
+                continue
+            entry = next((e for e in theme_pages if e.get("id") == page_id), None)
+            if entry is None:
+                entry = {"id": page_id, "type": "custom_layout"}
+                theme_pages.append(entry)
+            entry["layout_data_offset"] = current_offset
+            entry["layout_data_size"] = size
             current_offset += size
+
+    # v2 features used -> bump schema so old firmware rejects loudly instead
+    # of silently ignoring components/instances
+    if manifest.get("schema_version", "1.0") == "1.0" and (
+            "components" in manifest or
+            any("instances" in json.loads((theme_dir / "layout.json").read_text())
+                for _ in [0] if (theme_dir / "layout.json").exists()) or
+            any("instances" in json.loads(f.read_text())
+                for pid, f in layout_files)):
+        manifest["schema_version"] = "2.0"
 
     # Add assets section to manifest
     if assets_info:
         manifest["assets"] = assets_info
 
-    # Write final manifest to partition (first 8KB)
+    # Write final manifest to partition (first 16KB, see MANIFEST_RESERVED_SIZE)
     manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
     if len(manifest_bytes) >= MANIFEST_RESERVED_SIZE:
         raise ValueError(

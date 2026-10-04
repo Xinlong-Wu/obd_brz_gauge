@@ -1,0 +1,11 @@
+{
+  "page_id": "main_gauge",
+  "instances": [
+    { "component": "value",   "channel": "obd.coolant_temp", "x": 20,  "y": 30,  "w": 150, "h": 100 },
+    { "component": "arc",     "channel": "obd.rpm",          "x": 30,  "y": 130, "w": 140, "h": 140 },
+    { "component": "value",   "channel": "obd.speed",        "x": 190, "y": 30,  "w": 140, "h": 100 },
+    { "component": "bar",     "channel": "obd.oil_pressure", "x": 185, "y": 150, "w": 160, "h": 60 },
+    { "component": "gforce",  "channel": "obd.gforce_lat",   "x": 240, "y": 210, "w": 100, "h": 100 },
+    { "component": "theme:badge",                             "x": 105, "y": 285, "w": 150, "h": 40 }
+  ]
+}
