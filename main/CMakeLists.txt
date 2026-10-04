@@ -34,6 +34,29 @@ if(THEME_GEN_STDERR)
 endif()
 message(STATUS "${THEME_GEN_STDOUT}")
 
+# ---- UI image assets codegen -----------------------------------------------
+# assets_src/images/*.png masters -> export_path/images{,_r240,_r466}/*.c
+# (LANCZOS to each render resolution; byte-identical data at 360).
+# Pillow is imported lazily only when a master's SHA changes.
+set(ASSET_MASTERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../assets_src/images")
+file(GLOB ASSET_MASTERS "${ASSET_MASTERS_DIR}/*.png")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ASSET_MASTERS})
+
+execute_process(
+    COMMAND "${python}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_assets.py"
+    RESULT_VARIABLE ASSET_GEN_RESULT
+    OUTPUT_VARIABLE ASSET_GEN_STDOUT
+    ERROR_VARIABLE  ASSET_GEN_STDERR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE)
+if(NOT ASSET_GEN_RESULT EQUAL 0)
+    message(FATAL_ERROR
+            "Image asset generation failed.\n${ASSET_GEN_STDOUT}\n${ASSET_GEN_STDERR}")
+endif()
+if(ASSET_GEN_STDOUT)
+    message(STATUS "${ASSET_GEN_STDOUT}")
+endif()
+
 # Build metadata for app-side compatibility checks and on-device manifests.
 set(OBD_GAUGE_GIT_HASH "unknown")
 set(OBD_GAUGE_GIT_BRANCH "unknown")
@@ -84,6 +107,8 @@ idf_component_register(SRC_DIRS
                     "export_path/components"
                     "export_path/fonts"
                     "export_path/images"
+                    "export_path/images_r240"
+                    "export_path/images_r466"
                     "export_path/theme_assets"
                     "export_path/screens"
                     "export_path"
