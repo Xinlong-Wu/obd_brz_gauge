@@ -1,12 +1,20 @@
 build/
+simulator/build/
+tests/build/
+firmware/release/
+firmware/*.bin
 managed_components/
 sdkconfig.old
 sdkconfig
+sdkconfig.ws175
+build_ws175/
+sdkconfig.ws128
+sdkconfig.ws128.old
+build_ws128/
 .vscode/
 .qwen/
 .DS_Store
 **/.DS_Store
-main/SAX0AC BC CC.pdf
 __pycache__/
 *.pyc
 # generated PID probe artifacts (from tools/analyze_proble.py)
@@ -16,5 +24,7 @@ tools/elm_pids
 tools/pids_full.csv
 .mimosa
 .zcode
+.zcodeignore
 # per-developer AI preferences (see AGENTS.md self-update protocol)
 AGENTS.local.md
+sdkconfig.ws175.old

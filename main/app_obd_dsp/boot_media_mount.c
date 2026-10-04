@@ -53,12 +53,16 @@ static bool manifest_present(void)
     const esp_partition_t *p = get_partition();
     if (!p) return false;
 
-    uint8_t probe[8] = {0};
+    // The factory image and the WiFi uploader both lay the manifest out at
+    // offset 0 starting with this exact key (tools/gen_bootmedia.py). Requiring
+    // the full prefix keeps erased/garbage flash (e.g. a stale SPIFFS image's
+    // metadata) from passing as present.
+    static const char probe_key[] = "canvas_width=";
+    uint8_t probe[sizeof(probe_key) - 1] = {0};
     if (esp_partition_read(p, BOOTMEDIA_MANIFEST_OFFSET, probe, sizeof(probe)) != ESP_OK) {
         return false;
     }
-    // A valid manifest starts with a printable key like "canvas_width=".
-    return probe[0] >= 'a' && probe[0] <= 'z';
+    return memcmp(probe, probe_key, sizeof(probe)) == 0;
 }
 
 bool boot_media_has_block_video(void)

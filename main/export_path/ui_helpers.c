@@ -5,6 +5,7 @@
 
 #include "ui_helpers.h"
 #include "ui_theme.h"
+#include "ui_res.h"
 
 void _ui_bar_set_property(lv_obj_t * target, int id, int val)
 {
@@ -359,7 +360,7 @@ lv_obj_t * ui_helpers_create_ring(lv_obj_t * parent, uint8_t border_width)
     }
 
     lv_obj_t *ring = lv_obj_create(parent);
-    lv_obj_set_size(ring, 360, 360);
+    lv_obj_set_size(ring, UIS(720), UIS(720));
     lv_obj_set_align(ring, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(ring, LV_RADIUS_CIRCLE, LV_PART_MAIN);
@@ -389,9 +390,9 @@ void ui_helpers_style_dark_roller(lv_obj_t * r, const lv_font_t * font)
     lv_obj_set_style_text_color(r, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_bg_color(r, lv_color_hex(0x222222), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(r, 255, LV_PART_MAIN);
-    lv_obj_set_style_border_width(r, 1, LV_PART_MAIN);
+    lv_obj_set_style_border_width(r, UIS(2), LV_PART_MAIN);
     lv_obj_set_style_border_color(r, lv_color_hex(0x444444), LV_PART_MAIN);
-    lv_obj_set_style_radius(r, 8, LV_PART_MAIN);
+    lv_obj_set_style_radius(r, UIS(16), LV_PART_MAIN);
     lv_obj_set_style_text_font(r, font, LV_PART_SELECTED);
     lv_obj_set_style_text_color(r, lv_color_hex(0x000000), LV_PART_SELECTED);
     lv_obj_set_style_bg_color(r, lv_color_hex(0xFFFFFF), LV_PART_SELECTED);

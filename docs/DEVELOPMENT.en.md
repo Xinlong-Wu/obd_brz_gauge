@@ -84,6 +84,21 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
+Without a local IDF installation, use Docker — `tools/docker-build.sh` is a
+thin wrapper around `docker run --rm … espressif/idf:v5.5.3` and forwards its
+arguments to `idf.py` verbatim:
+
+```bash
+tools/docker-build.sh set-target esp32s3   # first time
+tools/docker-build.sh build
+tools/docker-build.sh menuconfig
+```
+
+Artifacts land in the host's `build/`. macOS containers cannot reach USB
+devices, so flash/monitor from the host
+(`pip install esptool esp-idf-monitor`; flashing commands in
+[FLASH.en.md](FLASH.en.md)).
+
 `menuconfig → OBD DSP Configuration`:
 
 | Option | Values | Notes |
@@ -99,16 +114,155 @@ theme table, and injects the git branch / commit count / short hash as
 on the version page — so commit *before* releasing, see
 [release workflow](#release-workflow)).
 
+## Resolution strategy (720 master)
+
+UI, fonts, image assets and theme artwork are all authored against a
+**720x720 master** and scaled at compile time to the render resolution
+`CONFIG_OBD_UI_RENDER_RES` (Kconfig, 240-480, pinned per board:
+WS185=360 / WS175=466 / WS128=240). **Every board renders at its panel's
+native resolution.** Panels larger than 360 (WS175) get the full-screen
+native UI with zero layout changes.
+
+- **Layout**: `UIS(master_px)` in `export_path/ui_res.h` folds at compile
+  time (symmetric rounding); write master values in new code,
+  `tools/migrate_ui_literals.py` migrates historical literals (angles/
+  opacities/delays are never wrapped)
+- **Images**: `assets_src/images/*.png` masters → `tools/gen_assets.py`
+  emits C arrays per resolution (LANCZOS; the 360 data is byte-identical
+  to the historical arrays)
+- **Fonts**: `fonts/Conthrax-SemiBold.otf` master (720 sizes = the 360-era
+  values x2) → `tools/gen_fonts.py` rasterizes truly per resolution via
+  `npx lv_font_conv`; node is needed only when generating, `--check` is
+  node-free for CI
+- **Themes**: `gen_themes.py` / `theme_packer` accept square masters
+  >=360 (integer multiples of 360, e.g. 720) and LANCZOS down to the 360
+  contract at build/pack time; runtime theme assets are box-rescaled at
+  load when they don't match the render resolution (PSRAM, freed on
+  unload); the boot animation canvas follows the render resolution with
+  grid cells mapped automatically
+- **Render != panel** (unusual configs) engages `boards/ui_scale.c` at
+  flush time (downscale = box filter / upscale = nearest), and the boot
+  log states the path: `display: panel WxH, render N (native|...via ui_scale)`
+
+**Rejected alternative** — "render at 720/1080 at runtime and downsample"
+does not fit this hardware: one full-screen image is 1.03MB (720) /
+2.33MB (1080) vs 910KB of app-partition headroom; the WS128 has only
+2MB PSRAM and a 720 shadow framebuffer alone is 1.03MB; 4x/9x pixel
+fill kills animation frame rates; supersampled text is softer than
+native rasterization. Masters exist only at authoring and compile
+time — on the board, everything renders natively.
+
+**Red-line revision**: since the UIS() migration, `screens/*.c` is
+maintained in this repo (no longer "SquareLine-generated, do not edit");
+a SquareLine re-export would drop the UIS() wrapping — rerun
+`tools/migrate_ui_literals.py` and pass the sim_regress golden gate.
+New UI keeps writing master values (the 360-era visual spec x2).
+
 ## Porting a new board
+
+The board layer lives in `main/bsp_obd_dsp/boards/` (`board_api.h` is the
+unified interface; `board_dispatch.c` dispatches statically on the Kconfig
+`OBD DSP Configuration -> Display board`). A new board = one `board_<id>.c`
++ spec header + Kconfig option, self-guarded with `#if CONFIG_OBD_BOARD_<ID>`
+(the component CMake requirements phase has no CONFIG_ variables, so the
+split cannot happen in CMake). Existing boards:
+
+- **WS185** (default): Waveshare 1.85" IPS, ST77916 QSPI + CST816 + TCA9554
+  (V1/V2/V3 variants under `OBD_HW_VERSION`)
+- **WS175**: Waveshare 1.75" AMOLED 466x466, CO5300 QSPI + CST9217 (shared
+  I2C for QMI8658/ADS1115), 180-degree mount handled by LVGL `sw_rotate`.
+  Build:
+
+```bash
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3
+idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
+```
+
+- **WS128**: Waveshare 1.28" IPS no-touch, GC9A01 4-wire SPI 240x240,
+  ESP32-S3R2 (2MB **Quad** PSRAM in package — the shared default is octal and
+  must be overridden via this board's overlay, otherwise boot loops with the
+  `octal_psram` error). No touch / TCA9554 / ADS1115, display-only; renders
+  at 240 (720 master folded at compile time, see
+  [Resolution strategy](#resolution-strategy-720-master)). Build:
+
+```bash
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" set-target esp32s3
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+```
+
+UI code should include screen symbols via `boards/board_display_compat.h`
+(WS185 forwards ST77916.h; WS175 provides same-name macros/shims) instead
+of including ST77916.h directly.
 
 1. Add a hardware-version option in `Kconfig.projbuild` (if LCD / touch /
    IO expander differ)
 2. Focus on `bsp_obd_dsp/`: `lcd_driver/` (init sequence, QSPI parameters),
    `touch_driver/`, `exio/` (IO expander present?), pin definitions
-3. Resolution / color-depth macros live in `ST77916.h`; the UI assumes
-   360×360, so a different screen means touching `export_path/`
+3. Pin the render resolution to the panel's native value in this board's
+   `sdkconfig.defaults.<id>` (see [Resolution strategy](#resolution-strategy-720-master));
+   layout/fonts/assets adapt automatically
 4. Nothing vehicle-related needs to change — all car logic lives in
    `app_obd_dsp/`
+
+## PC simulator (UI preview)
+
+Run the UI sources **unmodified** on your computer (SDL2 window, mouse as
+touch, fake data as the car) — iterate on the UI without flashing a board:
+
+```bash
+brew install cmake sdl2          # Linux: sudo apt install cmake libsdl2-dev
+cmake -S simulator -B simulator/build && cmake --build simulator/build -j
+./simulator/build/obd_gauge_sim --no-boot
+```
+
+- ESP-IDF dependencies are satisfied by `simulator/shims/` (include-path
+  shadowing + stubs); no firmware file changes. LVGL is taken straight from
+  `managed_components/` — the exact copy the firmware builds against (8.4.0)
+- Compile-time / runtime theme switching (`--theme-slot` / `--theme
+  theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
+  (`--no-boot`), fake-data scenarios (`--scenario`), render resolution
+  (`--ui-res 240|466`, verifies non-360 layout/fonts/assets — equivalent to
+  changing `CONFIG_OBD_UI_RENDER_RES`)
+- Headless screenshot acceptance: `SDL_VIDEODRIVER=dummy ... --frames 500
+  --screenshot x.bmp`, or `--tour N` to walk the whole carousel with a
+  screenshot per page
+- Mileage stats, boot-video decoding and theme manifest parsing follow the
+  exact firmware code paths; BLE/OTA/triple-gauge are stubs (unavailable)
+
+Full option table and architecture notes in
+[simulator/README.en.md](../simulator/README.en.md).
+
+## Testing & CI
+
+Three layers of verification, all host-side, no board required:
+
+```bash
+# 1) Host unit tests (tests/, CTest; firmware pure-logic modules compiled
+#    through the simulator/shims header shadowing)
+cmake -S tests -B tests/build && cmake --build tests/build -j
+ctest --test-dir tests/build -R '^test_' --output-on-failure
+
+# 2) Simulator screenshot regression (golden comparison; after an
+#    intentional UI change, refresh with --update-goldens and commit)
+python3 tools/sim_regress.py
+
+# 3) Theme codegen freshness (zero deps)
+python3 tools/gen_themes.py --check
+```
+
+- New unit tests: add `test_xxx.c` under `tests/` and register it in
+  `tests/CMakeLists.txt` (`add_gauge_test`); assert macros live in
+  `tests/test_util.h`. Prefer extracting pure logic into `*_logic.h`
+  (`static inline`, no LVGL/ESP-IDF deps) before testing it
+- Screenshot regression relies on the determinism of `--seed` +
+  `--clock virtual` (bit-identical for identical args); goldens are PNGs
+  under `tests/goldens/`
+- CI (`.github/workflows/ci.yml`) has three jobs: themes-check /
+  unit-sim (unit tests + screenshot regression, diff overlays uploaded
+  on failure) / firmware (Docker build with `espressif/idf:v5.5.3`,
+  binaries uploaded as artifacts)
 
 ## Tool scripts
 
@@ -117,16 +271,15 @@ on the version page — so commit *before* releasing, see
 | `tools/gen_themes.py` | compiled-theme codegen (runs from CMake; `--check` for CI) |
 | `tools/theme_packer/pack_theme.py` | packs a runtime theme into a 4 MB theme.bin |
 | `tools/gen_theme_store.py` | regenerates the theme-store catalog.json |
-| `tools/gen_release.py` | build/ artifacts → firmware/release/ + latest.json |
-| `tools/release.sh` | one-shot release (commit → build → gen_release → push) |
+| `tools/release.sh` | one-shot release (commit → build → push) |
 | `tools/make_boot_block.py` | encodes video into boot_block.bin/txt (ffmpeg + Pillow; auto _v2 when frames > 65535) |
 | `tools/convert_rpm_flash.py` | 3 PNGs → RPM warning flash images (imgRpmFlash1..3.c) |
 | `tools/fake_elm327.py` | fake ELM327 TCP server: logs every app request, answers unknown PIDs positively |
 | `tools/one_shot.py` | one-shot PID hunting: starts the fake server → you record once → pids_full.csv |
 | `tools/analyze_proble.py` | correlates injected signals with Car Scanner recordings to recover PID mappings and formulas |
 | `tools/parse_carscanner_backup.py` | parses a CarScanner backup directory into a per-car PID CSV |
-| `main/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
-| `fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
+| `tools/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
+| `tools/fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
 
 ### PID-hunting workflow (find private PIDs without a car)
 
@@ -152,21 +305,21 @@ vehicle profile per [VEHICLES.en.md](VEHICLES.en.md#adding-a-vehicle).
 
 `tools/release.sh` is the one-shot flow: activate the ESP-IDF environment
 (eim) → commit sources (**commit first** — `count` is the git commit count) →
-`idf.py build` → `tools/gen_release.py` copies `build/` artifacts into
-`firmware/release/` and rewrites `latest.json` (sha256/size per file) →
-commit and push.
+`idf.py build` → push. The repo no longer hosts pre-built firmware; flashing
+always uses your local `build/` artifacts (see [FLASH.en.md](FLASH.en.md)).
 
-Minimal app-side release layout:
+The companion app pulls its firmware OTA manifest from a **self-hosted
+server** (not this repo):
 
 ```text
-/releases/
+<OTA server>/releases/obd_brz_gauge/
   latest.json
   firmware/    obd_brz_gauge.bin · partition-table.bin · bootloader.bin · ota_data_initial.bin
   bootmedia/   bootmedia.bin
 ```
 
-Re-run `gen_release.py` whenever release binaries change, or the app will
-compare fresh firmware against a stale manifest.
+The app compares the device firmware against `firmware.count` in
+`latest.json`; hosting that directory is up to the repo owner.
 
 ## Commit conventions
 

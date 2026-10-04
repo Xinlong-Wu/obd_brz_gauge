@@ -6,9 +6,10 @@
 #include "../ui.h"
 #include <string.h>
 #include "bsp_obd_dsp/nvs_storage.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "esp_system.h"
+#include "../ui_res.h"
 
 // Page names for the boot-page roller. Order must match the default-page
 // switch in ui.c. (Brake temp moved into the CHART page.)
@@ -22,6 +23,7 @@ static lv_obj_t *s_roller_vehicle = NULL;
 static lv_obj_t *s_roller_theme = NULL;
 static lv_obj_t *s_slider_bright = NULL;
 static lv_obj_t *s_label_bright_val = NULL;
+static lv_obj_t *s_roller_poll = NULL;
 static lv_obj_t *s_btn_rc = NULL;
 static lv_obj_t *s_label_rc = NULL;
 static bool s_rc_enabled = false;
@@ -38,7 +40,7 @@ static void on_bright_slider_change(lv_event_t *e)
 {
     int32_t val = lv_slider_get_value(s_slider_bright);
     if(val < 10) val = 10;
-    lv_label_set_text_fmt(s_label_bright_val, "%ld%%", val);
+    lv_label_set_text_fmt(s_label_bright_val, "%d%%", (int)val);
     nvs_user_cfg_t cfg = *nvs_cfg_get();
     cfg.brightness_day = (uint8_t)val;
     nvs_cfg_set(&cfg);
@@ -55,6 +57,15 @@ static void on_rc_toggle(lv_event_t *e)
         LV_PART_MAIN);
     nvs_user_cfg_t cfg = *nvs_cfg_get();
     cfg.rc_enabled = s_rc_enabled ? 1 : 0;
+    nvs_cfg_set(&cfg);
+}
+
+// OBD poll tier: takes effect from the next poll slot (the gap is re-read
+// every cycle in elm327_ble_client.c), no restart needed.
+static void on_poll_roller_change(lv_event_t *e)
+{
+    nvs_user_cfg_t cfg = *nvs_cfg_get();
+    cfg.obd_poll_mode = (uint8_t)lv_roller_get_selected(s_roller_poll);
     nvs_cfg_set(&cfg);
 }
 
@@ -84,7 +95,7 @@ void ui_ScreenPageSettings_screen_init(void)
 
     ui_ScreenPageSettings = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageSettings, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageSettings, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageSettings, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageSettings);
     lv_obj_set_style_bg_opa(ui_ScreenPageSettings, 255, LV_PART_MAIN);
 
@@ -97,7 +108,7 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_img_set_src(ear, &ui_img_pngblackear_png);
     lv_obj_set_width(ear, LV_SIZE_CONTENT);
     lv_obj_set_height(ear, LV_SIZE_CONTENT);
-    lv_obj_set_pos(ear, 0, -142);
+    lv_obj_set_pos(ear, 0, UIS(-284));
     lv_obj_set_align(ear, LV_ALIGN_CENTER);
     lv_obj_add_flag(ear, LV_OBJ_FLAG_ADV_HITTEST);
     lv_obj_clear_flag(ear, LV_OBJ_FLAG_SCROLLABLE);
@@ -107,14 +118,14 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_label_set_text(title, "SETTINGS");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -140);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-280));
 
     // ====== Row 1: Default Page (Boot Page) ======
     lv_obj_t *label_page = lv_label_create(ui_ScreenPageSettings);
     lv_label_set_text(label_page, "BOOT PAGE");
     lv_obj_set_style_text_font(label_page, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_page, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_page, LV_ALIGN_CENTER, 0, -110);
+    lv_obj_align(label_page, LV_ALIGN_CENTER, 0, UIS(-220));
 
     s_roller_page = lv_roller_create(ui_ScreenPageSettings);
     lv_obj_set_style_clip_corner(s_roller_page, true, 0);
@@ -122,10 +133,10 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_roller_set_options(s_roller_page, page_names, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller_page, 1);
     lv_roller_set_selected(s_roller_page, (cfg->default_page < BOOT_PAGE_COUNT) ? cfg->default_page : 0, LV_ANIM_OFF);
-    lv_obj_set_width(s_roller_page, 140);
-    lv_obj_set_height(s_roller_page, 30);   // explicit: font is applied by style_dark_roller below
+    lv_obj_set_width(s_roller_page, UIS(280));
+    lv_obj_set_height(s_roller_page, UIS(60));   // explicit: font is applied by style_dark_roller below
     ui_helpers_style_dark_roller(s_roller_page, &ui_font_FontTypoderSize20);
-    lv_obj_align(s_roller_page, LV_ALIGN_CENTER, 0, -84);
+    lv_obj_align(s_roller_page, LV_ALIGN_CENTER, 0, UIS(-168));
     lv_obj_add_event_cb(s_roller_page, on_page_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // ====== Row 2: Vehicle ======
@@ -133,7 +144,7 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_label_set_text(label_vehicle, "VEHICLE");
     lv_obj_set_style_text_font(label_vehicle, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_vehicle, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_vehicle, LV_ALIGN_CENTER, 0, -57);
+    lv_obj_align(label_vehicle, LV_ALIGN_CENTER, 0, UIS(-114));
 
     // Build vehicle options dynamically from the profile table (newline separated).
     uint8_t vehicle_count = 0;
@@ -150,10 +161,10 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_roller_set_options(s_roller_vehicle, vehicle_names, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller_vehicle, 1);
     lv_roller_set_selected(s_roller_vehicle, (cfg->vehicle_profile_idx < vehicle_count) ? cfg->vehicle_profile_idx : 0, LV_ANIM_OFF);
-    lv_obj_set_width(s_roller_vehicle, 210);   // wide enough for long names (e.g. "BMW X1 F48")
-    lv_obj_set_height(s_roller_vehicle, 30);   // explicit: font is applied by style_dark_roller below
+    lv_obj_set_width(s_roller_vehicle, UIS(420));   // wide enough for long names (e.g. "BMW X1 F48")
+    lv_obj_set_height(s_roller_vehicle, UIS(60));   // explicit: font is applied by style_dark_roller below
     ui_helpers_style_dark_roller(s_roller_vehicle, &ui_font_FontTypoderSize20);
-    lv_obj_align(s_roller_vehicle, LV_ALIGN_CENTER, 0, -31);
+    lv_obj_align(s_roller_vehicle, LV_ALIGN_CENTER, 0, UIS(-62));
     lv_obj_add_event_cb(s_roller_vehicle, on_vehicle_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // ====== Row 3: UI Theme ======
@@ -161,7 +172,7 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_label_set_text(label_theme, "THEME");
     lv_obj_set_style_text_font(label_theme, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_theme, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_theme, LV_ALIGN_CENTER, 0, -4);
+    lv_obj_align(label_theme, LV_ALIGN_CENTER, 0, UIS(-8));
 
     // Theme options come from the generated registry, joined into an exactly
     // sized buffer — a fixed local array here used to silently truncate the
@@ -174,10 +185,10 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_roller_set_options(s_roller_theme, ui_theme_names_joined(), LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller_theme, 1);
     lv_roller_set_selected(s_roller_theme, (cfg->theme_cfg.theme < theme_count) ? cfg->theme_cfg.theme : 0, LV_ANIM_OFF);
-    lv_obj_set_width(s_roller_theme, 160);
-    lv_obj_set_height(s_roller_theme, 30);   // explicit: font is applied by style_dark_roller below
+    lv_obj_set_width(s_roller_theme, UIS(320));
+    lv_obj_set_height(s_roller_theme, UIS(60));   // explicit: font is applied by style_dark_roller below
     ui_helpers_style_dark_roller(s_roller_theme, &ui_font_FontTypoderSize20);
-    lv_obj_align(s_roller_theme, LV_ALIGN_CENTER, 0, 22);
+    lv_obj_align(s_roller_theme, LV_ALIGN_CENTER, 0, UIS(44));
     lv_obj_add_event_cb(s_roller_theme, on_theme_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // ====== Row 4: Brightness ======
@@ -185,21 +196,21 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_label_set_text(label_bright, "BRIGHTNESS");
     lv_obj_set_style_text_font(label_bright, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_bright, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_bright, LV_ALIGN_CENTER, 0, 48);
+    lv_obj_align(label_bright, LV_ALIGN_CENTER, 0, UIS(96));
 
     s_slider_bright = lv_slider_create(ui_ScreenPageSettings);
     lv_obj_set_style_clip_corner(s_slider_bright, true, 0);
     lv_slider_set_range(s_slider_bright, 10, 100);
     lv_slider_set_value(s_slider_bright, cfg->brightness_day, LV_ANIM_OFF);
-    lv_obj_set_width(s_slider_bright, 180);
-    lv_obj_set_height(s_slider_bright, 10);
-    lv_obj_align(s_slider_bright, LV_ALIGN_CENTER, 0, 70);
+    lv_obj_set_width(s_slider_bright, UIS(360));
+    lv_obj_set_height(s_slider_bright, UIS(20));
+    lv_obj_align(s_slider_bright, LV_ALIGN_CENTER, 0, UIS(140));
     lv_obj_set_style_bg_color(s_slider_bright, ui_theme_color_lv(UI_COLOR_ARC_TRACK), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(s_slider_bright, 255, LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_slider_bright, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_slider_bright, 255, LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(s_slider_bright, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_KNOB);
-    lv_obj_set_style_pad_all(s_slider_bright, 5, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(s_slider_bright, UIS(10), LV_PART_KNOB);
     lv_obj_clear_flag(s_slider_bright, LV_OBJ_FLAG_GESTURE_BUBBLE);      // avoid page swipe while dragging
     lv_obj_add_event_cb(s_slider_bright, on_bright_slider_change, LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -207,24 +218,46 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_label_set_text_fmt(s_label_bright_val, "%d%%", cfg->brightness_day);
     lv_obj_set_style_text_font(s_label_bright_val, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_label_bright_val, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(s_label_bright_val, LV_ALIGN_CENTER, 0, 95);
+    lv_obj_align(s_label_bright_val, LV_ALIGN_CENTER, 0, UIS(190));
 
-    // ====== Row 5: RaceChrono Toggle ======
+    // ====== Row 5: OBD POLL tier (left) + RaceChrono toggle (right) ======
+    // One band, two half-width settings — vertical space is exhausted above
+    // and the circle narrows fast below. Poll tier only applies to vehicles
+    // that don't pin their own poll_gap_ms (see elm327_ble_client.c).
+    lv_obj_t *label_poll = lv_label_create(ui_ScreenPageSettings);
+    lv_label_set_text(label_poll, "OBD POLL");
+    lv_obj_set_style_text_font(label_poll, &ui_font_FontTypoderSize16, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label_poll, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
+    lv_obj_align(label_poll, LV_ALIGN_CENTER, UIS(-140), UIS(208));
+
+    s_roller_poll = lv_roller_create(ui_ScreenPageSettings);
+    lv_obj_set_style_clip_corner(s_roller_poll, true, 0);
+    lv_obj_clear_flag(s_roller_poll, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_roller_set_options(s_roller_poll, "NORMAL\nFAST\nTURBO", LV_ROLLER_MODE_NORMAL);
+    lv_roller_set_visible_row_count(s_roller_poll, 1);
+    lv_roller_set_selected(s_roller_poll,
+        (cfg->obd_poll_mode < NVS_OBD_POLL_MODE_COUNT) ? cfg->obd_poll_mode : 0, LV_ANIM_OFF);
+    lv_obj_set_width(s_roller_poll, UIS(160));
+    lv_obj_set_height(s_roller_poll, UIS(52));
+    ui_helpers_style_dark_roller(s_roller_poll, &ui_font_FontTypoderSize16);
+    lv_obj_align(s_roller_poll, LV_ALIGN_CENTER, UIS(-140), UIS(252));
+    lv_obj_add_event_cb(s_roller_poll, on_poll_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
+
     lv_obj_t *label_rc = lv_label_create(ui_ScreenPageSettings);
     lv_label_set_text(label_rc, "RACECHRONO");
     lv_obj_set_style_text_font(label_rc, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(label_rc, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
-    lv_obj_align(label_rc, LV_ALIGN_CENTER, -40, 122);   // label + button share one row to save height
+    lv_obj_align(label_rc, LV_ALIGN_CENTER, UIS(124), UIS(208));
 
     s_rc_enabled = cfg->rc_enabled;
     s_btn_rc = lv_btn_create(ui_ScreenPageSettings);
     lv_obj_set_style_clip_corner(s_btn_rc, true, 0);
-    lv_obj_set_size(s_btn_rc, 60, 26);
-    lv_obj_align(s_btn_rc, LV_ALIGN_CENTER, 70, 122);
+    lv_obj_set_size(s_btn_rc, UIS(112), UIS(52));
+    lv_obj_align(s_btn_rc, LV_ALIGN_CENTER, UIS(124), UIS(252));
     lv_obj_set_style_bg_color(s_btn_rc, s_rc_enabled ? lv_color_hex(0x00AA55) : lv_color_hex(0x333333), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(s_btn_rc, 255, LV_PART_MAIN);
-    lv_obj_set_style_radius(s_btn_rc, 13, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(s_btn_rc, 2, LV_PART_MAIN);
+    lv_obj_set_style_radius(s_btn_rc, UIS(26), LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s_btn_rc, UIS(4), LV_PART_MAIN);
     s_label_rc = lv_label_create(s_btn_rc);
     lv_label_set_text(s_label_rc, s_rc_enabled ? "ON" : "OFF");
     lv_obj_set_style_text_font(s_label_rc, &ui_font_FontTypoderSize16, LV_PART_MAIN);
@@ -238,7 +271,7 @@ void ui_ScreenPageSettings_screen_init(void)
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), LV_PART_MAIN);
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 152);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(304));
 
     // Events - swipe to go back / down to multi-gauge
     lv_obj_move_foreground(ring);   // ring on top

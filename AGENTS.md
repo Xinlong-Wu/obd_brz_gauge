@@ -43,15 +43,15 @@ BLE 连 ELM327 兼容适配器读车况，ESP-NOW 三连表联动，双主题系
 
 ## 构建与验证
 
-- `idf.py set-target esp32s3 && idf.py build`；换开发板先在 menuconfig → OBD DSP Configuration 选硬件版本（V1/V2/V3）
+- `idf.py set-target esp32s3 && idf.py build`；换开发板先在 menuconfig → OBD DSP Configuration 选硬件版本（V1/V2/V3）。无本地 IDF 环境用 `tools/docker-build.sh`（espressif/idf:v5.5.3 容器；macOS 容器无法烧录/监视）
 - 改主题可独立快速验证：`python3 tools/gen_themes.py --check`
-- `build/`、`firmware/release/` 下的二进制是构建产物，普通源码改动不要碰
+- 主机端三层验证（无需开发板）：单测 `ctest --test-dir tests/build -R '^test_'`、截图回归 `python3 tools/sim_regress.py`（有意改 UI 先 `--update-goldens`）、固件 Docker 构建；新代码遵循 `docs/CODE_STYLE.md`（纯逻辑抽 `*_logic.h` 配单测）
+- `build/` 下的二进制是构建产物，普通源码改动不要碰
 - 没有实车/适配器时用 `tools/fake_elm327.py` 模拟 ELM327 调试
 
 ## 提交约定
 
 - conventional commits（`feat:` `fix:` `docs:` `build:` `chore:`），与现有历史一致
-- 源码改动与编译产物分开提交（产物单独用 `build:` 前缀）
 - `CHANGELOG.md` / `CHANGELOG.en.md` 的提交由仓库所有者决定时机，不要自作主张带上
 
 ## 本文件的自更新协议

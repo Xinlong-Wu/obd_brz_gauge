@@ -36,8 +36,12 @@ typedef struct __attribute__((packed)) {
     uint16_t afr;              // Air-fuel ratio * 100 (e.g. 1470 = 14.70)
     uint8_t  throttle;         // 0-100%
     uint8_t  intake_temp;      // 0-255°C (IAT)
-    uint8_t  _reserved[3];     // padding to 16 bytes
-} obd_snapshot_t;  // 16 bytes total
+    uint8_t  _reserved[3];     // padding to 16 bytes (v1.0 ABI window)
+    // ---- M3 unified channels: appended, offsets of the fields above unchanged ----
+    int16_t  gforce_lat_x100;  // 0.01 g, -32768 = invalid (ZC6 0x0D0 / IMU)
+    int16_t  gforce_lon_x100;
+    uint8_t  tpms_bar_x10[4];  // 0.1 bar, FL/FR/RL/RR, 0xFF = invalid
+} obd_snapshot_t;  // 24 bytes total (was 16; old readers only touch the first 16)
 
 // ============================================================
 //  Theme Engine API
@@ -167,8 +171,11 @@ void theme_unload(void);
  * Test function to verify theme engine integration
  * Prints theme info, colors, assets, and protected pages to log
  * Call from ui_init() for debugging
+ *
+ * @return true if all probes passed (info readable, protected boot pages
+ *         not themeable); false otherwise. Also run by tests/test_theme_engine.c.
  */
-void theme_engine_test(void);
+bool theme_engine_test(void);
 
 #ifdef __cplusplus
 }

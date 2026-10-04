@@ -4,12 +4,13 @@
 // Project name: SquareLine_Project
 
 #include "../ui.h"
+#include "../ui_res.h"
 
 void ui_ScreenPageLogo_screen_init(void)
 {
     ui_ScreenPageLogo = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageLogo, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_radius(ui_ScreenPageLogo, 360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_ScreenPageLogo, UIS(720), LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_helpers_style_screen_bg(ui_ScreenPageLogo);
     lv_obj_set_style_bg_opa(ui_ScreenPageLogo, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 #if USE_CUSTOM_BOOT_LOGO == 1
@@ -31,15 +32,15 @@ void ui_ScreenPageLogo_screen_init(void)
     lv_label_set_text(label_sky, "SKY");
     lv_obj_set_style_text_font(label_sky, &ui_font_FontTypoderSize56, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_sky, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(label_sky, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_sky, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_set_style_text_letter_space(label_sky, UIS(16), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_align(label_sky, LV_ALIGN_CENTER, 0, UIS(-40));
 
     lv_obj_t *label_gauge = lv_label_create(ui_ScreenPageLogo);
     lv_label_set_text(label_gauge, "GAUGE");
     lv_obj_set_style_text_font(label_gauge, &ui_font_FontTypoderSize36, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_gauge, lv_color_hex(0xAAAAAA), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_letter_space(label_gauge, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_gauge, LV_ALIGN_CENTER, 0, 30);
+    lv_obj_set_style_text_letter_space(label_gauge, UIS(24), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_align(label_gauge, LV_ALIGN_CENTER, 0, UIS(60));
 
     imageLogo = NULL; // No image logo anymore
 

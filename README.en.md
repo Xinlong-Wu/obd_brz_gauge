@@ -32,6 +32,7 @@ reads vehicle data, and renders a touch UI with LVGL.
 | | |
 |---|---|
 | Board | Waveshare ESP32-S3-Touch-LCD-1.85 (360×360 round ST77916 LCD, 16 MB flash, 8 MB PSRAM)|
+| Compatible boards | WS175 1.75" AMOLED (466×466); WS128 1.28" no-touch (240×240 GC9A01, 2 MB Quad PSRAM, display-only mode — see [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md#porting-a-new-board))|
 | Stack | ESP-IDF 5.5.3, LVGL 8 |
 | Link | BLE to an ELM327-compatible OBD adapter (standard PIDs + manufacturer Mode 21/22)|
 | Triple gauge | One master reads OBD; slaves mirror it over ESP-NOW with zero extra load |
@@ -79,32 +80,10 @@ profiles are configured but some still need road testing.
 
 ## Quick start
 
-### Option 1: flash the pre-built firmware
+### Build and flash from source
 
-You need: the board, a USB data cable, and
-[esptool.py](https://github.com/espressif/esptool) (`pip install esptool`).
-
-```bash
-esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_reset \
-  write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB \
-  0x0     firmware/release/bootloader/bootloader.bin \
-  0x8000  firmware/release/partition_table/partition-table.bin \
-  0xf000  firmware/release/ota_data_initial.bin \
-  0x20000 firmware/release/obd_brz_gauge.bin \
-  0xA20000 firmware/release/bootmedia.bin
-```
-
-- Replace `PORT` with your serial port (Windows `COM3`, Linux `/dev/ttyUSB0`,
-  macOS `/dev/cu.usbserial-*`)
-- A first full flash erases everything, including NVS settings
-- `bootmedia.bin` (boot animation) and the optional theme partition at
-  `0x620000` are not required to boot
-- Full partition layout in [docs/FLASH.en.md](docs/FLASH.en.md); flash
-  addresses are governed by [partitions.csv](partitions.csv)
-
-### Option 2: build from source
-
-Requires the [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/) environment:
+Requires the [ESP-IDF 5.5.3](https://docs.espressif.com/projects/esp-idf/)
+environment, the board and a USB data cable:
 
 ```bash
 git clone https://github.com/steveEcode/obd_brz_gauge.git
@@ -114,10 +93,17 @@ idf.py build
 idf.py -p PORT flash monitor
 ```
 
-The first build downloads component dependencies into `managed_components/`.
-Before building for a different board, pick the hardware version under
-`idf.py menuconfig → OBD DSP Configuration` (see
-[docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md)).
+- Replace `PORT` with your serial port (Windows `COM3`, Linux `/dev/ttyUSB0`,
+  macOS `/dev/cu.usbserial-*`)
+- A first full flash erases everything, including NVS settings
+- The first build downloads component dependencies into `managed_components/`.
+  Before building for a different board, pick the hardware version under
+  `idf.py menuconfig → OBD DSP Configuration` (see
+  [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md))
+- `bootmedia.bin` (boot animation) and the optional theme partition at
+  `0x620000` are not required to boot
+- Full partition layout in [docs/FLASH.en.md](docs/FLASH.en.md); flash
+  addresses are governed by [partitions.csv](partitions.csv)
 
 ## Repository layout
 
@@ -131,9 +117,8 @@ main/
 themes/                 # Compiled-theme sources (TOML manifests + artwork)
 theme_store/            # Packed theme binaries and catalog (distribution)
 bootmedia/              # Boot animation sources
-tools/                  # Helper scripts (theme codegen, packing, PID hunting, release)
-firmware/release/       # Pre-built firmware
-android_app/            # Companion phone app (APK)
+simulator/              # PC UI simulator (SDL2; runs the firmware UI sources unmodified)
+tools/                  # Helper scripts (theme codegen, packing, PID hunting)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)
 partitions.csv          # Flash partition table (16MB)

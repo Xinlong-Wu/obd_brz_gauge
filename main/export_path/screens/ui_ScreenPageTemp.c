@@ -2,6 +2,7 @@
 // CLT / IAT / OIL(SSM 22 10 17) - 3-row layout
 
 #include "../ui.h"
+#include "../ui_res.h"
 
 // Value labels (externally accessible from timer callback)
 lv_obj_t *ui_LabelCoolantTempText = NULL;
@@ -17,7 +18,7 @@ static lv_obj_t *create_color_dot(lv_obj_t *parent, lv_color_t color, lv_coord_t
 {
     lv_obj_t *dot = lv_obj_create(parent);
     lv_obj_remove_style_all(dot);
-    lv_obj_set_size(dot, 10, 10);
+    lv_obj_set_size(dot, UIS(20), UIS(20));
     lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
     lv_obj_set_style_bg_color(dot, color, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(dot, 255, LV_PART_MAIN);
@@ -38,9 +39,9 @@ static void make_row(lv_obj_t *parent, lv_obj_t **name_out, lv_obj_t **val_out, 
     lv_label_set_text(*val_out, "--");
     lv_obj_set_style_text_font(*val_out, &ui_font_FontTypoderSize40, LV_PART_MAIN);
     lv_obj_set_style_text_color(*val_out, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_set_width(*val_out, 110);
+    lv_obj_set_width(*val_out, UIS(220));
     lv_obj_set_style_text_align(*val_out, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-    lv_obj_align(*val_out, LV_ALIGN_LEFT_MID, 70, cy);
+    lv_obj_align(*val_out, LV_ALIGN_LEFT_MID, UIS(140), cy);
 
     // Right column: dot + name + unit
     // Right boundary = 290px (x=360-70, matches divider line edge)
@@ -54,7 +55,7 @@ static void make_row(lv_obj_t *parent, lv_obj_t **name_out, lv_obj_t **val_out, 
     lv_obj_set_style_text_color(*name_out, color, LV_PART_MAIN);
     lv_obj_set_width(*name_out, LV_SIZE_CONTENT);            // width follows the text, long names (BOOST/SPEED) don't wrap
     lv_obj_set_style_text_align(*name_out, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
-    lv_obj_align(*name_out, LV_ALIGN_LEFT_MID, 200, cy);
+    lv_obj_align(*name_out, LV_ALIGN_LEFT_MID, UIS(400), cy);
 
     *unit_out = lv_label_create(parent);
     lv_label_set_long_mode(*unit_out, LV_LABEL_LONG_CLIP);   // no wrap
@@ -63,7 +64,7 @@ static void make_row(lv_obj_t *parent, lv_obj_t **name_out, lv_obj_t **val_out, 
     lv_obj_set_style_text_color(*unit_out, lv_color_hex(0x666666), LV_PART_MAIN);
     lv_obj_set_width(*unit_out, LV_SIZE_CONTENT);            // width follows the text (km/h etc.)
     lv_obj_set_style_text_align(*unit_out, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
-    lv_obj_align(*unit_out, LV_ALIGN_RIGHT_MID, -70, cy);
+    lv_obj_align(*unit_out, LV_ALIGN_RIGHT_MID, UIS(-140), cy);
 }
 
 // Helper: horizontal divider line
@@ -71,7 +72,7 @@ static void make_hdiv(lv_obj_t *parent, lv_coord_t y, lv_coord_t w)
 {
     lv_obj_t *div = lv_obj_create(parent);
     lv_obj_remove_style_all(div);
-    lv_obj_set_size(div, w, 1);
+    lv_obj_set_size(div, w, UIS(2));
     lv_obj_align(div, LV_ALIGN_CENTER, 0, y);
     lv_obj_set_style_bg_color(div, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(div, 50, LV_PART_MAIN);
@@ -82,7 +83,7 @@ void ui_ScreenPageTemp_screen_init(void)
 {
     ui_ScreenPageTemp = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageTemp, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageTemp, 360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_ScreenPageTemp, UIS(720), LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_helpers_style_screen_bg(ui_ScreenPageTemp);
     lv_obj_set_style_bg_opa(ui_ScreenPageTemp, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -112,7 +113,7 @@ void ui_ScreenPageTemp_screen_init(void)
     lv_obj_set_width(black_ear, LV_SIZE_CONTENT);
     lv_obj_set_height(black_ear, LV_SIZE_CONTENT);
     lv_obj_set_x(black_ear, 0);
-    lv_obj_set_y(black_ear, -142);
+    lv_obj_set_y(black_ear, UIS(-284));
     lv_obj_set_align(black_ear, LV_ALIGN_CENTER);
     lv_obj_add_flag(black_ear, LV_OBJ_FLAG_ADV_HITTEST);
     lv_obj_clear_flag(black_ear, LV_OBJ_FLAG_SCROLLABLE);

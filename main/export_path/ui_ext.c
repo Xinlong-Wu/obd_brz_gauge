@@ -14,10 +14,11 @@
 // ================================================================
 
 #include "ui_ext.h"
+#include "ui_home_runtime.h"
 #include "ui.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/espnow_link.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "app_obd_dsp/boot_block_player.h"
@@ -28,6 +29,7 @@
 #include "lvgl.h"
 #include <string.h>
 #include <stdio.h>
+#include "ui_res.h"
 
 static const char *TAG = "ui_ext";
 
@@ -136,7 +138,7 @@ static void showroom_load_slot(uint8_t slot)
             lv_obj_set_style_bg_color(s_showroom_video_scr, lv_color_black(), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_showroom_video_scr, 255, LV_PART_MAIN);
             lv_obj_set_style_border_width(s_showroom_video_scr, 0, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_showroom_video_scr, 360, LV_PART_MAIN);
+            lv_obj_set_style_radius(s_showroom_video_scr, UIS(720), LV_PART_MAIN);
             lv_obj_clear_flag(s_showroom_video_scr, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_t *canvas = NULL;
             if (boot_block_player_create(s_showroom_video_scr, &canvas)) {
@@ -282,25 +284,15 @@ static void boot_enter_default_page(void)
         return;
     }
 
-    lv_obj_t **target_scr = NULL;
-    void (*target_init)(void) = NULL;
-    // Default page: 0=Temp,1=Info,2=Chart,3=Needle,4=Gear,5=Rpm,6=Speed
-    switch(pg_cfg->default_page) {
-        case 0: target_scr = &ui_ScreenPageTemp;  target_init = ui_ScreenPageTemp_screen_init;  break;
-        case 1: target_scr = &ui_ScreenPageInfo;  target_init = ui_ScreenPageInfo_screen_init;  break;
-        case 2: target_scr = &ui_ScreenPageOilPressure; target_init = ui_ScreenPageOilPressure_screen_init;  break;
-        case 3: target_scr = &ui_ScreenPageNeedle; target_init = ui_ScreenPageNeedle_screen_init;  break;
-        case 4: target_scr = &ui_ScreenPageGear;  target_init = ui_ScreenPageGear_screen_init;  break;
-        case 5: target_scr = &ui_ScreenPageRpm;   target_init = ui_ScreenPageRpm_screen_init;   break;
-        case 6: target_scr = &ui_ScreenPageSpeed; target_init = ui_ScreenPageSpeed_screen_init; break;
-        default: target_scr = &ui_ScreenPageTemp; target_init = ui_ScreenPageTemp_screen_init;  break;
-    }
-    if(*target_scr == NULL) target_init();
-    lv_scr_load_anim(*target_scr, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, true);
+    // M4: the user-dashboard home pager is the main UI (MENU → gauge pages → ADD);
+    // the legacy static ring stays compiled for M4.e retirement. Home is built
+    // once and persists (auto_del=false everywhere it is left/re-entered).
+    lv_obj_t *home = ui_home_init();
+    lv_scr_load_anim(home, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
     ui_ScreenPageLogo = NULL;
     imageLogo = NULL;
     s_boot_done = true;
-    if(s_sweep_pending) { s_sweep_pending = false; s_sweep_step = 1; }  // a sweep deferred while the boot animation played fires now, as the default page loads
+    if(s_sweep_pending) { s_sweep_pending = false; s_sweep_step = 1; }  // a sweep deferred while the boot animation played fires now, as the home pager loads
 }
 
 /* ================================================================
@@ -551,7 +543,7 @@ bool ui_ext_boot_video_tick(void)
             lv_obj_set_style_bg_color(s_boot_video_screen, lv_color_black(), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_boot_video_screen, 255, LV_PART_MAIN);
             lv_obj_set_style_border_width(s_boot_video_screen, 0, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_boot_video_screen, 360, LV_PART_MAIN);
+            lv_obj_set_style_radius(s_boot_video_screen, UIS(720), LV_PART_MAIN);
             lv_obj_clear_flag(s_boot_video_screen, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_t *canvas = NULL;
             if (boot_block_player_create(s_boot_video_screen, &canvas)) {
@@ -708,11 +700,11 @@ void ui_ext_no_signal_update(bool signal_ok)
             lv_obj_set_style_text_color(s_no_signal_lbl, lv_color_hex(0xFF4D4D), LV_PART_MAIN);
             lv_obj_set_style_bg_color(s_no_signal_lbl, lv_color_hex(0x000000), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_no_signal_lbl, 160, LV_PART_MAIN);
-            lv_obj_set_style_pad_hor(s_no_signal_lbl, 10, LV_PART_MAIN);
-            lv_obj_set_style_pad_ver(s_no_signal_lbl, 4, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_no_signal_lbl, 6, LV_PART_MAIN);
+            lv_obj_set_style_pad_hor(s_no_signal_lbl, UIS(20), LV_PART_MAIN);
+            lv_obj_set_style_pad_ver(s_no_signal_lbl, UIS(8), LV_PART_MAIN);
+            lv_obj_set_style_radius(s_no_signal_lbl, UIS(12), LV_PART_MAIN);
             lv_label_set_text(s_no_signal_lbl, "NO SIGNAL");
-            lv_obj_align(s_no_signal_lbl, LV_ALIGN_TOP_MID, 0, 34);
+            lv_obj_align(s_no_signal_lbl, LV_ALIGN_TOP_MID, 0, UIS(68));
         }
         if (!s_no_signal_visible) {
             lv_obj_clear_flag(s_no_signal_lbl, LV_OBJ_FLAG_HIDDEN);

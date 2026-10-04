@@ -6,6 +6,7 @@
 
 #include "../ui.h"
 #include "bsp_obd_dsp/nvs_storage.h"
+#include "../ui_res.h"
 
 #define CHART_ALARM_OFF 32767   // convention with nvs: 32767 = off
 
@@ -41,7 +42,7 @@ void ui_ScreenPageChartAlarm_screen_init(void)
 
     ui_ScreenPageChartAlarm = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageChartAlarm, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageChartAlarm, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageChartAlarm, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageChartAlarm);
     lv_obj_set_style_bg_opa(ui_ScreenPageChartAlarm, 255, LV_PART_MAIN);
     lv_obj_set_style_border_width(ui_ScreenPageChartAlarm, 0, LV_PART_MAIN);
@@ -55,13 +56,13 @@ void ui_ScreenPageChartAlarm_screen_init(void)
     lv_label_set_text_fmt(title, "%s ALARM", ui_disp_item_name(s_alarm_item));
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(ui_disp_item_color(s_alarm_item)), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -96);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-192));
 
     // Current threshold value
     s_alarm_value = lv_label_create(ui_ScreenPageChartAlarm);
     lv_obj_set_style_text_font(s_alarm_value, &ui_font_FontTypoderSize36, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_alarm_value, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align(s_alarm_value, LV_ALIGN_CENTER, 0, -30);
+    lv_obj_align(s_alarm_value, LV_ALIGN_CENTER, 0, UIS(-60));
 
     // Slider: range = [nmin, nmax+1], the nmax+1 step = OFF
     s_alarm_slider = lv_slider_create(ui_ScreenPageChartAlarm);
@@ -72,15 +73,15 @@ void ui_ScreenPageChartAlarm_screen_init(void)
     if (sv < s_alarm_nmin) sv = s_alarm_nmin;
     if (sv > s_alarm_nmax + 1) sv = s_alarm_nmax + 1;
     lv_slider_set_value(s_alarm_slider, sv, LV_ANIM_OFF);
-    lv_obj_set_width(s_alarm_slider, 200);
-    lv_obj_set_height(s_alarm_slider, 10);
-    lv_obj_align(s_alarm_slider, LV_ALIGN_CENTER, 0, 30);
+    lv_obj_set_width(s_alarm_slider, UIS(400));
+    lv_obj_set_height(s_alarm_slider, UIS(20));
+    lv_obj_align(s_alarm_slider, LV_ALIGN_CENTER, 0, UIS(60));
     lv_obj_set_style_bg_color(s_alarm_slider, lv_color_hex(0x333333), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(s_alarm_slider, 255, LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_alarm_slider, lv_color_hex(ui_disp_item_color(s_alarm_item)), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_alarm_slider, 255, LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(s_alarm_slider, lv_color_hex(0xFFFFFF), LV_PART_KNOB);
-    lv_obj_set_style_pad_all(s_alarm_slider, 5, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(s_alarm_slider, UIS(10), LV_PART_KNOB);
     lv_obj_clear_flag(s_alarm_slider, LV_OBJ_FLAG_GESTURE_BUBBLE);   // dragging must not trigger the page back gesture
     lv_obj_add_event_cb(s_alarm_slider, on_alarm_slider_change, LV_EVENT_VALUE_CHANGED, NULL);
     alarm_update_value_label(sv);
@@ -89,7 +90,7 @@ void ui_ScreenPageChartAlarm_screen_init(void)
     lv_label_set_text(hint, "Max = OFF   Swipe to go back");
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 110);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(220));
 
     lv_obj_move_foreground(ring);   // bring the ring to the front
     lv_obj_add_event_cb(ui_ScreenPageChartAlarm, ui_event_chart_alarm_background, LV_EVENT_GESTURE, NULL);

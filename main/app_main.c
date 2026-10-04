@@ -26,7 +26,10 @@
 #if CONFIG_OBD_HW_VERSION_V1_WAVESHARE
 #include "bsp_obd_dsp/exio/TCA9554PWR.h"
 #endif
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"       // internally includes CST816.h & TCA9554PWR.h
+#include "bsp_obd_dsp/boards/board_api.h"        // board abstraction (WS185/WS175/WS128/...)
+#include "bsp_obd_dsp/boards/board_display_compat.h"  // Set_Backlight/LCD_H_RES compat facade
+#include "bsp_obd_dsp/boards/ui_scale.h"         // render-res != panel-res flush scaler
+#include "export_path/ui_res.h"                  // UI_RENDER_RES (720-master UIS() folding)
 
 /* Application layer */
 #include "bsp_obd_dsp/bsp_board.h"
@@ -74,13 +77,9 @@ SemaphoreHandle_t lvgl_mux = NULL; // non-static: used by BLE scan page
 //////////////////// LCD & LVGL configuration ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* Resolution comes directly from the macros in ST77916.h */
-#define LCD_H_RES               EXAMPLE_LCD_WIDTH       // 360
-#define LCD_V_RES               EXAMPLE_LCD_HEIGHT      // 360
-#define LCD_BIT_PER_PIXEL       EXAMPLE_LCD_COLOR_BITS  // 16
+/* Resolution: UI_RENDER_RES (ui_res.h, = CONFIG_OBD_UI_RENDER_RES); panel via board_disp */
 
 /* LVGL parameters */
-#define LVGL_BUFF_SIZE              (LCD_H_RES * 20)
 #define LVGL_TICK_PERIOD_MS         2
 #define LVGL_TASK_MAX_DELAY_MS      500
 #define LVGL_TASK_MIN_DELAY_MS      2
@@ -211,37 +210,33 @@ void app_main(void)
              user_cfg->vehicle_profile_idx, vehicle_profile_get_active()->name,
              stat->odometer_m, stat->trip_m, stat->max_speed_kmh, stat->avg_speed_kmh, stat->run_time_s);
 
-    /* 2. I2C bus init (used by the TCA9554 IO expander + CST816 touch on V1, CST816 touch only on V2/V3) */
-    I2C_Init();
-
-    /* 3. IO expander init (TCA9554PWR, I2C address 0x20) — V1 board only; V2/V3 have no expander */
-#if CONFIG_OBD_HW_VERSION_V1_WAVESHARE
-    EXIO_Init();
-#endif
-
-    /* 4. LCD + backlight + touch combined init
-     *    LCD_Init() internally calls, in order:
-     *      ST77916_Init() → reset (V1: TCA9554 EXIO2; V2/V3: direct GPIO 47) → QSPI SPI bus & ST77916 panel driver
-     *      Backlight_Init() → LEDC PWM backlight (V1: GPIO 5; V2/V3: GPIO 15)
-     *      Touch_Init() → reuses I2C bus CST816 touch driver (V1: SCL=10 SDA=11; V2/V3: SCL=8 SDA=7)
-     *    After completion panel_handle / tp are both globally valid variables
-     */
-    LCD_SetFlushCallback(notify_lvgl_flush_ready, &disp_drv);
-    LCD_Backlight = 0;  // set to 0 before LCD_Init to prevent Backlight_Init from lighting an uninitialized panel
-    LCD_Init();
+    /* 2-4. Board-level initialization (I2C / IO expander / LCD backlight touch, per-board dispatch, see boards/board_api.h).
+     * WS185: I2C_Init + EXIO_Init (V1) + LCD_Init (ST77916 QSPI + LEDC backlight + CST816);
+     * WS175: CO5300 QSPI panel (CASET/RASET compensation + black-screen-on-first-frame) + CST9217 shared I2C, brightness command 0x51. */
+    ESP_ERROR_CHECK(board_init());
+    ESP_ERROR_CHECK(board_register_display_flush_ready_callback(notify_lvgl_flush_ready, &disp_drv));
+    board_display_context_t board_disp;
+    ESP_ERROR_CHECK(board_display_init(&board_disp));
 
     /* 5. LVGL init */
     lv_init();
 
+    /* Render resolution: 720-master UI folded to CONFIG_OBD_UI_RENDER_RES at
+       compile time (ui_res.h). Normally equals the panel resolution (native
+       rendering, direct flush); a different value engages ui_scale at flush
+       time — logged below so misconfigurations are visible at boot. */
+    const uint16_t render_res = (uint16_t)UI_RENDER_RES;
+    const bool scaled_output = (render_res != board_disp.hor_res);
+
     /* Allocate double buffers (DMA memory). Larger buffers -> full-screen render strips halved -> higher frame rate.
        Only affects LVGL render chunking, not the SPI single-transfer size (still chunked by max_transfer_sz), so no screen corruption.
        Falls back automatically to the original 20 lines when internal DMA RAM is insufficient, avoiding boot-time OOM. */
-    size_t buf_px = LCD_H_RES * 40;
+    size_t buf_px = (size_t)render_res * 40;
     lv_color_t *buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     lv_color_t *buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     if (!buf1 || !buf2) {
         heap_caps_free(buf1); heap_caps_free(buf2);
-        buf_px = LVGL_BUFF_SIZE;   // fall back to 20 lines
+        buf_px = (size_t)render_res * 20;   // fall back to 20 lines
         buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
         buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     }
@@ -250,12 +245,27 @@ void app_main(void)
 
     /* Register display driver */
     lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = LCD_H_RES;
-    disp_drv.ver_res = LCD_V_RES;
+    disp_drv.hor_res = render_res;
+    disp_drv.ver_res = render_res;
     disp_drv.flush_cb = lvgl_flush_cb;
     disp_drv.rounder_cb = lvgl_rounder_cb;
     disp_drv.draw_buf = &disp_buf;
-    disp_drv.user_data = panel_handle;      // from ST77916.h extern
+    disp_drv.user_data = board_disp.panel;  // esp_lcd_panel_handle_t (board agnostic)
+    if (scaled_output) {
+        ESP_ERROR_CHECK(ui_scale_init(board_disp.panel, render_res, board_disp.hor_res));
+        disp_drv.flush_cb = ui_scale_flush_cb;
+    }
+    /* 板级按最终输出模式重挂 DMA 完成回调(native=直通 / 缩放=经 ui_scale) */
+    ESP_ERROR_CHECK(board_notify_output_mode(scaled_output));
+    ESP_LOGI(TAG, "display: panel %ux%u, render %u (%s)", board_disp.hor_res, board_disp.ver_res,
+             render_res, scaled_output
+                 ? (render_res < board_disp.hor_res ? "upscale via ui_scale" : "downscale via ui_scale")
+                 : "native");
+#if CONFIG_OBD_BOARD_WS_175_AMOLED
+    /* WS175 mounting orientation is 180° inverted, LVGL software rotation (coordinates stay in logical orientation) */
+    disp_drv.sw_rotate = 1;
+    disp_drv.rotated = LV_DISP_ROT_180;
+#endif
     lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
 
     /* LVGL tick timer (2ms period) */
@@ -267,14 +277,19 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000));
 
-    /* Register touch input device (polling mode, uses the global tp created by Touch_Init) */
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.disp = disp;
-    indev_drv.read_cb = lvgl_touch_cb;
-    indev_drv.user_data = tp;               // from CST816.h extern
-    lv_indev_drv_register(&indev_drv);
+    /* Register touch input device (polling mode, uses the global tp created by Touch_Init).
+       Boards without touch (WS128) skip registration: display-only firmware. */
+    if (board_disp.has_touch) {
+        static lv_indev_drv_t indev_drv;
+        lv_indev_drv_init(&indev_drv);
+        indev_drv.type = LV_INDEV_TYPE_POINTER;
+        indev_drv.disp = disp;
+        indev_drv.read_cb = lvgl_touch_cb;
+        indev_drv.user_data = board_disp.touch;  // esp_lcd_touch_handle_t (board agnostic)
+        lv_indev_drv_register(&indev_drv);
+    } else {
+        ESP_LOGI(TAG, "Board reports no touch input, running display-only");
+    }
 
     /* 6. Start LVGL task */
     lvgl_mux = xSemaphoreCreateMutex();

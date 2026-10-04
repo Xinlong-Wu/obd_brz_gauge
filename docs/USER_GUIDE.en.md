@@ -5,15 +5,22 @@ English | [简体中文](USER_GUIDE.md)
 For flashing and building see [FLASH.en.md](FLASH.en.md); if you cannot
 connect, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 
+> **WS128 (1.28" no-touch board) users**: every operation in this guide
+> (navigation, settings, BLE scan) is touch-gesture based; the WS128 board has
+> no touch, so the firmware runs in **display-only mode** — boot, gauge pages
+> and automatic BLE reconnection to the last paired adapter all work, but
+> manual navigation/settings are unavailable (the UI stays on the default
+> home page, reusing the NVS settings configured earlier on a touch board).
+> See [DEVELOPMENT.en.md](DEVELOPMENT.en.md#porting-a-new-board) for build
+> instructions.
+
 ## First boot
 
 1. On power-up the Sky Gauge logo appears, then the boot animation set in
    settings plays (RACE by default, can be disabled)
-2. On first use open **Settings** (swipe down from the version page):
-   - **VEHICLE** roller — pick your car (applies immediately, no reboot)
-   - **BOOT PAGE** — pick the screen the gauge lands on after boot
-3. **Swipe up from the version page** into BLE SCAN and select your
-   ELM327 BLE adapter
+2. On first use open **Settings** (MENU tile → SETTINGS) and pick your car
+   with the **VEHICLE** roller (applies immediately, no reboot)
+3. Back on **MENU → BLE SCAN**, select your ELM327 BLE adapter
 4. Once connected the gauge initializes automatically (protocol auto-detection
    is described in [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md#protocol-auto-detection))
    and data starts flowing
@@ -22,53 +29,65 @@ On every later power-up the gauge reconnects to the last adapter
 automatically (remembers BLE name + MAC) and self-heals when data stalls —
 normally **you just power on and drive**, no manual steps.
 
-## Page navigation
+## Page navigation (dynamic dashboard)
 
-The main UI is a **page carousel**; swipe left/right to move through the ring
-(swipe left = next page):
+The main UI is a **user-definable pager**; swipe left/right to move between
+tiles —
 
 ```
-        ┌──────────────────────────────────────┐
-        │  GEAR → RPM → SPEED → TEMP → INFO →  │
-        │  NEEDLE → CHART → version page → GEAR│
-        └──────────────────────────────────────┘
+   MENU → [gauge pages 1..N, fully editable] → ADD
 ```
 
-| Page | Shows | Swipe-down sub-page |
-|------|-------|---------------------|
-| GEAR | Gear (large) + RPM | Runtime-theme gauge page (only when a partition theme with pages is loaded)|
-| RPM | RPM arc + red over-rev flash | RPM warning threshold / flash toggle |
-| SPEED | Speed + trip stats (runtime-only) | — |
-| TEMP | Coolant / oil / intake temps (remappable rows) | 3-row data-item mapping |
-| INFO | Multi-cell info panel (remappable cells) | 5-cell data-item mapping |
-| NEEDLE | Needle meter (swipe down to change source) | Needle source picker |
-| CHART | Chart page (brake temperature lives here) | Down: chart source config / **up: alarm thresholds** |
-| Version page | Firmware build tag, BLE status and device name | see hidden entries below |
+- **MENU tile**: vehicle name plus three entry buttons — **BLE SCAN**
+  (connect an OBD adapter; on slave gauges this doubles as the FIND MASTER
+  scan), **SETTINGS**, and **INFO / OTA** (the version page: build tag,
+  connection status, OTA button and the hidden entries)
+- **Gauge pages** (initially six, migrated automatically from your previous
+  TEMP/INFO/CHART/NEEDLE mapping with the same look):
+  - **METRIC pages**: 1–6 data cards, any of the 18 unified channels
+    (coolant/oil/intake temp, RPM, speed, oil pressure, g-force, TPMS, ...)
+  - **GEAR page**: big gear digit (R/N supported; 0x141 direct read wins,
+    ratio-derived fallback) + RPM arc
+  - **G-FORCE page**: g-force dot plot (lateral/longitudinal, 0.01 g)
+- **ADD tile**: tap "+" to append a new gauge page (8-page cap), defaulting
+  to a single RPM slot
 
-**The version page is the hub**:
+**Long-press any gauge page → edit mode** (paging locked, dimmed overlay
+with three zones):
 
-- **Swipe up** → BLE SCAN (connect an OBD adapter; on slave gauges this doubles
-  as the FIND MASTER scan)
-- **Swipe down** → Settings
-- **OTA button** → OTA update mode (app pairing, see [FLASH.en.md](FLASH.en.md#app-ota-upgrade-dual-slot-rollback))
-- Swipe left/right → back to the gauge ring
+- **EDIT** (top-left) → the config page: TYPE (METRIC / GEAR / G-FORCE);
+  METRIC pages additionally expose SLOTS (1–6) and per-slot CHANNEL (an
+  18-item roller); every change persists immediately
+- **DELETE** (top-right) → remove the page (one page minimum), landing
+  back on MENU
+- **BACK** (bottom band) → leave edit mode
 
-**Hidden entries**:
+Swipe left/right leaves the config page; when data times out or BLE drops,
+gauge pages show a **NO SIGNAL** banner.
 
-- **Double-tap the logo page** → OBD protocol roller (**long-press 2 s** saves
-  and reboots; protocol 0 = auto-detect)
-- **10 rapid taps on the version page** → showroom demo mode (sweep animation)
+**Version page** (via MENU → INFO / OTA): swipe up → BLE SCAN, swipe down →
+Settings, OTA button → OTA update mode (see
+[FLASH.en.md](FLASH.en.md#app-ota-upgrade-dual-slot-rollback)).
 
-When data times out or BLE drops, gauge pages show a **NO SIGNAL** banner.
+**Hidden entries** (unchanged):
+
+- **Double-tap the logo page** → OBD protocol roller (**long-press 2 s**
+  saves and reboots; protocol 0 = auto-detect)
+- **10 rapid taps on the version page** → showroom demo mode
+
+> The legacy static carousel (GEAR→RPM→…→version ring) is superseded by the
+> dynamic pages; its data mappings migrate into the initial gauge pages on
+> first boot. When a partition theme with pages is loaded, boot still lands
+> on the theme gauge page (theme pages ↔ version page swipe loop).
 
 ## Settings page
 
 | Setting | Description |
 |---------|-------------|
-| BOOT PAGE | Landing page after boot (TEMP / INFO / CHART / NEEDLE / GEAR / RPM / SPEED)|
 | VEHICLE | The 17 vehicle profiles; switching applies immediately (affects gear detection, oil-temp strategy, protocol lock, …)|
 | THEME | Compiled-in themes (default / amber / ocean plus community themes); selecting **reboots** the device to apply |
 | Brightness | 10–100% |
+| OBD POLL | Poll tier NORMAL / FAST / TURBO (default slot gap 30 / 15 / 5 ms; takes effect on the next poll cycle, no reboot). Vehicles that pin their own poll gap (ZN/C6 CAN, MX-5, ...) are unaffected; TURBO can overwhelm cheap clone adapters — drop back to NORMAL if data gets unstable |
 | RACECHRONO | ON = full BLE services (RaceChrono + pairing + OTA); OFF = minimal mode (Info + OTA only, no advertising) to save memory |
 | Swipe down → MULTI-GAUGE | Triple-gauge role setting (see below)|
 
@@ -118,7 +137,7 @@ interrupted upload never damages the existing animation.
 
 ## Updating from the phone app
 
-The companion app (`android_app/app-debug.apk`) can push three things; each
+The companion app (distributed separately, not in this repo) can push three things; each
 requires the gauge to be in OTA mode first (**version page → OTA button**):
 
 - **Firmware**: BLE handshake → WiFi hotspot (`OBD-Gauge-OTA-XXXX`, password

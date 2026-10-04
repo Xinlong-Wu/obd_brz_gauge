@@ -3,6 +3,35 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
+/*------------------ User dashboard pages (M4) ------------------*/
+
+#define UI_DASHBOARD_VERSION     1u
+#define UI_DASHBOARD_MAX_PAGES   8u
+#define UI_DASHBOARD_MAX_SLOTS   6u
+
+/** 页类型:METRIC=槽位网格;GEAR=大字挡位+RPM 弧;GFORCE=G 力点图。 */
+typedef enum {
+    UI_DASHBOARD_PAGE_METRIC = 0,
+    UI_DASHBOARD_PAGE_GEAR,
+    UI_DASHBOARD_PAGE_GFORCE,
+    UI_DASHBOARD_PAGE_TYPE_COUNT
+} ui_dashboard_page_type_t;
+
+typedef struct {
+    uint8_t slot_items[UI_DASHBOARD_MAX_SLOTS];  // disp_item_t 值
+    uint8_t slot_count;                          // 1..MAX_SLOTS
+    uint8_t type;                                // ui_dashboard_page_type_t
+    uint8_t rsv;
+} ui_dashboard_page_cfg_t;
+
+typedef struct {
+    uint8_t version;       // UI_DASHBOARD_VERSION;不匹配 → 整体重置
+    uint8_t page_count;    // 1..MAX_PAGES;0 = 待迁移
+    uint8_t default_page;  // 0=MENU,1..page_count=仪表页
+    uint8_t rsv;
+    ui_dashboard_page_cfg_t pages[UI_DASHBOARD_MAX_PAGES];
+} ui_dashboard_cfg_t;
+
 // Theme config. The index/selectors are real now (see ui_theme.c); the two
 // color fields are legacy and unused, kept only to preserve struct layout.
 typedef struct {
@@ -37,9 +66,36 @@ typedef struct {
     uint8_t rpm_warn_linked_en;  // multi-gauge linked flash: 0=off 1=on (gauges turn red in sequence by
                                  // position, then all flash at threshold; logic in ui.c)
     uint8_t rc_enabled;          // RaceChrono BLE service: 0=off (minimal mode), 1=on (full RC+Pair+Info+OTA)
+    uint8_t obd_poll_mode;       // OBD poll default gap tier: 0=NORMAL 30ms, 1=FAST 15ms, 2=TURBO 5ms.
+                                 // Only applies when neither the vehicle override nor the profile pins
+                                 // poll_gap_ms (see elm327_ble_client.c gap resolution). Appended LAST
+                                 // for old-device NVS compatibility.
+    ui_dashboard_cfg_t dashboard; // user-defined gauge pages (M4); zero page_count =
+                                 // not yet migrated (runtime fills from the legacy maps
+                                 // below on first boot, see ui_dashboard_logic.h)
                                  // NOTE: new fields MUST be appended at the END of this struct;
                                  // see the load_blob grow logic comment in nvs_storage.c.
 } nvs_user_cfg_t;
+
+
+
+/*------------------ OBD poll mode helpers ------------------*/
+
+#define NVS_OBD_POLL_MODE_NORMAL 0u
+#define NVS_OBD_POLL_MODE_FAST   1u
+#define NVS_OBD_POLL_MODE_TURBO  2u
+#define NVS_OBD_POLL_MODE_COUNT  3u
+
+/** 全局默认轮询槽间隔(ms):按用户档位取值,越界回退 NORMAL。
+ *  车型 override/profile 锁定的 poll_gap_ms 优先于此值(可快不可慢被锁车拖累)。 */
+static inline uint32_t nvs_obd_poll_mode_default_gap_ms(uint8_t mode)
+{
+    switch (mode) {
+    case NVS_OBD_POLL_MODE_FAST:   return 15u;
+    case NVS_OBD_POLL_MODE_TURBO:  return 5u;
+    default:                       return 30u;   // NORMAL / 越界
+    }
+}
 
 /*------------------ Runtime statistics (persisted periodically) ------------------*/
 typedef struct {
@@ -51,6 +107,46 @@ typedef struct {
     uint32_t trip_run_time_s; // current trip running time (s)
     uint8_t  rsv[2];
 } nvs_stat_t;
+
+/*------------------ Error log (diagnostics ring buffer) ------------------*/
+// Ring buffer of recent runtime errors, persisted to NVS so a crash/reboot
+// loop can be diagnosed afterwards. Pure sanitize/append logic lives in
+// nvs_error_log_logic.h (host-testable). Readers (settings/App/BLE) arrive
+// with the diagnostics UI; call sites throttle their own repetition.
+#define NVS_ERROR_LOG_VERSION  1u
+#define NVS_ERROR_LOG_CAPACITY 64u   // 64 x 92B entries ≈ 5.9KB blob
+#define NVS_ERROR_TAG_LEN      16u
+#define NVS_ERROR_MSG_LEN      64u
+
+typedef struct {
+    uint32_t seq;                     // monotonic across reboots (next_seq persists)
+    uint32_t uptime_s;                // seconds since boot when recorded
+    int32_t  err_code;                // esp_err_t or domain-specific code
+    char     tag[NVS_ERROR_TAG_LEN];  // module tag, e.g. "nvs", "elm327"
+    char     message[NVS_ERROR_MSG_LEN];
+} nvs_error_entry_t;
+
+typedef struct {
+    uint32_t version;                 // NVS_ERROR_LOG_VERSION; mismatch → wiped on load
+    uint32_t next_seq;
+    uint8_t  head;                    // next write slot
+    uint8_t  count;                   // valid entries (saturates at capacity)
+    uint8_t  rsv[2];
+    nvs_error_entry_t entries[NVS_ERROR_LOG_CAPACITY];
+} nvs_error_log_t;
+
+// Append an entry (records uptime automatically). Safe before nvs_storage_init()
+// (single-threaded early boot falls back to an unlocked path).
+void nvs_error_log_record(const char *tag, esp_err_t err, const char *message);
+void nvs_error_log_recordf(const char *tag, esp_err_t err, const char *fmt, ...);
+uint8_t nvs_error_log_count(void);             // number of valid entries
+void nvs_error_log_copy(nvs_error_log_t *out); // snapshot for readers (oldest first: idx = (head - count + i) % CAPACITY)
+
+/* User dashboard pages (M4): read via nvs_cfg_get()->dashboard.
+ * Mutators below persist and re-sanitize; page indexes are 0-based. */
+esp_err_t nvs_dashboard_page_set(uint8_t page_idx, const ui_dashboard_page_cfg_t *page);
+esp_err_t nvs_dashboard_page_delete(uint8_t page_idx);   // shifts pages down
+esp_err_t nvs_dashboard_page_append(const ui_dashboard_page_cfg_t *page);  // up to MAX_PAGES
 
 esp_err_t nvs_storage_init(void);
 

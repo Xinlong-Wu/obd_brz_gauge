@@ -2,6 +2,7 @@
 
 #include "../ui.h"
 #include "bsp_obd_dsp/nvs_storage.h"
+#include "../ui_res.h"
 
 static lv_obj_t *s_slider_oil_warn = NULL;
 static lv_obj_t *s_label_oil_warn_val = NULL;
@@ -28,7 +29,7 @@ void ui_ScreenPageOilWarn_screen_init(void)
 
     ui_ScreenPageOilWarn = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageOilWarn, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageOilWarn, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageOilWarn, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageOilWarn);
     lv_obj_set_style_bg_opa(ui_ScreenPageOilWarn, 255, LV_PART_MAIN);
 
@@ -38,33 +39,33 @@ void ui_ScreenPageOilWarn_screen_init(void)
     lv_label_set_text(title, "OIL WARN");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -122);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-244));
 
     lv_obj_t *sub = lv_label_create(ui_ScreenPageOilWarn);
     lv_label_set_text(sub, "High pressure alert");
     lv_obj_set_style_text_font(sub, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(sub, lv_color_hex(0x888888), LV_PART_MAIN);
-    lv_obj_align(sub, LV_ALIGN_CENTER, 0, -88);
+    lv_obj_align(sub, LV_ALIGN_CENTER, 0, UIS(-176));
 
     s_label_oil_warn_val = lv_label_create(ui_ScreenPageOilWarn);
     lv_label_set_text_fmt(s_label_oil_warn_val, "%d.%dbar", cfg->oil_pressure_warn_x10 / 10, cfg->oil_pressure_warn_x10 % 10);
     lv_obj_set_style_text_font(s_label_oil_warn_val, &ui_font_FontTypoderSize44, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_label_oil_warn_val, lv_color_hex(0xFFD166), LV_PART_MAIN);
-    lv_obj_align(s_label_oil_warn_val, LV_ALIGN_CENTER, 0, -24);
+    lv_obj_align(s_label_oil_warn_val, LV_ALIGN_CENTER, 0, UIS(-48));
 
     s_slider_oil_warn = lv_slider_create(ui_ScreenPageOilWarn);
     lv_obj_set_style_clip_corner(s_slider_oil_warn, true, 0);
     lv_slider_set_range(s_slider_oil_warn, 0, 100);
     lv_slider_set_value(s_slider_oil_warn, cfg->oil_pressure_warn_x10, LV_ANIM_OFF);
-    lv_obj_set_width(s_slider_oil_warn, 220);
-    lv_obj_set_height(s_slider_oil_warn, 12);
-    lv_obj_align(s_slider_oil_warn, LV_ALIGN_CENTER, 0, 26);
+    lv_obj_set_width(s_slider_oil_warn, UIS(440));
+    lv_obj_set_height(s_slider_oil_warn, UIS(24));
+    lv_obj_align(s_slider_oil_warn, LV_ALIGN_CENTER, 0, UIS(52));
     lv_obj_set_style_bg_color(s_slider_oil_warn, lv_color_hex(0x333333), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(s_slider_oil_warn, 255, LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_slider_oil_warn, lv_color_hex(0xFFD166), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_slider_oil_warn, 255, LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(s_slider_oil_warn, lv_color_hex(0xFFFFFF), LV_PART_KNOB);
-    lv_obj_set_style_pad_all(s_slider_oil_warn, 6, LV_PART_KNOB);
+    lv_obj_set_style_pad_all(s_slider_oil_warn, UIS(12), LV_PART_KNOB);
     lv_obj_clear_flag(s_slider_oil_warn, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_add_event_cb(s_slider_oil_warn, on_oil_warn_slider_change, LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -72,20 +73,20 @@ void ui_ScreenPageOilWarn_screen_init(void)
     lv_label_set_text(range, "0.0bar - 10.0bar");
     lv_obj_set_style_text_font(range, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(range, lv_color_hex(0x777777), LV_PART_MAIN);
-    lv_obj_align(range, LV_ALIGN_CENTER, 0, 58);
+    lv_obj_align(range, LV_ALIGN_CENTER, 0, UIS(116));
 
     lv_obj_t *hint = lv_label_create(ui_ScreenPageOilWarn);
     lv_label_set_text(hint, "Swipe up to go back");
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 110);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(220));
 
     lv_obj_t *ear = lv_img_create(ui_ScreenPageOilWarn);
     lv_img_set_src(ear, &ui_img_pngblackear_png);
     lv_obj_set_width(ear, LV_SIZE_CONTENT);
     lv_obj_set_height(ear, LV_SIZE_CONTENT);
     lv_obj_set_align(ear, LV_ALIGN_CENTER);
-    lv_obj_set_pos(ear, 0, -142);
+    lv_obj_set_pos(ear, 0, UIS(-284));
     lv_obj_add_flag(ear, LV_OBJ_FLAG_ADV_HITTEST);
     lv_obj_clear_flag(ear, LV_OBJ_FLAG_SCROLLABLE);
 

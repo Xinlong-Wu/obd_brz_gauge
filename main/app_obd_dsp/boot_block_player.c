@@ -9,6 +9,7 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "app_obd_dsp/boot_media_mount.h"
+#include "export_path/ui_res.h"   // UI_RENDER_RES (canvas rescale)
 
 typedef struct {
     uint16_t canvas_width;
@@ -295,6 +296,18 @@ bool boot_block_player_create(lv_obj_t *parent, lv_obj_t **out_obj) {
     s_state.manifest = manifest;
     s_state.frame_interval_ms = 1000u / manifest.fps;
     if (!s_state.frame_interval_ms) s_state.frame_interval_ms = 1;
+
+    /* 画布按渲染分辨率建(360 母版的动画在任何渲染分辨率下满屏):
+       网格单元边界由 prepare_edges(i*canvas/grid) 自动映射放大,
+       解码流保持 360 母版语义不变。 */
+    uint16_t render = (uint16_t)UI_RENDER_RES;
+    if (manifest.canvas_width != render || manifest.canvas_height != render) {
+        ESP_LOGI(TAG, "canvas %ux%u -> render %ux%u (grid cells rescaled)",
+                 manifest.canvas_width, manifest.canvas_height, render, render);
+        manifest.canvas_width = render;
+        manifest.canvas_height = render;
+        s_state.manifest = manifest;
+    }
 
     if (!prepare_edges(&s_state.x_edges, manifest.canvas_width, manifest.grid_width) ||
         !prepare_edges(&s_state.y_edges, manifest.canvas_height, manifest.grid_height) ||

@@ -2,13 +2,18 @@
 #include "nvs_flash.h"
 #include "nvs.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "export_path/ui.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "espnow_link.h"   // ESPNOW_ROLE_* (device_role default / bounds)
+#include "nvs_error_log_logic.h"
+#include "ui_dashboard_logic.h"
 
 #define TAG                   "nvs_storage"
 #define NS_CFG                "cfg"
@@ -19,6 +24,8 @@
 #define KEY_MG_EXTRA          "mgextra"   // multi-gauge boot animation settings
 #define KEY_CFG_VERSION       "cfgver"    // config version (missing = v0)
 #define CFG_VERSION_CURRENT   3           // current version; bump on field add/semantic change (migration in nvs_storage_init)
+#define NS_DIAG               "diag"      // diagnostics namespace
+#define KEY_ERR_LOG           "errors"    // error-log ring buffer blob
 
 static nvs_user_cfg_t s_cfg =   {
                         .protocol = 0, // OBD protocol select: 0=auto, 1~9=fixed, default auto
@@ -37,6 +44,8 @@ static nvs_user_cfg_t s_cfg =   {
                     };
 static nvs_stat_t     s_stat = {0};   // runtime-only stats, not persisted (reset every boot to save flash)
 static SemaphoreHandle_t s_mux;
+// Diagnostics error ring (persisted to NS_DIAG/KEY_ERR_LOG; logic in nvs_error_log_logic.h)
+static nvs_error_log_t s_errlog = { .version = NVS_ERROR_LOG_VERSION };
 
 // Per-item alarm thresholds (raw units), index = disp_item_t: CLT,IAT,OIL,LOD,TPS,RPM,SPD,BAT,OIP,BKT,BST
 // By default only oil pressure (8.0bar = x10 80) and brake temp (600°C = x10 6000) keep an alarm; the rest are off.
@@ -88,6 +97,16 @@ esp_err_t nvs_storage_init(void)
         if (s_mg.intro_enable > 2) s_mg.intro_enable = 2;   // legacy REI/SHINJI/ASUKA (3/4) map to VIDEO (2)
         if (s_mg.boot_mode > 2) s_mg.boot_mode = 0;
         ESP_LOGD("nvs", "mg loaded: intro=%u pos=%u boot=%u (blob_sz=%u)", s_mg.intro_enable, s_mg.device_position, s_mg.boot_mode, (unsigned)sz);
+    }
+    {   // Diagnostics error log: load (missing → load_blob writes the default), then sanitize
+        // corrupted version/cursors and persist the repaired copy.
+        load_blob(NS_DIAG, KEY_ERR_LOG, &s_errlog, sizeof(s_errlog));
+        nvs_error_log_t fixed = s_errlog;
+        nvs_error_log_logic_sanitize(&fixed);
+        if (memcmp(&fixed, &s_errlog, sizeof(fixed)) != 0) {
+            s_errlog = fixed;
+            save_blob(NS_DIAG, KEY_ERR_LOG, &s_errlog, sizeof(s_errlog));
+        }
     }
 
     /* ---- Config version migration ----
@@ -158,6 +177,19 @@ esp_err_t nvs_storage_init(void)
     if(s_cfg.oil_pressure_warn_x10 > 100) s_cfg.oil_pressure_warn_x10 = 80;
     // 0=unset/legacy out-of-range -> default 6000; clamped here centrally so callers (ui.c / ui_ScreenPageRpmWarn.c) don't repeat the check
     if(s_cfg.rpm_warn_threshold < 1000) s_cfg.rpm_warn_threshold = 6000;
+    // poll mode tier: 0=NORMAL 1=FAST 2=TURBO (0 is also the grow-default for old blobs)
+    if(s_cfg.obd_poll_mode >= NVS_OBD_POLL_MODE_COUNT) s_cfg.obd_poll_mode = NVS_OBD_POLL_MODE_NORMAL;
+    // 用户自定义仪表页:清洗损坏值;老设备(page_count==0)按既有显示映射迁移
+    bool dash_dirty_save = false;
+    {
+        bool dash_changed = ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+        dash_changed |= ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
+                                                             s_cfg.temp_display_map,
+                                                             s_cfg.info_display_map,
+                                                             s_cfg.needle_source_idx,
+                                                             s_cfg.chart_source_idx);
+        if (dash_changed) dash_dirty_save = true;
+    }
 
     // Validate TEMP/INFO custom display-item maps: 0..(DISP_ITEM_COUNT-1)
     for (int i = 0; i < 3; ++i) {
@@ -170,12 +202,59 @@ esp_err_t nvs_storage_init(void)
         }
     }
 
+    if (dash_dirty_save) {
+        save_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));   // 迁移/修复落盘
+    }
+
     s_mux = xSemaphoreCreateMutex();
+    if (s_mux == NULL) {
+        // Without the mutex the stat/errlog critical sections would crash on the first
+        // xSemaphoreTake — fail loudly instead of bricking later at a random spot.
+        ESP_LOGE(TAG, "mutex creation failed (heap exhausted?)");
+        return ESP_ERR_NO_MEM;
+    }
     return ESP_OK;
 }
 
 /* User config */
 const nvs_user_cfg_t * nvs_cfg_get(void){ return &s_cfg; }
+
+/* ---- User dashboard pages (M4) ---- */
+
+static esp_err_t dashboard_persist(void)
+{
+    if (!ui_dashboard_logic_sanitize(&s_cfg.dashboard)) return ESP_ERR_INVALID_STATE;
+    return save_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));
+}
+
+esp_err_t nvs_dashboard_page_set(uint8_t page_idx, const ui_dashboard_page_cfg_t *page)
+{
+    if (page == NULL || page_idx >= s_cfg.dashboard.page_count) return ESP_ERR_INVALID_ARG;
+    s_cfg.dashboard.pages[page_idx] = *page;
+    return dashboard_persist();
+}
+
+esp_err_t nvs_dashboard_page_delete(uint8_t page_idx)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page_idx >= d->page_count) return ESP_ERR_INVALID_ARG;
+    if (d->page_count == 1) return ESP_ERR_INVALID_STATE;   // 至少保留一页
+    for (uint8_t i = page_idx; i < d->page_count - 1u; i++) {
+        d->pages[i] = d->pages[i + 1u];
+    }
+    d->page_count--;
+    memset(&d->pages[d->page_count], 0, sizeof(d->pages[d->page_count]));
+    if (d->default_page > d->page_count) d->default_page = d->page_count;
+    return dashboard_persist();
+}
+
+esp_err_t nvs_dashboard_page_append(const ui_dashboard_page_cfg_t *page)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page == NULL || d->page_count >= UI_DASHBOARD_MAX_PAGES) return ESP_ERR_INVALID_STATE;
+    d->pages[d->page_count++] = *page;
+    return dashboard_persist();
+}
 
 esp_err_t nvs_cfg_set(const nvs_user_cfg_t *cfg)
 {
@@ -310,9 +389,64 @@ static esp_err_t load_blob(const char *ns,const char *key,void *out,size_t len)
 static esp_err_t save_blob(const char *ns,const char *key,const void *data,size_t len)
 {
     nvs_handle_t h; esp_err_t err=nvs_open(ns,NVS_READWRITE,&h);
-    if(err!=ESP_OK) return err;
+    if(err!=ESP_OK){
+        nvs_error_log_record("nvs", err, key);   // self-diagnosis (recursion-guarded in record)
+        return err;
+    }
     err=nvs_set_blob(h,key,data,len);
     if(err==ESP_OK) err=nvs_commit(h);
     nvs_close(h);
+    if(err!=ESP_OK) nvs_error_log_record("nvs", err, key);
     return err;
+}
+
+/* ---- Diagnostics error log (ring buffer, persisted) ---- */
+
+void nvs_error_log_record(const char *tag, esp_err_t err, const char *message)
+{
+    // Recursion guard: recording persists via save_blob, whose failure paths
+    // call back into this function (early boot before NVS is up, full flash...).
+    static bool s_in_record = false;
+    if (s_in_record) return;
+    s_in_record = true;
+
+    // Pre-init calls (no mutex yet) take the unlocked path: early boot is
+    // single-threaded, so the unsynchronized append is still safe.
+    if (s_mux) xSemaphoreTake(s_mux, portMAX_DELAY);
+    nvs_error_log_logic_append(&s_errlog,
+                               (uint32_t)(esp_timer_get_time() / 1000000LL),
+                               (int32_t)err, tag, message);
+    if (s_mux) xSemaphoreGive(s_mux);
+
+    save_blob(NS_DIAG, KEY_ERR_LOG, &s_errlog, sizeof(s_errlog));
+    s_in_record = false;
+}
+
+void nvs_error_log_recordf(const char *tag, esp_err_t err, const char *fmt, ...)
+{
+    char buf[NVS_ERROR_MSG_LEN];
+    va_list ap;
+    if (fmt == NULL) { nvs_error_log_record(tag, err, NULL); return; }
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    nvs_error_log_record(tag, err, buf);
+}
+
+uint8_t nvs_error_log_count(void)
+{
+    uint8_t count = 0;
+    if (s_mux) xSemaphoreTake(s_mux, portMAX_DELAY);
+    nvs_error_log_logic_sanitize(&s_errlog);
+    count = s_errlog.count;
+    if (s_mux) xSemaphoreGive(s_mux);
+    return count;
+}
+
+void nvs_error_log_copy(nvs_error_log_t *out)
+{
+    if (out == NULL) return;
+    if (s_mux) xSemaphoreTake(s_mux, portMAX_DELAY);
+    *out = s_errlog;
+    if (s_mux) xSemaphoreGive(s_mux);
 }

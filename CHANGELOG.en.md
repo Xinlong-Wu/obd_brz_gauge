@@ -7,6 +7,296 @@ cleanups live in the git history.
 
 ---
 
+## 720 master + compile-time scaling: native rendering on every board (resolution-independent UI)
+
+UI, fonts, image assets and theme artwork are authored against a 720x720
+master and scaled at compile time to `CONFIG_OBD_UI_RENDER_RES`
+(WS185=360 / WS175=466 / WS128=240); **every board renders at its panel's
+native resolution**:
+
+- **Panels above 360 go full-screen**: WS175 switches from "360 layout
+  centered with dead margins" to native 466 rendering with zero layout,
+  asset or font changes (flip the render-resolution config)
+- **Layout `UIS()`**: `export_path/ui_res.h` folds 720-master pixels at
+  compile time; historical literals across `screens/*.c` were script-
+  migrated — **red-line revision**: screens are no longer SquareLine
+  artifacts; a re-export requires rerunning `tools/migrate_ui_literals.py`
+- **Asset/font pipelines**: `assets_src/images/` PNG masters →
+  `tools/gen_assets.py` multi-resolution C arrays; `fonts/Conthrax-
+  SemiBold.otf` (the common source of all 8 cuts) → `tools/gen_fonts.py`
+  true per-resolution rasterization; the 360 output matches history
+  (images byte-identical, fonts via a reviewed golden refresh)
+- **Themes/boot animation**: gen_themes/packer accept square >=360
+  masters; runtime theme assets are rescaled to the render resolution at
+  load; the boot canvas follows the render resolution (360-master videos
+  play full-screen)
+- **Simulator**: `--ui-res 240|466` previews non-360 builds; new
+  render_240/render_466 golden scenarios
+- **Rejected and documented**: rendering at 720/1080 at runtime then
+  downsampling (flash 1.03MB > partition headroom, WS128's 2MB PSRAM
+  cannot hold the shadow framebuffer, 4x fill rate, text softer than
+  native rasterization)
+- WS128 switches from "virtual 360 + flush downscale" to **native 240**
+  (0.44x pixel fill, measurably sharper and smoother); ui_scale remains
+  as the fallback scaler for render != panel, with the output path logged
+  at boot
+
+## Fix: factory boot animation never played (bootmedia image switched to the raw layout)
+
+The factory bootmedia image was always a SPIFFS filesystem image while the
+firmware reads a raw layout (manifest at partition offset 0, frame data at
+0x1000) — on factory/USB-flashed devices the boot animation always failed
+to parse and was silently skipped; only devices that had uploaded an
+animation via the App could play one.
+
+- **Build-time image generation moved to `tools/gen_bootmedia.py`**: raw
+  layout, ~232 KB (the SPIFFS image was 6.2 MB — 26x faster to flash);
+  `idf.py flash` integration and the flash address (0xA20000) are
+  unchanged; a manifest missing required keys now fails the build
+- **`binary_size` auto-injected**: without that key the player fell back
+  to probing the whole partition and allocating ~6 MB of PSRAM — a
+  guaranteed failure on the WS128's 2 MB Quad PSRAM and pure waste on
+  8 MB boards
+- **`manifest_present()` tightened**: requires the `canvas_width=` prefix
+  instead of "first byte is a lowercase letter", so garbage (e.g. stale
+  SPIFFS metadata) is no longer misdetected as a valid animation
+- SPIFFS component dependency removed from the firmware (zero runtime
+  users)
+- Known leftover: the BLE boot-animation upload path (`ota_update_ble.c`,
+  the `.new` staging flow) is dead code inconsistent with the current
+  layout; not re-enabled by this fix, kept for a separate cleanup
+
+## WS128 board support (Waveshare 1.28" no-touch board)
+
+A third build-target board; existing WS185/WS175 builds and behavior are
+unchanged.
+
+- **New board `OBD_BOARD_WS_128_GC9A01`**: GC9A01 4-wire SPI 240x240,
+  ESP32-S3R2 (2MB **Quad** PSRAM in package). Must be built with the
+  `sdkconfig.defaults.ws128` overlay — the shared octal PSRAM default
+  fails to boot on this board and loops (`octal_psram: PSRAM chip is
+  not connected...`)
+- **Display-only mode**: no touch, LVGL pointer-device registration is
+  skipped (previously a touch-less board would assert during input
+  polling); V1-only RS485/ADS1115 bring-up is compiled out via the V2
+  hardware version (the board's LCD_RST on GPIO12 collides with the
+  RS485 RX pin)
+- **Virtual-360 scaled output**: the UI still renders at 360x360 and the
+  flush path downsamples 3:2 (nearest neighbor) in chunks to the panel
+  (PSRAM full-frame shadow + DMA chunks + semaphore sync); layout,
+  themes and the boot animation are unchanged
+- **Display calibration**: the glass is natively mirrored left-right,
+  corrected at init with `esp_lcd_panel_mirror` on the X axis only; the
+  downscaled chunk submit must **take the DMA-done semaphore before
+  rewriting the chunk buffer** — writing first overwrites in-flight DMA
+  data and shows a periodic horizontal band every 20 rows
+- **Main task stack**: raised to 8192 in the ws128 overlay (the default
+  3584 overflows during app_main bring-up in this configuration and
+  boot-loops with `stack overflow in task main`)
+- Build: `idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128"
+  set-target esp32s3 && build` (see DEVELOPMENT.en.md, Porting a new board)
+
+## Dynamic dashboard pages (user-defined gauges)
+
+The main UI upgrades from the static carousel to a **user-definable
+pager**: MENU → gauge pages (1..8) → ADD.
+
+- **Data model**: `ui_dashboard_cfg_t` (6 pages x 6 unified-channel
+  slots, METRIC/GEAR/G-FORCE page types) appended to the NVS config per
+  the red line; corruption self-heals and old devices migrate from the
+  existing TEMP/INFO/CHART/NEEDLE mappings (same look, boots on TEMP)
+- **Runtime**: `ui_home_runtime` renders the tiles — MENU (vehicle name
+  + BLE SCAN/SETTINGS/INFO-OTA entries), METRIC slot grids (the
+  round-screen row model [1]..[2,2,2] validated by ref), GEAR big digit
+  + RPM arc, G-FORCE dot plot, ADD geometric "+"; swipe steps tiles, a
+  100ms timer refreshes (components self-read the unified channels)
+- **Editing**: long-press a gauge page → EDIT/DELETE/BACK overlay; EDIT
+  opens the roller config page (TYPE / SLOTS 1-6 / SLOT / CHANNEL over
+  18 items), every change persists immediately; ADD appends a default
+  RPM page (8-page cap)
+- **Navigation takeover**: boot lands on home; the version page (MENU →
+  INFO/OTA) keeps swipe-up BLE / swipe-down settings / OTA button /
+  hidden entries; partition themes with pages still take over at boot
+- **Settings loses the BOOT PAGE row** (superseded); retiring the static
+  carousel screens lands as a follow-up cleanup commit
+- Simulator `--home` preview (now a no-op — boot lands on home
+  naturally); mock mirrors the firmware migration/mutators; goldens
+  regenerated for the new UI (tour walks MENU/TEMP/INFO/GFORCE/CHART/ADD)
+
+---
+
+## Theme component orchestration (schema 2.0) + packer completion
+
+- **theme.bin schema 2.0**: the manifest gains `components{}` (theme-
+  defined components composed of v1 primitives, coordinates relative to
+  the component rect); pages may orchestrate built-in + theme component
+  `instances[]`. Firmware accepts 2.0 and 1.0 (v1 behavior unchanged);
+  older firmware rejects 2.0 fail-closed to the default theme
+- **Built-in component library `ui_component`**: value (name+number+
+  unit) / arc / bar / bignum / gforce — skinning only via theme color
+  roles, data only via the unified channel vocabulary (`obd.*` <->
+  disp_item). Fixed a dirty-check bug where a first sample of exactly
+  zero never painted (regression assertion added)
+- **pack_theme.py completion** (capabilities the loader already had):
+  multi-page `layouts/<page_id>.json`, arbitrary named assets (`.png`
+  RGB565 / `.rgba.png` RGBA8888 / `.lv_font_bin` fonts),
+  `components.json` embedding, automatic schema bump to 2.0; image
+  packing generalized to any size (dial/ring still pinned to 360x360)
+- **Example theme `themes/example_v2_component/`** (value+arc+bar+
+  gforce+theme:badge orchestration) + new screenshot-regression scenario
+  `theme_v2_component` (packs then previews; 9/9 scenarios pass)
+- End-to-end: a synthetic v2 blob walks load -> create page -> update ->
+  rendered-label assertions in unit tests; visual acceptance via the
+  simulator preview
+
+---
+
+## Board abstraction and WS175 AMOLED support
+
+- New board layer `bsp_obd_dsp/boards/` (ported from the validated
+  Hokori23/obd_brz_gauge implementation): `board_api.h` unifies
+  init/display-context/brightness/shared-I2C/register access;
+  `board_dispatch.c` dispatches statically on the Kconfig **Display
+  board**; board files self-guard with `#if CONFIG_OBD_BOARD_*` (the
+  component CMake requirements phase has no CONFIG_ variables, so the
+  split cannot happen in CMake)
+- **New WS175 target** (Waveshare ESP32-S3-Touch-AMOLED-1.75, 466x466):
+  CO5300 QSPI panel (CASET/RASET factory-gap compensation, black until
+  first frame), CST9217 touch (degrades to no-touch with an error-log
+  entry on failure), brightness via command 0x51, 180-degree mount via
+  LVGL `sw_rotate`. New component deps: esp_lcd_co5300 /
+  esp_lcd_touch_cst9217 / esp_lcd_panel_io_additions;
+  `sdkconfig.defaults.ws175` overlay, build commands in
+  docs/DEVELOPMENT.en.md (deviation from ref: rotation fixed at 180 for
+  now, NVS runtime rotation not ported)
+- **WS185 behavior unchanged**: app_main now calls board_* (which wrap
+  the original I2C_Init/EXIO_Init/LCD_Init chain); UI screen symbols go
+  through the `board_display_compat.h` facade. Both board builds verified
+  in Docker
+- Not yet ported: the QMI8658 IMU driver and g-force plot (on-board
+  peripherals of WS175 — next focused session together with hardware
+  validation)
+
+---
+
+## NVS diagnostics error log and init hardening
+
+- New **runtime error log** (64-entry ring, ~5.9KB, persisted to NVS
+  `diag/errors`): `nvs_error_log_record/recordf` capture module tag,
+  esp_err, uptime and message; corrupted version/cursors are repaired
+  on load; seq stays monotonic across reboots. Pure logic in
+  `nvs_error_log_logic.h` (`static inline`, 20+ test assertions);
+  NVS write failures self-record with recursion protection. Reader
+  surfaces (settings/App/BLE) arrive with the M4 diagnostics page
+- `nvs_storage_init()` now returns `ESP_ERR_NO_MEM` when mutex creation
+  fails instead of crashing at the first lock (ported from ref; the
+  flush-task stack increase does not apply here — this repo keeps
+  stats in RAM with no background flush task)
+- The simulator NVS mock provides the same error-log APIs (in-memory
+  ring, shared logic header)
+
+---
+
+## OBD poll tier (NORMAL / FAST / TURBO)
+
+- New **OBD POLL** roller in Settings (shares a two-column row with
+  RACECHRONO): NORMAL 30ms (default, matches historical behavior) /
+  FAST 15ms / TURBO 5ms — effective on the next poll cycle, no reboot
+- Resolution order unchanged: the vehicle override's `poll_gap_ms` >
+  the profile's `poll_gap_ms` > the user tier; vehicles that pin their
+  gap (ZN/C6 CAN, MX-5, ...) are unaffected — the tier only sets the
+  default for unpinned vehicles
+- NVS `nvs_user_cfg_t` gains `obd_poll_mode` appended at the end (old
+  devices grow-compatible, zero = NORMAL); tested in
+  `tests/test_nvs_poll_mode.c`
+- Ported from Hokori23/obd_brz_gauge's turbo poll mode, re-scaled to
+  this repo's 30ms baseline
+
+---
+
+## ZC6 CAN monitor extension: direct gear, g-force, TPMS
+
+- The `ZN/C6 CAN` profile's ATMA monitor now decodes three more frames
+  (ported from Hokori23/obd_brz_gauge; its three copy-pasted line
+  tokenizers were folded into our existing `can_monitor_parse_line_fast`
+  pipeline — zero extra polling load):
+  - **0x141 direct gear**: N/1-6/R written straight to the data cache,
+    taking precedence over the rpm/speed ratio estimate (cars that do
+    not emit the frame are unaffected and keep the ratio fallback)
+  - **0x0D0 g-force**: lateral/longitudinal acceleration lands in the
+    data cache (0.01g; display pages arrive in a later milestone)
+  - **0x6E2 TPMS**: four wheels in 0.1 bar; the unit (PSI/BAR/KPA) is
+    auto-detected with the "cold-tire pressure sits in 1.4–3.6 bar"
+    heuristic and stays sticky until reconnection
+- New data-cache accessors `obd_data_{set,get}_gforce_x100` and
+  `obd_data_{set,get}_tpms_bar_x10` (snapshot struct untouched, theme
+  ABI unchanged)
+- Decode logic is the pure header `zc6_monitor_decode.h` with the
+  `tests/test_zc6_monitor_decode.c` suite (28+ assertions)
+
+---
+
+## Testing & CI foundation (no firmware behavior change)
+
+- **New host-side unit tests `tests/`** (CTest, zero test-framework deps):
+  firmware pure-logic modules compiled through the `simulator/shims` header
+  shadowing. First suites cover the data cache (sentinels/snapshot/RPM
+  override/gear derivation), vehicle profiles (count/out-of-range clamping/
+  data self-consistency), the display-item system (validity/formatting/
+  ranges) and the theme engine (default fallback + theme.bin v1 loading +
+  corruption tolerance)
+- **New screenshot regression `tools/sim_regress.py`** (Pillow): with the
+  simulator's new `--seed` (pinned fake-data PRNG) and `--clock virtual`
+  (frame-locked clock), screenshots are **bit-identical** for identical
+  args; 8 scenarios compare pixel-by-pixel against the `tests/goldens/`
+  goldens, and headless runs finish ~2x faster
+- **New CI `.github/workflows/ci.yml`** with three jobs: themes-check
+  (theme codegen freshness) / unit-sim (unit tests + screenshot regression,
+  diff overlays uploaded on failure) / firmware (Docker build with
+  espressif/idf:v5.5.3, binaries uploaded as artifacts)
+- `theme_engine_test()` now returns bool instead of void (reports failure
+  when a protected page becomes themeable); boot-time self-test wiring
+  unchanged
+
+---
+
+## PC simulator and Docker build (no firmware behavior change)
+
+- **New `simulator/` PC simulator**: the firmware UI sources (`export_path/`,
+  `theme_engine/`, the data cache, the boot-video player) are compiled
+  **unmodified** into an SDL2 window (LVGL 8.4 multi-display). Features: a
+  fake-data driving scenario, the full BLE scan→connect and slave-pairing
+  flows simulated, a side data-adjustment panel (11 channel sliders / gear
+  roller / engine switch — dragging a slider takes the channel over), boot
+  video and runtime-theme (theme.bin) loading, and headless screenshot
+  acceptance (`--frames/--screenshot/--tour/--tap`). ESP-IDF dependencies are
+  satisfied by `simulator/shims/` — not a single firmware line changes;
+  see [simulator/README.en.md](simulator/README.en.md)
+- **New `tools/docker-build.sh`**: thin wrapper around the
+  espressif/idf:v5.5.3 container for machines without a local IDF
+  environment (e.g. macOS, where containers cannot flash); build in the
+  container, flash from the host
+
+---
+
+## Pre-built firmware channel removed
+
+- **The repo no longer hosts pre-built firmware**: `firmware/release/`
+  (including `latest.json`) and the stray `firmware/obd_brz_gauge.bin` are
+  deleted; flashing always uses your local `build/` artifacts, and the
+  flashing instructions in the README and [FLASH.en.md](docs/FLASH.en.md)
+  have been rewritten accordingly. The companion app's OTA manifest lives on
+  a self-hosted server (not in this repo), so app OTA is unaffected
+- `tools/gen_release.py` is removed and `tools/release.sh` is simplified to
+  "commit → build → push"
+- `build/` is no longer tracked by git (the whole build directory had been
+  force-added before); it was already in `.gitignore`
+- The companion app APK (`android_app/`) is no longer distributed with the
+  repo either; docs now note it is "distributed separately"
+
+---
+
 ## Documentation system rebuild (bilingual)
 
 Everything this branch changes relative to main, summarized as one

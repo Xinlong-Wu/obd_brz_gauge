@@ -8,6 +8,7 @@
 #include <string.h>
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "app_obd_dsp/vehicle_profiles.h"
+#include "../ui_res.h"
 
 // Selectable data sources for the needle page (disp_item_t values); RPM(5) is deliberately excluded -- RPM already has its own page.
 // Order: CLT, IAT, OIL, LOAD, TPS, SPEED, BAT, OILP, BKT
@@ -61,7 +62,7 @@ void ui_ScreenPageNeedle_screen_init(void)
 {
     ui_ScreenPageNeedle = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageNeedle, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageNeedle, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageNeedle, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageNeedle);
     lv_obj_set_style_bg_opa(ui_ScreenPageNeedle, 255, LV_PART_MAIN);
     lv_obj_set_style_border_width(ui_ScreenPageNeedle, 0, LV_PART_MAIN);  // disable the default theme border, use a white ring instead
@@ -73,7 +74,7 @@ void ui_ScreenPageNeedle_screen_init(void)
 
     // ====== Needle dial ======
     ui_NeedleMeter = lv_meter_create(ui_ScreenPageNeedle);
-    lv_obj_set_size(ui_NeedleMeter, 320, 320);
+    lv_obj_set_size(ui_NeedleMeter, UIS(640), UIS(640));
     lv_obj_center(ui_NeedleMeter);
     lv_obj_clear_flag(ui_NeedleMeter, LV_OBJ_FLAG_CLICKABLE);
     // Dial background transparent, blends into the black page
@@ -114,7 +115,7 @@ void ui_ScreenPageNeedle_screen_init(void)
     lv_obj_set_style_text_font(ui_NeedleNameLabel, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(ui_NeedleNameLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
     lv_obj_set_style_text_align(ui_NeedleNameLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(ui_NeedleNameLabel, LV_ALIGN_CENTER, 0, -52);
+    lv_obj_align(ui_NeedleNameLabel, LV_ALIGN_CENTER, 0, UIS(-104));
 
     // ====== Value label (bottom, in the opening at the bottom of the 270° dial; the needle never sweeps here, so no overlap) ======
     ui_NeedleValueLabel = lv_label_create(ui_ScreenPageNeedle);
@@ -122,7 +123,7 @@ void ui_ScreenPageNeedle_screen_init(void)
     lv_obj_set_style_text_font(ui_NeedleValueLabel, &ui_font_FontTypoderSize40, LV_PART_MAIN);
     lv_obj_set_style_text_color(ui_NeedleValueLabel, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_text_align(ui_NeedleValueLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(ui_NeedleValueLabel, LV_ALIGN_CENTER, 0, 54);
+    lv_obj_align(ui_NeedleValueLabel, LV_ALIGN_CENTER, 0, UIS(108));
 
     // ====== Unit label (below the value) ======
     ui_NeedleUnitLabel = lv_label_create(ui_ScreenPageNeedle);
@@ -130,7 +131,7 @@ void ui_ScreenPageNeedle_screen_init(void)
     lv_obj_set_style_text_font(ui_NeedleUnitLabel, &ui_font_FontTypoderSize20, LV_PART_MAIN);
     lv_obj_set_style_text_color(ui_NeedleUnitLabel, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), LV_PART_MAIN);
     lv_obj_set_style_text_align(ui_NeedleUnitLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(ui_NeedleUnitLabel, LV_ALIGN_CENTER, 0, 94);
+    lv_obj_align(ui_NeedleUnitLabel, LV_ALIGN_CENTER, 0, UIS(188));
 
     // Apply the current data source (set range/name/unit)
     ui_needle_apply_source();
@@ -143,7 +144,7 @@ void ui_ScreenPageNeedleConfig_screen_init(void)
 {
     ui_ScreenPageNeedleConfig = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageNeedleConfig, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageNeedleConfig, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageNeedleConfig, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageNeedleConfig);
     lv_obj_set_style_bg_opa(ui_ScreenPageNeedleConfig, 255, LV_PART_MAIN);
     lv_obj_set_style_border_width(ui_ScreenPageNeedleConfig, 0, LV_PART_MAIN);  // remove the default theme white border
@@ -157,7 +158,7 @@ void ui_ScreenPageNeedleConfig_screen_init(void)
     lv_label_set_text(title, "DATA SOURCE");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -110);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-220));
 
     // Build the selectable sources for the current vehicle profile (includes BOOST only with turbo), then generate the options string
     build_needle_sources();
@@ -175,9 +176,9 @@ void ui_ScreenPageNeedleConfig_screen_init(void)
     lv_roller_set_options(s_roller_source, options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller_source, 3);
     lv_roller_set_selected(s_roller_source, source_to_roller_pos(cfg->needle_source_idx), LV_ANIM_OFF);
-    lv_obj_set_width(s_roller_source, 160);
+    lv_obj_set_width(s_roller_source, UIS(320));
     ui_helpers_style_dark_roller(s_roller_source, &ui_font_FontTypoderSize24);
-    lv_obj_align(s_roller_source, LV_ALIGN_CENTER, 0, 8);
+    lv_obj_align(s_roller_source, LV_ALIGN_CENTER, 0, UIS(16));
     lv_obj_add_event_cb(s_roller_source, on_needle_source_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Hint
@@ -185,7 +186,7 @@ void ui_ScreenPageNeedleConfig_screen_init(void)
     lv_label_set_text(hint, "Swipe to go back");
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 120);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(240));
 
     lv_obj_move_foreground(ring);   // bring the ring to the front
     lv_obj_add_event_cb(ui_ScreenPageNeedleConfig, ui_event_needle_config_background, LV_EVENT_GESTURE, NULL);

@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# One-click release: commit source → build → package release bins + latest.json → commit → push.
+# One-click build release: commit source → build → push.
 #
 # Usage:  ./tools/release.sh "feat: your change message"
 #
 # Notes:
 #   - `--no-verify` skips the global git hooks (PythonPep8 at GIS-lm-build/git-hooks).
-#   - The source MUST be committed before building: gen_release.py derives
-#     firmware.count / build_tag from the current git HEAD.
-#   - Steps are skipped safely: if there is nothing to commit, the commit is skipped.
+#   - The source MUST be committed before building: the build tag's firmware.count
+#     is derived from the current git HEAD (injected at CMake configure time).
+#   - The commit is skipped safely if there is nothing to commit.
 #   - ESP-IDF is auto-activated. `idf.py` here is a shell *alias* (not a real
 #     binary), so the script sources the eim activation script and calls idf.py
 #     through its python interpreter directly — no manual env activation needed.
+#   - There is no pre-built firmware channel in the repo anymore: flashing is
+#     done from your local build/ output (see docs/FLASH.md).
 set -euo pipefail
 
 MSG="${1:-feat: update}"
@@ -70,14 +72,7 @@ else
     "$IDF_PY" "$IDF_TOOL" build
 fi
 
-# ---- 3. Copy build/*.bin → firmware/release/ and write latest.json ----
-python3 tools/gen_release.py
-
-# ---- 4. Commit the release binaries + manifest, then push ----
-git add firmware/release/
-if ! git diff --cached --quiet; then
-    git commit --no-verify -m "build: update release firmware binaries"
-fi
+# ---- 3. Push ----------------------------------------------------------------
 git push --no-verify
 
 echo "released: $(git rev-parse --short HEAD)  count=$(git rev-list --count HEAD)"

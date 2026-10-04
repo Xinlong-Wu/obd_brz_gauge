@@ -14,7 +14,8 @@
 #include <driver/gpio.h>
 #include "bsp_obd_dsp/bsp_board.h"
 #include "bsp_obd_dsp/nvs_storage.h"
-#include "bsp_obd_dsp/lcd_driver/ST77916.h"
+#include "bsp_obd_dsp/boards/board_display_compat.h"
+#include "ui_home_runtime.h"
 #include "bsp_obd_dsp/elm327_ble_client.h"
 #include "bsp_obd_dsp/espnow_link.h"
 #include "bsp_obd_dsp/gauge_pair_ble_client.h"
@@ -496,6 +497,14 @@ static void ui_build_theme_snapshot(obd_snapshot_t *out,
 
     int16_t iat = obd_data_get_intake_temp();
     out->intake_temp = (iat < 0) ? 0 : (iat > 255 ? 255 : (uint8_t)iat);
+
+    // M3 扩展通道:直接读缓存(哨兵透传,主题侧按无效处理)
+    out->gforce_lat_x100 = obd_data_get_gforce_lat_x100();
+    out->gforce_lon_x100 = obd_data_get_gforce_lon_x100();
+    for (int w = 0; w < 4; w++) {
+        int16_t p = obd_data_get_tpms_bar_x10((uint8_t)w);
+        out->tpms_bar_x10[w] = (p < 0 || p > 250) ? 0xFF : (uint8_t)p;
+    }
 }
 
 void my_timerMain(lv_timer_t * timer)
@@ -1200,8 +1209,8 @@ void ui_event_easter_egg_background(lv_event_t * e)
                 }
                 _ui_screen_change(&ui_ScreenPageThemeGauge, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageThemeGauge_screen_init);
             } else {
-                // No theme loaded, return to Gear page
-                _ui_screen_change(&ui_ScreenPageGear, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageGear_screen_init);
+                // No theme loaded, return to the home pager
+                lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
             }
         }
         else if(dir == LV_DIR_TOP) {
@@ -1265,8 +1274,10 @@ void ui_init(void)
         if (theme_get_info(&info) == ESP_OK) {
             ESP_LOGI(TAG, "Theme loaded: %s v%s by %s", info.name, info.version, info.author);
         }
-        // Run test to print detailed theme info
-        theme_engine_test();
+        // Run self-test to print detailed theme info (fails loud, never blocks boot)
+        if (!theme_engine_test()) {
+            ESP_LOGE(TAG, "Theme engine self-test FAILED (protected page themeable?)");
+        }
     } else {
         ESP_LOGW(TAG, "Theme partition system initialization failed, using built-in themes");
     }
@@ -1371,12 +1382,12 @@ void ui_event_ble_scan_background(lv_event_t * e)
                 elm327_ble_scan_only_stop();
             }
             lv_indev_wait_release(lv_indev_get_act());
-            _ui_screen_change(&ui_ScreenPageEasterEgg, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageEasterEgg_screen_init);
+            lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
         }
     }
 }
 
-/* Settings page events - swipe left/right returns to the device info page */
+/* Settings page events - swipe left/right returns to the home pager */
 void ui_event_settings_background(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
@@ -1384,7 +1395,7 @@ void ui_event_settings_background(lv_event_t * e)
         lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
         if(dir == LV_DIR_LEFT || dir == LV_DIR_RIGHT){
             lv_indev_wait_release(lv_indev_get_act());
-            _ui_screen_change(&ui_ScreenPageEasterEgg, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageEasterEgg_screen_init);
+            lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
         }
         else if(dir == LV_DIR_BOTTOM){   // swipe down enters the triple-gauge settings page
             lv_indev_wait_release(lv_indev_get_act());

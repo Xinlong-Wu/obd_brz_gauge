@@ -13,6 +13,7 @@
 #include "app_obd_dsp/obd_data_cache.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "app_obd_dsp/vehicle_custom_config.h"
+#include "app_obd_dsp/zc6_monitor_decode.h"
 #include "racechrono_ble_diy.h"
 #include "ble_adv_util.h"
 #include "esp_task_wdt.h"
@@ -106,7 +107,8 @@ static oil_temp_query_mode_t s_oil_mode_priority[4] = {
 };  // default priority, updated from the vehicle profile config after boot
 static uint32_t s_oil_mode_fail_count[12] = {0};  // consecutive failure count per mode (poll idx 0~11)
 #define OIL_MODE_FAIL_THRESHOLD 5  // switch to the next mode only after a mode fails this many times
-#define OBD_POLL_SLOT_GAP_MS   30  // idle gap between poll slots (ms); was 100, lowered to raise refresh rate — too small overwhelms clone adapters
+// Historical global poll-slot gap (30ms) now lives in nvs_obd_poll_mode_default_gap_ms()
+// (Settings → OBD POLL tier); kept here only as documentation of the baseline.
 static bool s_vehicle_profile_inited = false;
 
 // Oil-temp diagnostic stats
@@ -160,6 +162,8 @@ static uint32_t s_zc6_can_monitor_obd_cycle = 0;   // OBD query cycle counter wh
 #define ZC6_CAN_TEMP_PROBE_WINDOW_MS 120u           // shorter window to reduce RPM disturbance
 #define ZC6_CAN_TEMP_STALE_US 15000000LL            // CAN temp channels stale after 15s without fresh frames
 static int64_t s_zc6_can_temp_probe_last_us = 0;    // last time we briefly entered ATMA to refresh ZC6 CAN temps
+// ZC6 TPMS unit auto-calibration: sticky result (re-judged after reconnection)
+static zc6_tpms_scale_t s_zc6_tpms_scale = ZC6_TPMS_SCALE_AUTO;
 bool elm327_ble_send_ascii_blocking(const char *ascii_cmd);
 static bool can_rules_have_channel(const vehicle_override_t *ov, uint8_t channel);
 
@@ -642,6 +646,7 @@ static void zc6_can_monitor_enter(void)
     s_zc6_can_monitor_len = 0;
     s_zc6_can_monitor_buf[0] = '\0';
     s_zc6_can_monitor_entered_us = 0;
+    s_zc6_tpms_scale = ZC6_TPMS_SCALE_AUTO;   // re-judge tire pressure units on reconnection
     s_accum_len = 0;
     s_accum_buf[0] = '\0';
 
@@ -778,6 +783,46 @@ static bool can_rules_have_channel(const vehicle_override_t *ov, uint8_t channel
 }
 
 // Line-wise parse: generic rule tables; skipped automatically if the frame is not on the bus
+// ZC6 extended frame application: 0x141 gear direct-read / 0x0D0 G-force / 0x6E2 tire pressure.
+// Returns whether any data was landed this time (used to refresh data validity).
+static bool zc6_can_apply_extended_frames(uint16_t can_id, const uint8_t data[8])
+{
+    switch (can_id) {
+    case 0x141: {
+        int8_t gear;
+        if (zc6_gear_decode_141_payload(data, &gear)) {
+            if (s_cbs.on_parsed_gear) s_cbs.on_parsed_gear(gear);
+            return true;
+        }
+        return false;
+    }
+    case 0x0D0: {
+        int16_t lat_x100, lon_x100;
+        if (zc6_gforce_decode_0d0_payload(data, &lat_x100, &lon_x100)) {
+            obd_data_set_gforce_x100(lat_x100, lon_x100);
+            return true;
+        }
+        return false;
+    }
+    case 0x6E2: {
+        if (s_zc6_tpms_scale == ZC6_TPMS_SCALE_AUTO) {
+            s_zc6_tpms_scale = zc6_tpms_auto_resolve_scale(data);  // sticky: no re-judging once determined
+        }
+        int16_t bar_x10[4];
+        if (s_zc6_tpms_scale != ZC6_TPMS_SCALE_AUTO &&
+            zc6_tpms_decode_6e2_payload(data, s_zc6_tpms_scale, bar_x10)) {
+            for (int w = 0; w < 4; w++) {
+                if (bar_x10[w] >= 0) obd_data_set_tpms_bar_x10((uint8_t)w, bar_x10[w]);
+            }
+            return true;
+        }
+        return false;
+    }
+    default:
+        return false;
+    }
+}
+
 static bool zc6_can_monitor_parse_line(const char *line)
 {
     // Generic CAN frame parse: extract CAN ID + data from the ATMA line and apply the override rules
@@ -792,6 +837,14 @@ static bool zc6_can_monitor_parse_line(const char *line)
     uint8_t data[8] = {0};
     uint8_t data_len = 0;
     bool parsed_fast = can_monitor_parse_line_fast(line, &line_id, data, &data_len);
+
+    // ZC6 extended frames (gear direct-read / G-force / tire pressure): independent of can_rules,
+    // parsed and written to cache on sight (other vehicles simply do not send these IDs).
+    if (parsed_fast) {
+        if (zc6_can_apply_extended_frames(line_id, data)) {
+            mark_obd_data_valid();
+        }
+    }
 
     bool id_watched = false;
     for (uint8_t i = 0; i < ov->can_rule_count; i++) {
@@ -1207,7 +1260,8 @@ static void obd_poll_task(void *arg) {
             }
         }
 
-        // Inter-slot idle gap: prefer the override's poll_gap_ms first, then the profile's poll_gap_ms (e.g. ZC/N6, MX-5 ND use 1ms); fall back to the global default 30ms.
+        // Inter-slot idle gap: prefer the override's poll_gap_ms first, then the profile's poll_gap_ms (e.g. ZC/N6, MX-5 ND use 1ms);
+        // fall back to the user's poll-mode tier (Settings → OBD POLL: NORMAL 30 / FAST 15 / TURBO 5ms).
         // Too small overwhelms cheap BLE adapters; profiles with fast CAN-bus response can safely go smaller.
         // If the user sets poll_gap_ms = 0, skip vTaskDelay and move on directly.
         {
@@ -1216,7 +1270,8 @@ static void obd_poll_task(void *arg) {
             uint32_t gap = (ov_gap && ov_gap->poll_gap_ms > 0)
                            ? ov_gap->poll_gap_ms
                            : ((vp_gap && vp_gap->poll_gap_ms > 0)
-                              ? vp_gap->poll_gap_ms : OBD_POLL_SLOT_GAP_MS);
+                              ? vp_gap->poll_gap_ms
+                              : nvs_obd_poll_mode_default_gap_ms(nvs_cfg_get()->obd_poll_mode));
             if (gap > 0) vTaskDelay(pdMS_TO_TICKS(gap));
         }
     }

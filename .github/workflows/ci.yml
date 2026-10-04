@@ -1,0 +1,120 @@
+# CI(M0 测试地基)—— 三条 job:
+#   themes-check  主题生成物一致性(gen_themes.py --check,零第三方依赖)
+#   unit-sim      主机单测(tests/,CTest)+ 模拟器构建 + 截图回归(tools/sim_regress.py)
+#   firmware      固件 Docker 构建(espressif/idf:v5.5.3,与本地 tools/docker-build.sh 同源)
+#
+# 约束:
+#   - fetch-depth: 0 —— build tag 的 count 取 git 提交数(main/CMakeLists.txt)
+#   - managed_components/ 走 cache(dependencies.lock 锁定版本与哈希)
+#   - 模拟器/单测的 LVGL 优先用 managed_components 副本,firmware job 先跑
+#     并不阻塞 unit-sim(两者都缺失时各自 FetchContent v8.4.0)
+name: CI
+
+on:
+  push:
+    branches: [main, sim]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  themes-check:
+    name: Themes + assets + fonts codegen check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: gen_themes --check
+        run: python3 tools/gen_themes.py --check
+      - name: gen_assets --check
+        run: python3 tools/gen_assets.py --check
+      - name: gen_fonts --check
+        run: python3 tools/gen_fonts.py --check
+
+  unit-sim:
+    name: Unit tests + simulator + screenshot regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake libsdl2-dev libcjson-dev python3-pil
+      - name: Build & run unit tests
+        run: |
+          cmake -S tests -B tests/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build tests/build -j "$(nproc)"
+          ctest --test-dir tests/build -R '^test_' --output-on-failure
+      - name: Build simulator
+        run: |
+          cmake -S simulator -B simulator/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build simulator/build -j "$(nproc)"
+      - name: Screenshot regression
+        run: python3 tools/sim_regress.py --diffdir ${{ runner.temp }}/regress_diff
+      - name: Upload diff overlays on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-regress-diff
+          path: ${{ runner.temp }}/regress_diff
+          if-no-files-found: ignore
+
+  firmware:
+    name: Firmware ${{ matrix.board }} (Docker, esp32s3)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # 一板失败不影响其他板的产物
+      matrix:
+        include:
+          - { board: ws185, build_dir: build }
+          - { board: ws175, build_dir: build_ws175 }
+          - { board: ws128, build_dir: build_ws128 }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # build tag = git commit count
+      - name: Cache managed components
+        uses: actions/cache@v4
+        with:
+          path: managed_components
+          key: idf-components-${{ runner.os }}-${{ hashFiles('dependencies.lock') }}
+      # 三腿并行,各板独立 build 目录 + sdkconfig(见 docs/DEVELOPMENT.md);
+      # 冷缓存时各腿自行下载组件(并行,总时长仍优于串行);主题/图片/字体
+      # codegen 走 SHA 快路径,容器内无需 Pillow。
+      - name: Build WS185 (default, 360)
+        if: matrix.board == 'ws185'
+        run: |
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py set-target esp32s3
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py build
+      - name: Build WS175 (466)
+        if: matrix.board == 'ws175'
+        run: |
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
+              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" \
+              set-target esp32s3
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
+      - name: Build WS128 (240)
+        if: matrix.board == 'ws128'
+        run: |
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
+              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" \
+              set-target esp32s3
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-bin-${{ matrix.board }}
+          path: |
+            ${{ matrix.build_dir }}/bootloader/bootloader.bin
+            ${{ matrix.build_dir }}/partition_table/partition-table.bin
+            ${{ matrix.build_dir }}/obd_brz_gauge.bin
+            ${{ matrix.build_dir }}/ota_data_initial.bin
+            ${{ matrix.build_dir }}/bootmedia.bin
+          if-no-files-found: error

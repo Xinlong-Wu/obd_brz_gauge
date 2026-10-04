@@ -125,12 +125,16 @@ NVS 存的是**槽位号**（`theme_cfg.theme`），不是主题名。一旦调�
 
 ### 美术素材规格
 
-| 素材 | 尺寸 | 透明通道 | 编译后大小 | 替换掉什么 |
-|------|------|----------|-----------|-----------|
-| `ring` | **正好 360×360** | 需要（中间镂空）| 380 KB | 外圈表框 |
-| `needle` | ≤ 360×360 | 需要 | 宽×高×3 B | 指针页的指针 |
-| `dial` | **正好 360×360** | 忽略 | 253 KB | 页面背景 |
+| 素材 | 母版尺寸 | 透明通道 | 编译后大小 | 替换掉什么 |
+|------|----------|----------|-----------|-----------|
+| `ring` | 360×360，或方形 **360×N 母版**（推荐 720）| 需要（中间镂空）| 380 KB | 外圈表框 |
+| `needle` | ≤ 720×720（按 360 契约缩放）| 需要 | 宽×高×3 B | 指针页的指针 |
+| `dial` | 360×360，或方形 **360×N 母版**（推荐 720）| 忽略 | 253 KB | 页面背景 |
 
+- **母版分辨率（推荐 720×720 创作）**：ring/dial 接受 360 的整数倍方形母版
+  （如 720×720），构建/打包时 LANCZOS 自动降到 360 契约尺寸，输出不变；
+  恰为 360 的素材与历史输出逐字节一致。needle 的 `needle_pivot_x/y` 按
+  **母版像素**书写，工具按 母版/360 自动折算
 - **指针必须画成朝右（东）**：LVGL 角度 0 = 原样绘制，画朝上会整体偏 90°
 - **空间是硬约束**：所有已注册主题的素材都会被链接进固件（`g_ui_themes[]` 全量引用，
   `--gc-sections` 丢不掉）。一整套约 645 KB，总预算 **1536 KB**（`gen_themes.py --asset-budget`），
@@ -239,6 +243,60 @@ my_theme/
 ```bash
 python3 tools/theme_packer/pack_theme.py themes/my_theme my_theme.bin
 ```
+
+### 组件编排页（schema 2.0）
+
+v2 在 v1 原语（arc/bar/label/image）之上引入**组件层**：主题可以声明自定义
+组件，页面用「内置组件 + 主题组件」的实例清单来编排，而不是逐元素摆放。
+完整示例见 [themes/example_v2_component/](../themes/example_v2_component/)。
+
+```
+my_theme/
+├── theme_manifest.json   # schema_version: "2.0"
+├── components.json       # 可选，主题自定义组件（原语组合，坐标相对组件矩形）
+├── layouts/              # 多页：每个 <page_id>.json 一页（layout.json 仍兼容）
+└── assets/
+    ├── dial.png / ring.png          # 遗留命名（360×360）
+    ├── foo.png                      # 任意命名资产（任意尺寸，RGB565）
+    ├── foo.rgba.png                 # 带 alpha（RGBA8888）
+    └── foo.lv_font_bin              # LVGL 二进制字体（原样入包）
+```
+
+`components.json`：
+
+```json
+{
+  "badge": {
+    "size": { "w": 150, "h": 40 },
+    "elements": [ { "type": "label", "x": 8, "y": 8, "text": "V2 DEMO" } ]
+  }
+}
+```
+
+页面 `layouts/main_gauge.json`（`instances[]` 代替 `elements[]`）：
+
+```json
+{
+  "page_id": "main_gauge",
+  "instances": [
+    { "component": "value",  "channel": "obd.coolant_temp", "x": 20, "y": 30, "w": 150, "h": 100 },
+    { "component": "arc",    "channel": "obd.rpm",          "x": 30, "y": 130, "w": 140, "h": 140 },
+    { "component": "theme:badge",                            "x": 105, "y": 285, "w": 150, "h": 40 }
+  ]
+}
+```
+
+- **内置组件**：`value`（名称+数值+单位）、`arc`（弧表）、`bar`（横条）、
+  `bignum`（大数字）、`gforce`（G 力点图，双通道自动取 lat/lon）——
+  实现在 `main/export_path/ui_component.c`，皮肤自动跟随主题配色
+- **主题组件**：`"theme:<name>"`，由 components.json 的原语组合而成，
+  原语里的 `data_source` 活绑定继续生效
+- **通道**：`obd.*` 字符串与统一数据通道词汇表对应
+  （rpm/speed/coolant_temp/oil_temp/intake_temp/throttle/oil_pressure/
+  boost/battery_voltage/afr/gforce_lat/gforce_lon/tpms_fl|fr|rl|rr）
+- 用了 components/instances 的主题，packer 会自动把 schema 升为 2.0；
+  旧固件遇到 2.0 清单会**拒绝加载回退默认**（fail-closed），v1 主题不受影响
+- 预览：`./simulator/build/obd_gauge_sim --bound --theme my_theme.bin`
 
 ### 烧录 / 推送
 

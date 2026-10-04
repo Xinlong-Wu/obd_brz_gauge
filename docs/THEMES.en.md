@@ -133,12 +133,18 @@ The generator enforces all of this at build time and tells you how to fix it.
 
 ### Artwork specs
 
-| Asset | Size | Alpha | Compiled size | Replaces |
-|-------|------|-------|---------------|----------|
-| `ring` | **exactly 360×360** | required (transparent center) | 380 KB | Outer bezel ring |
-| `needle` | ≤ 360×360 | required | w×h×3 B | Needle-page needle |
-| `dial` | **exactly 360×360** | ignored | 253 KB | Page background |
+| Asset | Master size | Alpha | Compiled size | Replaces |
+|-------|-------------|-------|---------------|----------|
+| `ring` | 360x360, or square **360xN master** (720 recommended) | required (transparent center) | 380 KB | Outer bezel ring |
+| `needle` | ≤ 720x720 (scaled to the 360 contract) | required | w×h×3 B | Needle-page needle |
+| `dial` | 360x360, or square **360xN master** (720 recommended) | ignored | 253 KB | Page background |
 
+- **Master resolution (author at 720x720)**: ring/dial accept square masters
+  that are integer multiples of 360 (e.g. 720x720); the build/pack pipeline
+  LANCZOS-downscales to the 360 contract, so the output is unchanged, and
+  360-sized artwork stays byte-identical to the historical output. Write
+  `needle_pivot_x/y` in **master pixels** — the tooling folds them by
+  master/360
 - **Needle art must point RIGHT (east)**: LVGL angle 0 draws unrotated, so
   art pointing up ends up 90° off
 - **Space is a hard constraint**: every registered theme's artwork is linked
@@ -269,6 +275,65 @@ Pack into a 4 MB partition image (0xFF-padded, 16 KB manifest header reserve):
 ```bash
 python3 tools/theme_packer/pack_theme.py themes/my_theme my_theme.bin
 ```
+
+### Component-orchestrated pages (schema 2.0)
+
+Schema 2.0 adds a **component layer** on top of the v1 primitives
+(arc/bar/label/image): themes may declare custom components and pages
+orchestrate instances of built-in + theme components instead of placing
+raw elements. Full example:
+[themes/example_v2_component/](../themes/example_v2_component/).
+
+```
+my_theme/
+├── theme_manifest.json   # schema_version: "2.0"
+├── components.json       # optional, theme-defined components (primitive
+│                         #   composition, coordinates relative to the rect)
+├── layouts/              # multi-page: one <page_id>.json each (layout.json still works)
+└── assets/
+    ├── dial.png / ring.png          # legacy names (360x360)
+    ├── foo.png                      # named asset, any size (RGB565)
+    ├── foo.rgba.png                 # with alpha (RGBA8888)
+    └── foo.lv_font_bin              # LVGL binary font (verbatim)
+```
+
+`components.json`:
+
+```json
+{
+  "badge": {
+    "size": { "w": 150, "h": 40 },
+    "elements": [ { "type": "label", "x": 8, "y": 8, "text": "V2 DEMO" } ]
+  }
+}
+```
+
+Page `layouts/main_gauge.json` (`instances[]` instead of `elements[]`):
+
+```json
+{
+  "page_id": "main_gauge",
+  "instances": [
+    { "component": "value",  "channel": "obd.coolant_temp", "x": 20, "y": 30, "w": 150, "h": 100 },
+    { "component": "arc",    "channel": "obd.rpm",          "x": 30, "y": 130, "w": 140, "h": 140 },
+    { "component": "theme:badge",                            "x": 105, "y": 285, "w": 150, "h": 40 }
+  ]
+}
+```
+
+- **Built-in components**: `value` (name+number+unit), `arc`, `bar`,
+  `bignum`, `gforce` (auto-binds lat/lon) — implemented in
+  `main/export_path/ui_component.c`; skinning follows the theme palette
+  automatically
+- **Theme components**: `"theme:<name>"`, composed of components.json
+  primitives; `data_source` live bindings inside them keep working
+- **Channels**: `obd.*` strings map to the unified channel vocabulary
+  (rpm/speed/coolant_temp/oil_temp/intake_temp/throttle/oil_pressure/
+  boost/battery_voltage/afr/gforce_lat/gforce_lon/tpms_fl|fr|rl|rr)
+- The packer auto-bumps schema to 2.0 when components/instances are used;
+  older firmware **rejects 2.0 manifests fail-closed** (falls back to the
+  default theme); v1 themes are unaffected
+- Preview: `./simulator/build/obd_gauge_sim --bound --theme my_theme.bin`
 
 ### Flash / push
 

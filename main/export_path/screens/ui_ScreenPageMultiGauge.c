@@ -7,6 +7,7 @@
 #include "../ui.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/espnow_link.h"   // ESPNOW_ROLE_STANDALONE
+#include "../ui_res.h"
 
 static const char *mode_names = "MASTER\nSLAVE\nALONE";   // index=device_role: 0=MASTER,1=SLAVE,2=STANDALONE
 static const char *pos_names  = "1\n2\n3";          // index 0/1/2 → position 1/2/3
@@ -46,10 +47,10 @@ static void on_intro_roller_change(lv_event_t *e)
 static void style_mg_roller(lv_obj_t *r)
 {
     lv_obj_clear_flag(r, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_obj_set_width(r, 180);
+    lv_obj_set_width(r, UIS(360));
     ui_helpers_style_dark_roller(r, &ui_font_FontTypoderSize20);
     lv_roller_set_visible_row_count(r, 1);   // after the font so the row height uses Size20
-    lv_obj_set_height(r, 30);                // explicit, same as the settings page rollers
+    lv_obj_set_height(r, UIS(60));                // explicit, same as the settings page rollers
 }
 
 static void make_mg_label(lv_obj_t *parent, const char *txt, int y)
@@ -67,7 +68,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
 
     ui_ScreenPageMultiGauge = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageMultiGauge, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageMultiGauge, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageMultiGauge, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageMultiGauge);
     lv_obj_set_style_bg_opa(ui_ScreenPageMultiGauge, 255, LV_PART_MAIN);
 
@@ -79,7 +80,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
     lv_img_set_src(ear, &ui_img_pngblackear_png);
     lv_obj_set_width(ear, LV_SIZE_CONTENT);
     lv_obj_set_height(ear, LV_SIZE_CONTENT);
-    lv_obj_set_pos(ear, 0, -142);
+    lv_obj_set_pos(ear, 0, UIS(-284));
     lv_obj_set_align(ear, LV_ALIGN_CENTER);
     lv_obj_add_flag(ear, LV_OBJ_FLAG_ADV_HITTEST);
     lv_obj_clear_flag(ear, LV_OBJ_FLAG_SCROLLABLE);
@@ -88,7 +89,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
     lv_label_set_text(title, "MULTI-GAUGE");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize20, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -98);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-196));
 
     // Row 1: MODE
     make_mg_label(ui_ScreenPageMultiGauge, "MODE", -68);
@@ -97,7 +98,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
     style_mg_roller(s_roller_mode);
     lv_roller_set_options(s_roller_mode, mode_names, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_selected(s_roller_mode, (cfg->device_role <= 2) ? cfg->device_role : ESPNOW_ROLE_STANDALONE, LV_ANIM_OFF);
-    lv_obj_align(s_roller_mode, LV_ALIGN_CENTER, 0, -38);
+    lv_obj_align(s_roller_mode, LV_ALIGN_CENTER, 0, UIS(-76));
     lv_obj_add_event_cb(s_roller_mode, on_mode_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Row 2: POS (RACE/AS/ONE position)
@@ -105,7 +106,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
     lv_label_set_text(s_lbl_pos, "POS");
     lv_obj_set_style_text_font(s_lbl_pos, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_lbl_pos, lv_color_hex(0x888888), LV_PART_MAIN);
-    lv_obj_align(s_lbl_pos, LV_ALIGN_CENTER, 0, -6);
+    lv_obj_align(s_lbl_pos, LV_ALIGN_CENTER, 0, UIS(-12));
     s_roller_pos = lv_roller_create(ui_ScreenPageMultiGauge);
     lv_obj_set_style_clip_corner(s_roller_pos, true, 0);
     style_mg_roller(s_roller_pos);
@@ -115,7 +116,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
         if (p < 1 || p > 3) p = 1;
         lv_roller_set_selected(s_roller_pos, p - 1, LV_ANIM_OFF);
     }
-    lv_obj_align(s_roller_pos, LV_ALIGN_CENTER, 0, 24);
+    lv_obj_align(s_roller_pos, LV_ALIGN_CENTER, 0, UIS(48));
     lv_obj_add_event_cb(s_roller_pos, on_pos_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Row 3: INTRO (multi-gauge: OFF/RACE/VIDEO)
@@ -123,7 +124,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
     lv_label_set_text(s_lbl_intro, "INTRO");
     lv_obj_set_style_text_font(s_lbl_intro, &ui_font_FontTypoderSize16, LV_PART_MAIN);
     lv_obj_set_style_text_color(s_lbl_intro, lv_color_hex(0x888888), LV_PART_MAIN);
-    lv_obj_align(s_lbl_intro, LV_ALIGN_CENTER, 0, 56);
+    lv_obj_align(s_lbl_intro, LV_ALIGN_CENTER, 0, UIS(112));
     s_roller_intro = lv_roller_create(ui_ScreenPageMultiGauge);
     lv_obj_set_style_clip_corner(s_roller_intro, true, 0);
     style_mg_roller(s_roller_intro);
@@ -133,7 +134,7 @@ void ui_ScreenPageMultiGauge_screen_init(void)
         if (ie > 2) ie = 2;   // legacy REI/SHINJI/ASUKA (3/4) map to VIDEO (2)
         lv_roller_set_selected(s_roller_intro, ie, LV_ANIM_OFF);
     }
-    lv_obj_align(s_roller_intro, LV_ALIGN_CENTER, 0, 86);
+    lv_obj_align(s_roller_intro, LV_ALIGN_CENTER, 0, UIS(172));
     lv_obj_add_event_cb(s_roller_intro, on_intro_roller_change, LV_EVENT_VALUE_CHANGED, NULL);
 
     // Hide irrelevant rows based on role
