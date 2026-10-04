@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "export_path/ui_theme.h"
+#include "export_path/ui_component.h"
 #include "src/misc/lv_fs.h"
 
 #define TAG "theme_engine"
@@ -20,6 +21,9 @@
 // element types the manifest relies on, so it's safer to refuse and fall
 // back to the default theme than to silently misrender.
 #define THEME_SCHEMA_VERSION_SUPPORTED "1.0"
+// v2 = v1 + components{} in the manifest + "instances[]" page orchestration
+// (built-in components from ui_component.h and theme-defined components).
+#define THEME_SCHEMA_VERSION_V2 "2.0"
 
 // Widget kinds a layout.json element can bind live OBD data to. Kept as an
 // enum + shared params struct (instead of a per-widget-type function
@@ -137,6 +141,11 @@ typedef struct {
     // custom page from layout.json
     theme_binding_t bindings[32];
     uint8_t binding_count;
+
+    // ---- v2 component orchestration (M3.3) ----
+    cJSON *components;                 // manifest "components" object (theme-defined)
+    lv_obj_t *comp_objs[16];           // live builtin-component instances on the current page
+    uint8_t comp_count;
 } theme_context_t;
 
 static theme_context_t s_ctx = {0};
@@ -432,6 +441,12 @@ void theme_update_data(const obd_snapshot_t *obd) {
         return;
     }
 
+    // v2 builtin components self-read the data cache (统一通道, M3.1); the
+    // snapshot arg only drives the v1 primitive bindings below.
+    for (int i = 0; i < s_ctx.comp_count; i++) {
+        if (s_ctx.comp_objs[i]) ui_comp_update(s_ctx.comp_objs[i]);
+    }
+
     for (int i = 0; i < s_ctx.binding_count; i++) {
         theme_binding_t *bind = &s_ctx.bindings[i];
         if (!bind->widget) {
@@ -690,8 +705,10 @@ static esp_err_t theme_parse_manifest(void) {
     // (e.g. "image" elements on firmware that predates them). A missing
     // field is treated the same as a mismatch -- fail closed.
     cJSON *schema_version = cJSON_GetObjectItem(s_ctx.manifest, "schema_version");
-    if (!schema_version || !cJSON_IsString(schema_version) ||
-        strcmp(schema_version->valuestring, THEME_SCHEMA_VERSION_SUPPORTED) != 0) {
+    bool schema_ok = schema_version && cJSON_IsString(schema_version) &&
+                     (strcmp(schema_version->valuestring, THEME_SCHEMA_VERSION_SUPPORTED) == 0 ||
+                      strcmp(schema_version->valuestring, THEME_SCHEMA_VERSION_V2) == 0);
+    if (!schema_ok) {
         ESP_LOGE(TAG, "Unsupported theme schema_version '%s' (firmware supports '%s')",
                  (schema_version && cJSON_IsString(schema_version)) ? schema_version->valuestring : "(missing)",
                  THEME_SCHEMA_VERSION_SUPPORTED);
@@ -1145,6 +1162,107 @@ static void theme_build_image_element(lv_obj_t *parent, cJSON *elem) {
     (void)height;  // zoom is uniform (single scale factor), height is derived from width's ratio
 }
 
+// ---- v2 component orchestration (M3.3) ----
+
+// "obd.<field>" channel name -> disp_item_t (统一通道词汇表). Returns
+// DISP_ITEM_COUNT when unknown.
+static disp_item_t theme_channel_to_disp_item(const char *name)
+{
+    static const struct { const char *name; disp_item_t item; } map[] = {
+        { "obd.rpm",             DISP_ITEM_RPM },
+        { "obd.speed",           DISP_ITEM_SPEED },
+        { "obd.coolant_temp",    DISP_ITEM_CLT },
+        { "obd.intake_temp",     DISP_ITEM_IAT },
+        { "obd.oil_temp",        DISP_ITEM_OIL },
+        { "obd.throttle",        DISP_ITEM_TPS },
+        { "obd.oil_pressure",    DISP_ITEM_OILP },
+        { "obd.boost",           DISP_ITEM_BOOST },
+        { "obd.battery_voltage", DISP_ITEM_BAT },
+        { "obd.afr",             DISP_ITEM_AFR },
+        { "obd.gforce_lat",      DISP_ITEM_GFORCE_LAT },
+        { "obd.gforce_lon",      DISP_ITEM_GFORCE_LON },
+        { "obd.tpms_fl",         DISP_ITEM_TPMS_FL },
+        { "obd.tpms_fr",         DISP_ITEM_TPMS_FR },
+        { "obd.tpms_rl",         DISP_ITEM_TPMS_RL },
+        { "obd.tpms_rr",         DISP_ITEM_TPMS_RR },
+    };
+    if (!name) return DISP_ITEM_COUNT;
+    for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); i++) {
+        if (strcmp(name, map[i].name) == 0) return map[i].item;
+    }
+    return DISP_ITEM_COUNT;
+}
+
+// Build one v2 instance. Builtin types come from ui_component.h; names
+// prefixed "theme:" resolve against the manifest's components{} object and
+// are composed of the same v1 primitives (arc/bar/label/image) with
+// coordinates relative to the instance rect. Returns the created root.
+static lv_obj_t *theme_build_component_instance(lv_obj_t *page, cJSON *inst)
+{
+    const char *comp = theme_json_str(inst, "component", NULL);
+    const char *chan = theme_json_str(inst, "channel", NULL);
+    cJSON *j;
+
+    j = cJSON_GetObjectItem(inst, "x");     int x = (j && cJSON_IsNumber(j)) ? j->valueint : 0;
+    j = cJSON_GetObjectItem(inst, "y");     int y = (j && cJSON_IsNumber(j)) ? j->valueint : 0;
+    j = cJSON_GetObjectItem(inst, "w");     int w = (j && cJSON_IsNumber(j)) ? j->valueint : 0;
+    j = cJSON_GetObjectItem(inst, "h");     int h = (j && cJSON_IsNumber(j)) ? j->valueint : 0;
+
+    if (strncmp(comp, "theme:", 6) == 0) {
+        const char *cname = comp + 6;
+        cJSON *def = s_ctx.components
+                     ? cJSON_GetObjectItem(s_ctx.components, cname) : NULL;
+        if (!def) {
+            ESP_LOGW(TAG, "Instance references unknown theme component '%s', skipping", cname);
+            return NULL;
+        }
+        // component size fallback: manifest def {"size":{"w":..,"h":..}}
+        cJSON *sz = cJSON_GetObjectItem(def, "size");
+        cJSON *o = sz ? cJSON_GetObjectItem(sz, "w") : NULL;
+        if (w <= 0 && o && cJSON_IsNumber(o)) w = o->valueint;
+        o = sz ? cJSON_GetObjectItem(sz, "h") : NULL;
+        if (h <= 0 && o && cJSON_IsNumber(o)) h = o->valueint;
+        if (w <= 0 || h <= 0) return NULL;
+
+        lv_obj_t *cont = lv_obj_create(page);
+        lv_obj_set_pos(cont, x, y);
+        lv_obj_set_size(cont, w, h);
+        lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_style_pad_all(cont, 0, 0);
+        lv_obj_set_style_border_width(cont, 0, 0);
+        lv_obj_set_style_bg_opa(cont, LV_OPA_TRANSP, 0);
+
+        cJSON *elems = cJSON_GetObjectItem(def, "elements");
+        cJSON *el = NULL;
+        cJSON_ArrayForEach(el, elems) {
+            const char *t = theme_json_str(el, "type", NULL);
+            if (!t) continue;
+            if (strcmp(t, "arc") == 0) theme_build_arc_element(cont, el);
+            else if (strcmp(t, "bar") == 0) theme_build_bar_element(cont, el);
+            else if (strcmp(t, "label") == 0) theme_build_label_element(cont, el);
+            else if (strcmp(t, "image") == 0) theme_build_image_element(cont, el);
+        }
+        return cont;
+    }
+
+    // builtin component
+    int type = ui_comp_type_from_name(comp);
+    disp_item_t ch = theme_channel_to_disp_item(chan);
+    if (type < 0 || ch == DISP_ITEM_COUNT) {
+        ESP_LOGW(TAG, "Instance has unknown component '%s' or channel '%s', skipping",
+                 comp ? comp : "(null)", chan ? chan : "(null)");
+        return NULL;
+    }
+    ui_comp_desc_t desc = { .type = (ui_comp_type_t)type, .channel = ch,
+                            .x = (int16_t)x, .y = (int16_t)y,
+                            .w = (int16_t)w, .h = (int16_t)h };
+    lv_obj_t *obj = ui_comp_create(&desc, page);
+    if (obj && s_ctx.comp_count < (int)(sizeof(s_ctx.comp_objs) / sizeof(s_ctx.comp_objs[0]))) {
+        s_ctx.comp_objs[s_ctx.comp_count++] = obj;
+    }
+    return obj;
+}
+
 static lv_obj_t* theme_create_custom_page(const char *page_id) {
     // Clear old bindings before creating new page to prevent use-after-free
     // when theme_update_data() timer fires after the old page is deleted
@@ -1230,6 +1348,23 @@ static lv_obj_t* theme_create_custom_page(const char *page_id) {
         lv_obj_set_style_bg_color(page, lv_color_hex(strtoul(bg_color->valuestring, NULL, 16)), 0);
     }
 
+    // v2 orchestration: "instances" (built-in + theme components). v1 themes
+    // have no "instances" key and keep using the elements[] path below.
+    cJSON *instances = cJSON_GetObjectItem(layout, "instances");
+    if (instances) {
+        s_ctx.comp_count = 0;   // like bindings: only the live page holds comps
+        cJSON *mcomps = cJSON_GetObjectItem(s_ctx.manifest, "components");
+        if (mcomps) s_ctx.components = mcomps;
+        memset(s_ctx.comp_objs, 0, sizeof(s_ctx.comp_objs));
+        int n = 0;
+        cJSON *inst = NULL;
+        cJSON_ArrayForEach(inst, instances) {
+            if (theme_build_component_instance(page, inst)) n++;
+        }
+        cJSON_Delete(layout);
+        ESP_LOGI(TAG, "Created component page '%s' with %d instances", page_id, n);
+        return page;
+    }
     cJSON *elements = cJSON_GetObjectItem(layout, "elements");
     cJSON *elem = NULL;
     int elem_count = 0;

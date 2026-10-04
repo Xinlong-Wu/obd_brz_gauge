@@ -156,5 +156,13 @@ add_gauge_test(test_theme_engine
             stub_ui_theme.c
             "${MAIN_DIR}/theme_engine/theme_loader.c"
             "${MAIN_DIR}/theme_engine/theme_test.c"
+            "${MAIN_DIR}/export_path/ui_component.c"
+            "${MAIN_DIR}/export_path/ui_disp_item.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize16.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize24.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize44.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize56.c"
+            "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
+            "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             "${SHIM_DIR}/src/esp_partition_file.c"
             ${TEST_SHIMS})
