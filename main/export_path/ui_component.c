@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "ui_res.h"
 
 /* 组件私有数据(obj->user_data 指向,随 obj 生命周期)。 */
 typedef struct {
@@ -143,8 +144,8 @@ lv_obj_t *ui_comp_create(const ui_comp_desc_t *desc, lv_obj_t *parent)
         lv_obj_set_size(bar, desc->w, desc->h / 3);
         lv_obj_align(bar, LV_ALIGN_CENTER, 0, 0);
         lv_bar_set_range(bar, 0, 100);
-        lv_obj_set_style_radius(bar, 3, LV_PART_MAIN);
-        lv_obj_set_style_radius(bar, 3, LV_PART_INDICATOR);
+        lv_obj_set_style_radius(bar, UIS(6), LV_PART_MAIN);
+        lv_obj_set_style_radius(bar, UIS(6), LV_PART_INDICATOR);
         lv_obj_set_style_bg_color(bar, ui_theme_color_lv(UI_COLOR_ARC_TRACK), LV_PART_MAIN);
         lv_obj_set_style_bg_color(bar, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_INDICATOR);
         p->main = bar;
@@ -162,11 +163,11 @@ lv_obj_t *ui_comp_create(const ui_comp_desc_t *desc, lv_obj_t *parent)
         lv_obj_center(c);
         lv_obj_set_style_radius(c, LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_border_color(c, ui_theme_color_lv(UI_COLOR_ARC_TRACK), 0);
-        lv_obj_set_style_border_width(c, 2, 0);
+        lv_obj_set_style_border_width(c, UIS(4), 0);
         lv_obj_set_style_bg_opa(c, LV_OPA_TRANSP, 0);
         lv_obj_clear_flag(c, LV_OBJ_FLAG_SCROLLABLE);
         p->main = lv_obj_create(c);   // 活动点,位置由 update 挪
-        lv_obj_set_size(p->main, 10, 10);
+        lv_obj_set_size(p->main, UIS(20), UIS(20));
         lv_obj_set_style_radius(p->main, LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_bg_color(p->main, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), 0);
         lv_obj_set_style_bg_opa(p->main, 255, 0);

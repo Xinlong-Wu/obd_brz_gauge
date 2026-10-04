@@ -2,6 +2,19 @@ menu "OBD DSP Configuration"
     # Board abstraction: see main/bsp_obd_dsp/boards/board_api.h.
     # The WS185 hardware-version variants (V1/V2/V3) live one level below.
 
+    config OBD_UI_RENDER_RES
+        int "UI render resolution (square, master design is 720)"
+        range 240 480
+        default 360
+        help
+            Resolution the UI is rendered at. The layout/fonts/assets are
+            authored against a 720x720 master and scaled to this value at
+            compile time (UIS() in export_path/ui_res.h). Normally set to
+            the panel's native resolution so no runtime scaling is needed
+            (WS185=360, WS175=466, WS128=240). A value different from the
+            panel resolution activates the ui_scale flush scaler at runtime
+            (logged at boot).
+
     choice OBD_BOARD
         prompt "Display board"
         default OBD_BOARD_WS_185
@@ -24,6 +37,19 @@ menu "OBD DSP Configuration"
                 selects Quad PSRAM mode). No touch: display-only firmware.
                 The UI renders at a virtual 360x360 and is downscaled to 240.
     endchoice
+
+    config OBD_UI_RENDER_RES
+        int "UI render resolution (square)"
+        range 240 480
+        default 360
+        help
+            Pixel resolution LVGL renders at. Layout/assets/fonts are authored
+            at a 720 master and scaled to this value at compile time (UIS()
+            in export_path/ui_res.h). Normally set to the panel's native
+            resolution (360 WS185 / 466 WS175 / 240 WS128) so every board
+            renders 1:1; note the 360-authored layout proportions hold, so
+            resolutions above 360 render full-bleed only after the native-res
+            migration (see docs/DEVELOPMENT.md resolution strategy).
 
     # Waveshare ESP32-S3-Touch-LCD-1.85
     # LCD: ST77916 (360x360 QSPI)

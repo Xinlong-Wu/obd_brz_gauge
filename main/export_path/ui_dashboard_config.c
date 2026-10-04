@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "ui_res.h"
 
 static uint8_t  s_page_idx;
 static lv_obj_t *s_roller_type;
@@ -35,7 +36,7 @@ static lv_obj_t *make_roller(lv_obj_t *parent, const char *options,
     lv_roller_set_options(r, options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(r, 1);
     lv_obj_set_width(r, width);
-    lv_obj_set_height(r, 30);
+    lv_obj_set_height(r, UIS(60));
     ui_helpers_style_dark_roller(r, &ui_font_FontTypoderSize20);
     lv_obj_align(r, LV_ALIGN_CENTER, 0, y);
     if (cb) lv_obj_add_event_cb(r, cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -120,9 +121,9 @@ void ui_dashboard_config_open(uint8_t page_idx)
     const ui_dashboard_page_cfg_t *p = &nvs_cfg_get()->dashboard.pages[page_idx];
 
     lv_obj_t *scr = lv_obj_create(NULL);
-    lv_obj_set_size(scr, 360, 360);
+    lv_obj_set_size(scr, UIS(720), UIS(720));
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(scr, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(scr, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(scr);
     lv_obj_set_style_bg_opa(scr, 255, LV_PART_MAIN);
 
@@ -133,7 +134,7 @@ void ui_dashboard_config_open(uint8_t page_idx)
     lv_label_set_text(title, "DASHBOARD");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, 0);
     lv_obj_set_style_text_color(title, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), 0);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -140);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-280));
 
     make_label(scr, "TYPE", -104);
     s_roller_type = make_roller(scr, "METRIC\nGEAR\nG-FORCE", -82, 150, on_type_change);
@@ -164,7 +165,7 @@ void ui_dashboard_config_open(uint8_t page_idx)
     lv_label_set_text(hint, "L/R swipe: back");
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, 0);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), 0);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 148);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(296));
 
     // 左右滑返回 home(重配置经 nvs 持久化,home 重建自然生效)
     lv_obj_add_event_cb(scr, ui_event_home_return, LV_EVENT_GESTURE, NULL);

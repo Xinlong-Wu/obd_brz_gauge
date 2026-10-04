@@ -29,6 +29,7 @@
 #include "lvgl.h"
 #include <string.h>
 #include <stdio.h>
+#include "ui_res.h"
 
 static const char *TAG = "ui_ext";
 
@@ -137,7 +138,7 @@ static void showroom_load_slot(uint8_t slot)
             lv_obj_set_style_bg_color(s_showroom_video_scr, lv_color_black(), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_showroom_video_scr, 255, LV_PART_MAIN);
             lv_obj_set_style_border_width(s_showroom_video_scr, 0, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_showroom_video_scr, 360, LV_PART_MAIN);
+            lv_obj_set_style_radius(s_showroom_video_scr, UIS(720), LV_PART_MAIN);
             lv_obj_clear_flag(s_showroom_video_scr, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_t *canvas = NULL;
             if (boot_block_player_create(s_showroom_video_scr, &canvas)) {
@@ -542,7 +543,7 @@ bool ui_ext_boot_video_tick(void)
             lv_obj_set_style_bg_color(s_boot_video_screen, lv_color_black(), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_boot_video_screen, 255, LV_PART_MAIN);
             lv_obj_set_style_border_width(s_boot_video_screen, 0, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_boot_video_screen, 360, LV_PART_MAIN);
+            lv_obj_set_style_radius(s_boot_video_screen, UIS(720), LV_PART_MAIN);
             lv_obj_clear_flag(s_boot_video_screen, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_t *canvas = NULL;
             if (boot_block_player_create(s_boot_video_screen, &canvas)) {
@@ -699,11 +700,11 @@ void ui_ext_no_signal_update(bool signal_ok)
             lv_obj_set_style_text_color(s_no_signal_lbl, lv_color_hex(0xFF4D4D), LV_PART_MAIN);
             lv_obj_set_style_bg_color(s_no_signal_lbl, lv_color_hex(0x000000), LV_PART_MAIN);
             lv_obj_set_style_bg_opa(s_no_signal_lbl, 160, LV_PART_MAIN);
-            lv_obj_set_style_pad_hor(s_no_signal_lbl, 10, LV_PART_MAIN);
-            lv_obj_set_style_pad_ver(s_no_signal_lbl, 4, LV_PART_MAIN);
-            lv_obj_set_style_radius(s_no_signal_lbl, 6, LV_PART_MAIN);
+            lv_obj_set_style_pad_hor(s_no_signal_lbl, UIS(20), LV_PART_MAIN);
+            lv_obj_set_style_pad_ver(s_no_signal_lbl, UIS(8), LV_PART_MAIN);
+            lv_obj_set_style_radius(s_no_signal_lbl, UIS(12), LV_PART_MAIN);
             lv_label_set_text(s_no_signal_lbl, "NO SIGNAL");
-            lv_obj_align(s_no_signal_lbl, LV_ALIGN_TOP_MID, 0, 34);
+            lv_obj_align(s_no_signal_lbl, LV_ALIGN_TOP_MID, 0, UIS(68));
         }
         if (!s_no_signal_visible) {
             lv_obj_clear_flag(s_no_signal_lbl, LV_OBJ_FLAG_HIDDEN);

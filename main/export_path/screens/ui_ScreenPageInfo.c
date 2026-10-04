@@ -5,6 +5,7 @@
 //   Row 3 (bottom center): [IAT °C]
 
 #include "../ui.h"
+#include "../ui_res.h"
 
 lv_obj_t *ui_ScreenPageInfo  = NULL;
 lv_obj_t *ui_LabelInfoCLT    = NULL;
@@ -42,7 +43,7 @@ static lv_obj_t *create_info_tile(lv_obj_t *parent,
     lv_label_set_text(lbl_val, "--");
     lv_obj_set_style_text_font(lbl_val, &ui_font_FontTypoderSize40, LV_PART_MAIN);
     lv_obj_set_style_text_color(lbl_val, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_set_width(lbl_val, 120);
+    lv_obj_set_width(lbl_val, UIS(240));
     lv_obj_set_style_text_align(lbl_val, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_align(lbl_val, LV_ALIGN_CENTER, cx, cy + 2);
 
@@ -63,7 +64,7 @@ static void create_hdiv(lv_obj_t *parent, lv_coord_t y, lv_coord_t w)
     lv_obj_t *div = lv_obj_create(parent);
     lv_obj_remove_style_all(div);
     lv_obj_set_width(div, w);
-    lv_obj_set_height(div, 1);
+    lv_obj_set_height(div, UIS(2));
     lv_obj_align(div, LV_ALIGN_CENTER, 0, y);   // center of div at (parent_cx, parent_cy+y)
     lv_obj_set_style_bg_color(div, lv_color_hex(0x333333), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(div, 255, LV_PART_MAIN);
@@ -75,7 +76,7 @@ static void create_vdiv(lv_obj_t *parent, lv_coord_t x, lv_coord_t y, lv_coord_t
 {
     lv_obj_t *div = lv_obj_create(parent);
     lv_obj_remove_style_all(div);
-    lv_obj_set_width(div, 1);
+    lv_obj_set_width(div, UIS(2));
     lv_obj_set_height(div, h);
     lv_obj_align(div, LV_ALIGN_CENTER, x, y);
     lv_obj_set_style_bg_color(div, lv_color_hex(0x333333), LV_PART_MAIN);
@@ -87,7 +88,7 @@ void ui_ScreenPageInfo_screen_init(void)
 {
     ui_ScreenPageInfo = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageInfo, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageInfo, 360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_ScreenPageInfo, UIS(720), LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_helpers_style_screen_bg(ui_ScreenPageInfo);
     lv_obj_set_style_bg_opa(ui_ScreenPageInfo, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -99,7 +100,7 @@ void ui_ScreenPageInfo_screen_init(void)
     lv_label_set_text(title, "INFO");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize20, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0x666666), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -148);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-296));
 
     // Grid dividers
     // Row1 cy=-84: unit bottom at cy+34+8 = -42 → pixel 138
@@ -155,7 +156,7 @@ void ui_ScreenPageInfo_screen_init(void)
     lv_img_set_src(black_ear, &ui_img_pngblackear_png);
     lv_obj_set_width(black_ear, LV_SIZE_CONTENT);
     lv_obj_set_height(black_ear, LV_SIZE_CONTENT);
-    lv_obj_align(black_ear, LV_ALIGN_CENTER, 0, -142);
+    lv_obj_align(black_ear, LV_ALIGN_CENTER, 0, UIS(-284));
     lv_obj_add_flag(black_ear, LV_OBJ_FLAG_ADV_HITTEST);
     lv_obj_clear_flag(black_ear, LV_OBJ_FLAG_SCROLLABLE);
 

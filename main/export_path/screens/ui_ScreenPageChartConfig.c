@@ -7,6 +7,7 @@
 #include <string.h>
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "app_obd_dsp/vehicle_profiles.h"
+#include "../ui_res.h"
 
 // Selectable chart data sources (disp_item_t values). DISP_ITEM_BOOST=10 is appended only for turbo profiles, DISP_ITEM_AFR=11 for all profiles.
 #define CHART_ITEM_BOOST 10
@@ -55,7 +56,7 @@ void ui_ScreenPageChartConfig_screen_init(void)
 {
     ui_ScreenPageChartConfig = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageChartConfig, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageChartConfig, 360, LV_PART_MAIN);
+    lv_obj_set_style_radius(ui_ScreenPageChartConfig, UIS(720), LV_PART_MAIN);
     ui_helpers_style_screen_bg(ui_ScreenPageChartConfig);
     lv_obj_set_style_bg_opa(ui_ScreenPageChartConfig, 255, LV_PART_MAIN);
     lv_obj_set_style_border_width(ui_ScreenPageChartConfig, 0, LV_PART_MAIN);
@@ -68,7 +69,7 @@ void ui_ScreenPageChartConfig_screen_init(void)
     lv_label_set_text(title, "CHART SOURCE");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, LV_PART_MAIN);
     lv_obj_set_style_text_color(title, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-    lv_obj_align(title, LV_ALIGN_CENTER, 0, -110);
+    lv_obj_align(title, LV_ALIGN_CENTER, 0, UIS(-220));
 
     build_chart_sources();
     char options[176] = {0};
@@ -85,16 +86,16 @@ void ui_ScreenPageChartConfig_screen_init(void)
     lv_roller_set_options(s_roller_chart_src, options, LV_ROLLER_MODE_NORMAL);
     lv_roller_set_visible_row_count(s_roller_chart_src, 3);
     lv_roller_set_selected(s_roller_chart_src, chart_source_to_pos(cfg->chart_source_idx), LV_ANIM_OFF);
-    lv_obj_set_width(s_roller_chart_src, 160);
+    lv_obj_set_width(s_roller_chart_src, UIS(320));
     ui_helpers_style_dark_roller(s_roller_chart_src, &ui_font_FontTypoderSize24);
-    lv_obj_align(s_roller_chart_src, LV_ALIGN_CENTER, 0, 8);
+    lv_obj_align(s_roller_chart_src, LV_ALIGN_CENTER, 0, UIS(16));
     lv_obj_add_event_cb(s_roller_chart_src, on_chart_source_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t *hint = lv_label_create(ui_ScreenPageChartConfig);
     lv_label_set_text(hint, "Swipe to go back");
     lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, LV_PART_MAIN);
     lv_obj_set_style_text_color(hint, lv_color_hex(0x555555), LV_PART_MAIN);
-    lv_obj_align(hint, LV_ALIGN_CENTER, 0, 120);
+    lv_obj_align(hint, LV_ALIGN_CENTER, 0, UIS(240));
 
     lv_obj_move_foreground(ring);   // bring the ring to the front
     lv_obj_add_event_cb(ui_ScreenPageChartConfig, ui_event_chart_config_background, LV_EVENT_GESTURE, NULL);

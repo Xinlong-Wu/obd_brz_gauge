@@ -15,6 +15,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "../ui_res.h"
 
 #ifndef OBD_GAUGE_BUILD_TAG
 #define OBD_GAUGE_BUILD_TAG "unknown"
@@ -33,7 +34,7 @@ void ui_ScreenPageOTAMode_screen_init(void)
 {
     ui_ScreenPageOTAMode = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageOTAMode, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(ui_ScreenPageOTAMode, 360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_ScreenPageOTAMode, UIS(720), LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_helpers_style_screen_bg(ui_ScreenPageOTAMode);
     lv_obj_set_style_bg_opa(ui_ScreenPageOTAMode, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -45,16 +46,16 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_label_set_text(label_title, "OTA MODE");
     lv_obj_set_style_text_font(label_title, &ui_font_FontTypoderSize20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_title, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, 40);
+    lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, UIS(80));
 
     // Pulse icon (animated) to show the device is discoverable
     lv_obj_t *pulse = lv_spinner_create(ui_ScreenPageOTAMode, 1000, 90);
-    lv_obj_set_size(pulse, 32, 32);
-    lv_obj_align(pulse, LV_ALIGN_TOP_MID, 0, 76);
+    lv_obj_set_size(pulse, UIS(64), UIS(64));
+    lv_obj_align(pulse, LV_ALIGN_TOP_MID, 0, UIS(152));
     lv_obj_set_style_arc_color(pulse, lv_color_hex(0x00CC66), LV_PART_INDICATOR);
-    lv_obj_set_style_arc_width(pulse, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(pulse, UIS(6), LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(pulse, lv_color_hex(0x333333), LV_PART_MAIN);
-    lv_obj_set_style_arc_width(pulse, 3, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(pulse, UIS(6), LV_PART_MAIN);
 
     // Version label (short git hash)
     ui_LabelOTAModeVersion = lv_label_create(ui_ScreenPageOTAMode);
@@ -62,7 +63,7 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_obj_set_style_text_font(ui_LabelOTAModeVersion, &ui_font_FontTypoderSize20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_LabelOTAModeVersion, lv_color_hex(0xCCCCCC), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_LabelOTAModeVersion, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(ui_LabelOTAModeVersion, LV_ALIGN_TOP_MID, 0, 120);
+    lv_obj_align(ui_LabelOTAModeVersion, LV_ALIGN_TOP_MID, 0, UIS(240));
 
     // WiFi AP info
     lv_obj_t *label_name = lv_label_create(ui_ScreenPageOTAMode);
@@ -70,7 +71,7 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_obj_set_style_text_font(label_name, &ui_font_FontTypoderSize16, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_name, lv_color_hex(0x00CC66), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(label_name, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_name, LV_ALIGN_CENTER, 0, 40);
+    lv_obj_align(label_name, LV_ALIGN_CENTER, 0, UIS(80));
 
     // Password hint
     lv_obj_t *label_pass = lv_label_create(ui_ScreenPageOTAMode);
@@ -78,7 +79,7 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_obj_set_style_text_font(label_pass, &ui_font_FontTypoderSize16, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_pass, lv_color_hex(0xFFCC00), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(label_pass, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_pass, LV_ALIGN_CENTER, 0, 12);
+    lv_obj_align(label_pass, LV_ALIGN_CENTER, 0, UIS(24));
 
     // Status label (hidden)
     ui_LabelOTAModeStatus = lv_label_create(ui_ScreenPageOTAMode);
@@ -87,14 +88,14 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_obj_set_style_text_font(ui_LabelOTAModeStatus, &ui_font_FontTypoderSize20, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_LabelOTAModeStatus, lv_color_hex(0xAAAAAA), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_LabelOTAModeStatus, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(ui_LabelOTAModeStatus, LV_ALIGN_CENTER, 0, -40);
+    lv_obj_align(ui_LabelOTAModeStatus, LV_ALIGN_CENTER, 0, UIS(-80));
 
     // Hint: slide to exit
     lv_obj_t *label_hint = lv_label_create(ui_ScreenPageOTAMode);
     lv_label_set_text(label_hint, "Slide away to exit OTA");
     lv_obj_set_style_text_font(label_hint, &ui_font_FontTypoderSize16, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(label_hint, lv_color_hex(0x555555), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_align(label_hint, LV_ALIGN_BOTTOM_MID, 0, -40);
+    lv_obj_align(label_hint, LV_ALIGN_BOTTOM_MID, 0, UIS(-80));
 
     lv_obj_move_foreground(spinner_ring);
     lv_obj_add_event_cb(ui_ScreenPageOTAMode, ui_event_ota_mode_background, LV_EVENT_ALL, NULL);

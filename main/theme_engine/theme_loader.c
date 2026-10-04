@@ -11,6 +11,7 @@
 #include "export_path/ui_theme.h"
 #include "export_path/ui_component.h"
 #include "src/misc/lv_fs.h"
+#include "../export_path/ui_res.h"
 
 #define TAG "theme_engine"
 #define THEME_MANIFEST_MAX_SIZE  (16 * 1024)  // 16KB for JSON manifest
@@ -1270,7 +1271,7 @@ static lv_obj_t* theme_create_custom_page(const char *page_id) {
     memset(s_ctx.bindings, 0, sizeof(s_ctx.bindings));
 
     lv_obj_t *page = lv_obj_create(NULL);
-    lv_obj_set_size(page, 360, 360);
+    lv_obj_set_size(page, UIS(720), UIS(720));
     lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
 
     // Apply theme background color

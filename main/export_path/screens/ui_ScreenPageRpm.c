@@ -4,12 +4,13 @@
 // Project name: OBD_PRJ
 
 #include "../ui.h"
+#include "../ui_res.h"
 
 void ui_ScreenPageRpm_screen_init(void)
 {
     ui_ScreenPageRpm = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_ScreenPageRpm, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_radius(ui_ScreenPageRpm, 360, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ui_ScreenPageRpm, UIS(720), LV_PART_MAIN | LV_STATE_DEFAULT);
     ui_helpers_style_screen_bg(ui_ScreenPageRpm);
     lv_obj_set_style_bg_opa(ui_ScreenPageRpm, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -18,11 +19,11 @@ void ui_ScreenPageRpm_screen_init(void)
 
     lv_obj_set_style_arc_color(ui_SpinnerRpmPage, ui_theme_color_lv(UI_COLOR_RING), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_SpinnerRpmPage, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_SpinnerRpmPage, 10, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_width(ui_SpinnerRpmPage, UIS(20), LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     ui_RpmPageArcRpmBack = lv_arc_create(ui_ScreenPageRpm);
-    lv_obj_set_width(ui_RpmPageArcRpmBack,340);
-    lv_obj_set_height(ui_RpmPageArcRpmBack,340);
+    lv_obj_set_width(ui_RpmPageArcRpmBack,UIS(680));
+    lv_obj_set_height(ui_RpmPageArcRpmBack,UIS(680));
     lv_obj_set_align(ui_RpmPageArcRpmBack, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_RpmPageArcRpmBack, LV_OBJ_FLAG_CLICKABLE);      /// Flags
     lv_arc_set_value(ui_RpmPageArcRpmBack, 0);
@@ -30,22 +31,22 @@ void ui_ScreenPageRpm_screen_init(void)
     lv_arc_set_rotation(ui_RpmPageArcRpmBack, 90);
     lv_obj_set_style_arc_color(ui_RpmPageArcRpmBack, ui_theme_color_lv(UI_COLOR_ARC_TRACK), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_RpmPageArcRpmBack, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_RpmPageArcRpmBack, 20, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_width(ui_RpmPageArcRpmBack, UIS(40), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_rounded(ui_RpmPageArcRpmBack, false, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_set_style_arc_color(ui_RpmPageArcRpmBack, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_opa(ui_RpmPageArcRpmBack, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
-    lv_obj_set_style_arc_width(ui_RpmPageArcRpmBack, 20, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_arc_width(ui_RpmPageArcRpmBack, UIS(40), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_arc_rounded(ui_RpmPageArcRpmBack, false, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     lv_obj_set_style_bg_color(ui_RpmPageArcRpmBack, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), LV_PART_KNOB | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_RpmPageArcRpmBack, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
 
     ui_RpmPageArcLabelRpmText = lv_label_create(ui_ScreenPageRpm);
-    lv_obj_set_width(ui_RpmPageArcLabelRpmText, 300);
+    lv_obj_set_width(ui_RpmPageArcLabelRpmText, UIS(600));
     lv_obj_set_height(ui_RpmPageArcLabelRpmText, LV_SIZE_CONTENT);    /// 60
     lv_obj_set_x(ui_RpmPageArcLabelRpmText, 0);
-    lv_obj_set_y(ui_RpmPageArcLabelRpmText, -10);
+    lv_obj_set_y(ui_RpmPageArcLabelRpmText, UIS(-20));
     lv_obj_set_align(ui_RpmPageArcLabelRpmText, LV_ALIGN_CENTER);
     lv_label_set_long_mode(ui_RpmPageArcLabelRpmText, LV_LABEL_LONG_CLIP);
     lv_label_set_text(ui_RpmPageArcLabelRpmText, "0");
@@ -58,7 +59,7 @@ void ui_ScreenPageRpm_screen_init(void)
     lv_obj_set_width(ui_RpmPageArcLabelRpmUnit, LV_SIZE_CONTENT);   /// 60
     lv_obj_set_height(ui_RpmPageArcLabelRpmUnit, LV_SIZE_CONTENT);    /// 60
     lv_obj_set_x(ui_RpmPageArcLabelRpmUnit, 0);
-    lv_obj_set_y(ui_RpmPageArcLabelRpmUnit, 46);
+    lv_obj_set_y(ui_RpmPageArcLabelRpmUnit, UIS(92));
     lv_obj_set_align(ui_RpmPageArcLabelRpmUnit, LV_ALIGN_CENTER);
     lv_label_set_text(ui_RpmPageArcLabelRpmUnit, "rpm");
     lv_obj_set_style_text_color(ui_RpmPageArcLabelRpmUnit, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -70,7 +71,7 @@ void ui_ScreenPageRpm_screen_init(void)
     lv_obj_set_width(ui_ImageRpmBlackEar, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_ImageRpmBlackEar, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_x(ui_ImageRpmBlackEar, 0);
-    lv_obj_set_y(ui_ImageRpmBlackEar, -142);
+    lv_obj_set_y(ui_ImageRpmBlackEar, UIS(-284));
     lv_obj_set_align(ui_ImageRpmBlackEar, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_ImageRpmBlackEar, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
     lv_obj_clear_flag(ui_ImageRpmBlackEar, LV_OBJ_FLAG_SCROLLABLE);      /// Flags

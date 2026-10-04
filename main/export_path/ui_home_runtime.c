@@ -21,14 +21,15 @@
 #include "esp_log.h"
 #include <stdlib.h>
 #include <string.h>
+#include "ui_res.h"
 
 /* 前向声明(ADD/编辑态回调与平铺构建互引用) */
 static void home_build_tile(uint8_t tile);
 static void home_add_click_cb(lv_event_t *e);
 
-/* 圆屏内容安全区:360 直径下,内容矩形收缩到 320×320 */
-#define HOME_CONTENT_INSET   20
-#define HOME_TILE_PAD        6
+/* 圆屏内容安全区:母版 720 直径下,内容矩形收缩到 640×640 */
+#define HOME_CONTENT_INSET   UIS(40)
+#define HOME_TILE_PAD        UIS(12)
 
 static lv_obj_t *s_home;             // 首页根屏
 static lv_obj_t *s_content;          // 平铺内容容器(切换时重建)
@@ -88,19 +89,19 @@ static void home_build_menu(lv_obj_t *parent)
     lv_label_set_text(title, "MENU");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize24, 0);
     lv_obj_set_style_text_color(title, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 6);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, UIS(12));
 
     lv_obj_t *veh = lv_label_create(parent);
     lv_label_set_text(veh, vehicle_profile_get_active()->name);
     lv_obj_set_style_text_font(veh, &ui_font_FontTypoderSize16, 0);
     lv_obj_set_style_text_color(veh, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), 0);
-    lv_obj_align(veh, LV_ALIGN_TOP_MID, 0, 34);
+    lv_obj_align(veh, LV_ALIGN_TOP_MID, 0, UIS(68));
 
     static const char *const entries[] = {"BLE SCAN", "SETTINGS", "INFO / OTA"};
     for (int i = 0; i < 3; i++) {
         lv_obj_t *btn = lv_btn_create(parent);
-        lv_obj_set_size(btn, 170, 40);
-        lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 64 + i * 50);
+        lv_obj_set_size(btn, UIS(340), UIS(80));
+        lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, UIS(128 + i * 100));
         lv_obj_set_style_bg_color(btn, ui_theme_color_lv(UI_COLOR_PANEL), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(btn, 255, LV_PART_MAIN);
         lv_obj_set_user_data(btn, (void *)(uintptr_t)i);
@@ -120,30 +121,30 @@ static void home_build_add(lv_obj_t *parent)
     lv_label_set_text(title, "ADD PAGE");
     lv_obj_set_style_text_font(title, &ui_font_FontTypoderSize16, 0);
     lv_obj_set_style_text_color(title, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), 0);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 8);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, UIS(16));
 
     lv_obj_t *plus = lv_obj_create(parent);
-    lv_obj_set_size(plus, 110, 110);
-    lv_obj_align(plus, LV_ALIGN_CENTER, 0, 10);
+    lv_obj_set_size(plus, UIS(220), UIS(220));
+    lv_obj_align(plus, LV_ALIGN_CENTER, 0, UIS(20));
     lv_obj_set_style_radius(plus, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_color(plus, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), 0);
-    lv_obj_set_style_border_width(plus, 2, 0);
+    lv_obj_set_style_border_width(plus, UIS(4), 0);
     lv_obj_set_style_bg_opa(plus, LV_OPA_TRANSP, 0);
     lv_obj_clear_flag(plus, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *plus_h = lv_obj_create(plus);
-    lv_obj_set_size(plus_h, 64, 8);
+    lv_obj_set_size(plus_h, UIS(128), UIS(16));
     lv_obj_align(plus_h, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_radius(plus_h, 4, 0);
+    lv_obj_set_style_radius(plus_h, UIS(8), 0);
     lv_obj_set_style_bg_color(plus_h, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), 0);
     lv_obj_set_style_bg_opa(plus_h, 255, 0);
     lv_obj_set_style_border_width(plus_h, 0, 0);
     lv_obj_clear_flag(plus_h, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *plus_v = lv_obj_create(plus);
-    lv_obj_set_size(plus_v, 8, 64);
+    lv_obj_set_size(plus_v, UIS(16), UIS(128));
     lv_obj_align(plus_v, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_radius(plus_v, 4, 0);
+    lv_obj_set_style_radius(plus_v, UIS(8), 0);
     lv_obj_set_style_bg_color(plus_v, ui_theme_color_lv(UI_COLOR_ARC_INDICATOR), 0);
     lv_obj_set_style_bg_opa(plus_v, 255, 0);
     lv_obj_set_style_border_width(plus_v, 0, 0);
@@ -175,18 +176,18 @@ static void home_add_click_cb(lv_event_t *e)
 static void home_build_gear(lv_obj_t *parent)
 {
     ui_comp_desc_t d = { .type = UI_COMP_BIG_NUM, .channel = DISP_ITEM_RPM,
-                         .x = 0, .y = 0, .w = 200, .h = 120 };
+                         .x = 0, .y = 0, .w = UIS(400), .h = UIS(240) };
     // RPM 以弧呈现,挡位大字放中央(挡位非通道,直接静态标签 + 刷新钩子)
     lv_obj_t *gear = lv_label_create(parent);
     lv_label_set_text(gear, "-");
     lv_obj_set_style_text_font(gear, &ui_font_FontTypoderSize140, 0);
     lv_obj_set_style_text_color(gear, ui_theme_color_lv(UI_COLOR_TEXT_PRIMARY), 0);
-    lv_obj_align(gear, LV_ALIGN_CENTER, 0, -10);
+    lv_obj_align(gear, LV_ALIGN_CENTER, 0, UIS(-20));
     lv_obj_set_user_data(parent, gear);   // GEAR 页:user_data 挂挡位标签
 
     lv_obj_t *arc = lv_arc_create(parent);
-    lv_obj_set_size(arc, 150, 150);
-    lv_obj_align(arc, LV_ALIGN_BOTTOM_MID, 0, -6);
+    lv_obj_set_size(arc, UIS(300), UIS(300));
+    lv_obj_align(arc, LV_ALIGN_BOTTOM_MID, 0, UIS(-12));
     lv_arc_set_rotation(arc, 135);
     lv_arc_set_bg_angles(arc, 0, 270);
     lv_arc_set_range(arc, 0, 8000);
@@ -202,7 +203,7 @@ static void home_build_gear(lv_obj_t *parent)
 static void home_build_gforce(lv_obj_t *parent)
 {
     ui_comp_desc_t d = { .type = UI_COMP_GFORCE, .channel = DISP_ITEM_GFORCE_LAT,
-                         .x = 65, .y = 65, .w = 230, .h = 230 };
+                         .x = UIS(130), .y = UIS(130), .w = UIS(460), .h = UIS(460) };
     lv_obj_t *c = ui_comp_create(&d, parent);
     (void)c;
 }
@@ -210,7 +211,7 @@ static void home_build_gforce(lv_obj_t *parent)
 /* ---- METRIC 平铺:槽位网格 ---- */
 static void home_build_metric(lv_obj_t *parent, const ui_dashboard_page_cfg_t *page)
 {
-    const int area = 360 - 2 * HOME_CONTENT_INSET;
+    const int area = UIS(720) - 2 * HOME_CONTENT_INSET;
     uint8_t rows[3], row_count;
     home_row_model(page->slot_count, rows, &row_count);
 
@@ -326,7 +327,7 @@ static void home_edit_reconfig_cb(lv_event_t *e)
 static void home_edit_overlay_build(void)
 {
     lv_obj_t *ov = lv_obj_create(s_home);
-    lv_obj_set_size(ov, 360, 360);
+    lv_obj_set_size(ov, UIS(720), UIS(720));
     lv_obj_set_pos(ov, 0, 0);
     lv_obj_set_style_bg_color(ov, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_opa(ov, LV_OPA_70, 0);
@@ -343,8 +344,8 @@ static void home_edit_overlay_build(void)
     };
     for (int i = 0; i < 3; i++) {
         lv_obj_t *btn = lv_btn_create(ov);
-        if (i == 2) lv_obj_set_size(btn, 360, 70);
-        else        lv_obj_set_size(btn, 178, 70);
+        if (i == 2) lv_obj_set_size(btn, UIS(720), UIS(140));
+        else        lv_obj_set_size(btn, UIS(356), UIS(140));
         lv_obj_align(btn, zones[i].align, zones[i].xo, zones[i].yo);
         lv_obj_set_style_bg_color(btn, zones[i].bg, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(btn, 255, LV_PART_MAIN);
@@ -381,7 +382,7 @@ lv_obj_t *ui_home_init(void)
     if (s_home) return s_home;
 
     s_home = lv_obj_create(NULL);
-    lv_obj_set_size(s_home, 360, 360);
+    lv_obj_set_size(s_home, UIS(720), UIS(720));
     lv_obj_clear_flag(s_home, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(s_home, ui_theme_color_lv(UI_COLOR_BG), 0);
     lv_obj_set_style_bg_opa(s_home, LV_OPA_COVER, 0);
@@ -389,7 +390,7 @@ lv_obj_t *ui_home_init(void)
     lv_obj_t *ring = ui_helpers_create_ring(s_home, 10);
 
     s_content = lv_obj_create(s_home);
-    lv_obj_set_size(s_content, 360, 360);
+    lv_obj_set_size(s_content, UIS(720), UIS(720));
     lv_obj_set_pos(s_content, 0, 0);
     lv_obj_clear_flag(s_content, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_pad_all(s_content, 0, 0);
