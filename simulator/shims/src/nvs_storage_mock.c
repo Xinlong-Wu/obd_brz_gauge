@@ -179,6 +179,36 @@ nvs_stat_t nvs_stat_get_mileage(void)
     return s_stat;
 }
 
+/* ---- User dashboard pages (M4): in-memory mutations, same logic as firmware ---- */
+
+esp_err_t nvs_dashboard_page_set(uint8_t page_idx, const ui_dashboard_page_cfg_t *page)
+{
+    if (page == NULL || page_idx >= s_cfg.dashboard.page_count) return ESP_ERR_INVALID_ARG;
+    s_cfg.dashboard.pages[page_idx] = *page;
+    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+    return 0;
+}
+
+esp_err_t nvs_dashboard_page_delete(uint8_t page_idx)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page_idx >= d->page_count || d->page_count == 1) return ESP_ERR_INVALID_STATE;
+    for (uint8_t i = page_idx; i < d->page_count - 1u; i++) d->pages[i] = d->pages[i + 1u];
+    d->page_count--;
+    memset(&d->pages[d->page_count], 0, sizeof(d->pages[d->page_count]));
+    if (d->default_page > d->page_count) d->default_page = d->page_count;
+    return 0;
+}
+
+esp_err_t nvs_dashboard_page_append(const ui_dashboard_page_cfg_t *page)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page == NULL || d->page_count >= UI_DASHBOARD_MAX_PAGES) return ESP_ERR_INVALID_STATE;
+    d->pages[d->page_count++] = *page;
+    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+    return 0;
+}
+
 /* ---- Diagnostics error log: in-memory ring, same logic as the firmware ---- */
 
 static nvs_error_log_t s_errlog = { .version = NVS_ERROR_LOG_VERSION };

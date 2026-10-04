@@ -219,6 +219,43 @@ esp_err_t nvs_storage_init(void)
 /* User config */
 const nvs_user_cfg_t * nvs_cfg_get(void){ return &s_cfg; }
 
+/* ---- User dashboard pages (M4) ---- */
+
+static esp_err_t dashboard_persist(void)
+{
+    if (!ui_dashboard_logic_sanitize(&s_cfg.dashboard)) return ESP_ERR_INVALID_STATE;
+    return save_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));
+}
+
+esp_err_t nvs_dashboard_page_set(uint8_t page_idx, const ui_dashboard_page_cfg_t *page)
+{
+    if (page == NULL || page_idx >= s_cfg.dashboard.page_count) return ESP_ERR_INVALID_ARG;
+    s_cfg.dashboard.pages[page_idx] = *page;
+    return dashboard_persist();
+}
+
+esp_err_t nvs_dashboard_page_delete(uint8_t page_idx)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page_idx >= d->page_count) return ESP_ERR_INVALID_ARG;
+    if (d->page_count == 1) return ESP_ERR_INVALID_STATE;   // 至少保留一页
+    for (uint8_t i = page_idx; i < d->page_count - 1u; i++) {
+        d->pages[i] = d->pages[i + 1u];
+    }
+    d->page_count--;
+    memset(&d->pages[d->page_count], 0, sizeof(d->pages[d->page_count]));
+    if (d->default_page > d->page_count) d->default_page = d->page_count;
+    return dashboard_persist();
+}
+
+esp_err_t nvs_dashboard_page_append(const ui_dashboard_page_cfg_t *page)
+{
+    ui_dashboard_cfg_t *d = &s_cfg.dashboard;
+    if (page == NULL || d->page_count >= UI_DASHBOARD_MAX_PAGES) return ESP_ERR_INVALID_STATE;
+    d->pages[d->page_count++] = *page;
+    return dashboard_persist();
+}
+
 esp_err_t nvs_cfg_set(const nvs_user_cfg_t *cfg)
 {
     if(!cfg) return ESP_ERR_INVALID_ARG;

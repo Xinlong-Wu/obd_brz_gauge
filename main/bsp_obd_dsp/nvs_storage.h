@@ -142,6 +142,12 @@ void nvs_error_log_recordf(const char *tag, esp_err_t err, const char *fmt, ...)
 uint8_t nvs_error_log_count(void);             // number of valid entries
 void nvs_error_log_copy(nvs_error_log_t *out); // snapshot for readers (oldest first: idx = (head - count + i) % CAPACITY)
 
+/* User dashboard pages (M4): read via nvs_cfg_get()->dashboard.
+ * Mutators below persist and re-sanitize; page indexes are 0-based. */
+esp_err_t nvs_dashboard_page_set(uint8_t page_idx, const ui_dashboard_page_cfg_t *page);
+esp_err_t nvs_dashboard_page_delete(uint8_t page_idx);   // shifts pages down
+esp_err_t nvs_dashboard_page_append(const ui_dashboard_page_cfg_t *page);  // up to MAX_PAGES
+
 esp_err_t nvs_storage_init(void);
 
 /* User config accessors */

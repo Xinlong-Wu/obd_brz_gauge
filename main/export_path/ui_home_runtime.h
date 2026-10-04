@@ -24,6 +24,9 @@ uint8_t ui_home_active_tile(void);
 /** 滑到相邻平铺(dir:左/右);越界不动。返回是否切换。 */
 bool ui_home_step(int dir);
 
+/** 子页面"返回 home"手势处理(左右滑;ui_dashboard_config 挂接)。 */
+void ui_event_home_return(lv_event_t *e);
+
 /** 取首页根对象(不存在则构建);供其它页面返回导航使用。 */
 lv_obj_t *ui_home_get(void);
 

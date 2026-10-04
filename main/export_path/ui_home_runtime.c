@@ -7,6 +7,7 @@
 // ================================================================
 
 #include "ui_home_runtime.h"
+#include "ui_dashboard_config.h"
 #include "ui.h"
 #include "ui_component.h"
 #include "ui_theme.h"
@@ -17,7 +18,13 @@
 #include "app_obd_dsp/vehicle_profiles.h"
 
 #include <stdio.h>
+#include "esp_log.h"
+#include <stdlib.h>
 #include <string.h>
+
+/* 前向声明(ADD/编辑态回调与平铺构建互引用) */
+static void home_build_tile(uint8_t tile);
+static void home_add_click_cb(lv_event_t *e);
 
 /* 圆屏内容安全区:360 直径下,内容矩形收缩到 320×320 */
 #define HOME_CONTENT_INSET   20
@@ -26,6 +33,8 @@
 static lv_obj_t *s_home;             // 首页根屏
 static lv_obj_t *s_content;          // 平铺内容容器(切换时重建)
 static uint8_t   s_active_tile;
+static bool       s_edit_mode;       // 长按编辑态(锁翻页,overlay 三区)
+static uint8_t    s_edit_page;       // 编辑目标页(0 基)
 static lv_obj_t *s_comp_objs[UI_DASHBOARD_MAX_SLOTS];
 static uint8_t   s_comp_count;
 
@@ -139,6 +148,27 @@ static void home_build_add(lv_obj_t *parent)
     lv_obj_set_style_bg_opa(plus_v, 255, 0);
     lv_obj_set_style_border_width(plus_v, 0, 0);
     lv_obj_clear_flag(plus_v, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_add_event_cb(plus, home_add_click_cb, LV_EVENT_CLICKED, NULL);
+}
+
+/** ADD:追加一个默认页(1 槽 RPM),跳到新页;满 8 页提示。 */
+static void home_add_click_cb(lv_event_t *e)
+{
+    (void)e;
+    ui_dashboard_cfg_t *dash = &nvs_cfg_get()->dashboard;   // 修改走 mutator 持久化
+    if (dash->page_count >= UI_DASHBOARD_MAX_PAGES) {
+        ESP_LOGW("home", "dashboard full (%d pages)", dash->page_count);
+        return;
+    }
+    ui_dashboard_page_cfg_t np;
+    memset(&np, 0, sizeof(np));
+    np.type = (uint8_t)UI_DASHBOARD_PAGE_METRIC;
+    np.slot_count = 1u;
+    np.slot_items[0] = (uint8_t)DISP_ITEM_RPM;
+    if (nvs_dashboard_page_append(&np) != ESP_OK) return;
+    s_active_tile = (uint8_t)(nvs_cfg_get()->dashboard.page_count);  // 新页平铺
+    home_build_tile(s_active_tile);
 }
 
 /* ---- GEAR 平铺:大字挡位 + 小 RPM 弧 ---- */
@@ -232,9 +262,100 @@ static void home_build_tile(uint8_t tile)
 
 static void home_gesture_cb(lv_event_t *e)
 {
+    if (s_edit_mode) return;   // 编辑态锁翻页(overlay 按钮退出)
     lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
     if (dir == LV_DIR_LEFT)  (void)ui_home_step(+1);
     if (dir == LV_DIR_RIGHT) (void)ui_home_step(-1);
+}
+
+/* ---- 编辑态(M4.d):长按仪表页 → 三区 overlay ---- */
+
+static void home_edit_exit(void)
+{
+    s_edit_mode = false;
+    lv_obj_t *ov = (lv_obj_t *)lv_obj_get_user_data(s_content);
+    if (ov) lv_obj_del(ov);
+    lv_obj_set_user_data(s_content, NULL);
+    home_build_tile(s_active_tile);   // 删除/重配置后按 NVS 现状重建
+}
+
+static void home_edit_back_cb(lv_event_t *e)
+{
+    (void)e;
+    home_edit_exit();
+}
+
+static void home_edit_delete_cb(lv_event_t *e)
+{
+    (void)e;
+    uint8_t page = ui_dashboard_logic_tile_to_page(s_active_tile,
+                                                    nvs_cfg_get()->dashboard.page_count);
+    if (nvs_cfg_get()->dashboard.page_count <= 1) return;
+    if (nvs_dashboard_page_delete(page) != ESP_OK) return;
+    // 删除后收敛到 MENU
+    s_active_tile = UI_HOME_PAGE_MENU;
+    home_edit_exit();
+    s_active_tile = UI_HOME_PAGE_MENU;
+    home_build_tile(s_active_tile);
+}
+
+static void home_edit_reconfig_cb(lv_event_t *e)
+{
+    (void)e;
+    uint8_t page = ui_dashboard_logic_tile_to_page(s_active_tile,
+                                                    nvs_cfg_get()->dashboard.page_count);
+    s_edit_mode = false;
+    lv_obj_t *ov = (lv_obj_t *)lv_obj_get_user_data(s_content);
+    if (ov) lv_obj_del(ov);
+    lv_obj_set_user_data(s_content, NULL);
+    ui_dashboard_config_open(page);   // 返回时由 ui_event_home_return 重建
+}
+
+static void home_edit_overlay_build(void)
+{
+    lv_obj_t *ov = lv_obj_create(s_home);
+    lv_obj_set_size(ov, 360, 360);
+    lv_obj_set_pos(ov, 0, 0);
+    lv_obj_set_style_bg_color(ov, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(ov, LV_OPA_70, 0);
+    lv_obj_set_style_border_width(ov, 0, 0);
+    lv_obj_set_style_pad_all(ov, 0, 0);
+    lv_obj_clear_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_user_data(s_content, ov);
+
+    struct { const char *txt; lv_color_t bg; lv_align_t align; int xo, yo;
+             lv_event_cb_t cb; } zones[] = {
+        { "EDIT",   lv_color_hex(0x2266CC), LV_ALIGN_TOP_LEFT,     0, 0, home_edit_reconfig_cb },
+        { "DELETE", lv_color_hex(0xCC3333), LV_ALIGN_TOP_RIGHT,    0, 0, home_edit_delete_cb },
+        { "BACK",   lv_color_hex(0x22AA55), LV_ALIGN_BOTTOM_MID,   0, 0, home_edit_back_cb },
+    };
+    for (int i = 0; i < 3; i++) {
+        lv_obj_t *btn = lv_btn_create(ov);
+        if (i == 2) lv_obj_set_size(btn, 360, 70);
+        else        lv_obj_set_size(btn, 178, 70);
+        lv_obj_align(btn, zones[i].align, zones[i].xo, zones[i].yo);
+        lv_obj_set_style_bg_color(btn, zones[i].bg, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(btn, 255, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, 0, LV_PART_MAIN);
+        lv_obj_add_event_cb(btn, zones[i].cb, LV_EVENT_CLICKED, NULL);
+        lv_obj_t *lbl = lv_label_create(btn);
+        lv_label_set_text(lbl, zones[i].txt);
+        lv_obj_set_style_text_font(lbl, &ui_font_FontTypoderSize20, 0);
+        lv_obj_set_style_text_color(lbl, lv_color_hex(0xFFFFFF), 0);
+        lv_obj_center(lbl);
+    }
+}
+
+static void home_longpress_cb(lv_event_t *e)
+{
+    (void)e;
+    if (s_edit_mode) return;
+    const ui_dashboard_cfg_t *dash = &nvs_cfg_get()->dashboard;
+    uint8_t page = ui_dashboard_logic_tile_to_page(s_active_tile, dash->page_count);
+    if (s_active_tile == UI_HOME_PAGE_MENU || page >= dash->page_count) return;  // MENU/ADD 不可编辑
+    s_edit_page = page;
+    s_edit_mode = true;
+    home_edit_overlay_build();
 }
 
 static void home_refresh_timer_cb(lv_timer_t *t)
@@ -269,10 +390,22 @@ lv_obj_t *ui_home_init(void)
     home_build_tile(s_active_tile);
 
     lv_obj_add_event_cb(s_home, home_gesture_cb, LV_EVENT_GESTURE, NULL);
+    lv_obj_add_event_cb(s_content, home_longpress_cb, LV_EVENT_LONG_PRESSED, NULL);
     lv_timer_create(home_refresh_timer_cb, 100, NULL);   // 数据刷新(固件/模拟器共用)
 
     lv_obj_move_foreground(ring);
     return s_home;
+}
+
+/** 配置页等子页面的"返回 home"手势处理(ui_dashboard_config 引用)。 */
+void ui_event_home_return(lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code != LV_EVENT_GESTURE) return;
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+    if (dir != LV_DIR_LEFT && dir != LV_DIR_RIGHT) return;
+    lv_indev_wait_release(lv_indev_get_act());
+    lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
 }
 
 lv_obj_t *ui_home_get(void)
