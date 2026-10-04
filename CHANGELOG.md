@@ -6,6 +6,29 @@
 
 ---
 
+## WS128 板型支持（Waveshare 1.28" 无触摸板）
+
+新增第三块编译目标板型，现有 WS185/WS175 构建与行为不受影响：
+
+- **新板型 `OBD_BOARD_WS_128_GC9A01`**：GC9A01 四线 SPI 240×240，
+  ESP32-S3R2（封装内 2MB **Quad** PSRAM）。该板必须用
+  `sdkconfig.defaults.ws128` 叠加层构建——公共 Octal PSRAM 默认会在
+  它上面启动失败并循环重启（`octal_psram: PSRAM chip is not connected...`）
+- **纯显示模式**：无触摸，跳过 LVGL 指针设备注册（此前无触摸板会在
+  输入轮询时 assert）；V1 专属 RS485/ADS1115 初始化随 V2 硬件版本
+  编译裁掉（该板 GPIO12 为 LCD_RST，与 RS485 RX 冲突）
+- **虚拟 360 缩放输出**：UI 仍按 360×360 渲染，flush 阶段 3:2 最近邻
+  降采样分块发屏（PSRAM 全帧影子 + DMA 分块 + 信号量同步），布局/
+  主题/开机动画零改动
+- **显示校准**：玻璃原生为左右镜像，初始化时 `esp_lcd_panel_mirror`
+  仅开 X 轴校正；降采样分块发送必须**先等 DMA 完成信号量再重写缓冲**，
+  先写后等会覆盖在途 DMA 数据，屏幕出现每 20 行一条的周期性横条错位
+- **main 任务栈**：叠加层放宽到 8192（默认 3584 在该配置的 app_main
+  初始化链路上溢出，启动即 `stack overflow in task main` 循环重启）
+- 构建：`idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128"
+  set-target esp32s3 && build`（见 DEVELOPMENT.md 适配新开发板）
+
 ## 动态仪表页（用户自定义表盘）
 
 主界面从静态轮播升级为**可自定义分页**：MENU → 仪表页(1..8) → ADD。

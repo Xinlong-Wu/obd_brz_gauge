@@ -7,6 +7,37 @@ cleanups live in the git history.
 
 ---
 
+## WS128 board support (Waveshare 1.28" no-touch board)
+
+A third build-target board; existing WS185/WS175 builds and behavior are
+unchanged.
+
+- **New board `OBD_BOARD_WS_128_GC9A01`**: GC9A01 4-wire SPI 240x240,
+  ESP32-S3R2 (2MB **Quad** PSRAM in package). Must be built with the
+  `sdkconfig.defaults.ws128` overlay — the shared octal PSRAM default
+  fails to boot on this board and loops (`octal_psram: PSRAM chip is
+  not connected...`)
+- **Display-only mode**: no touch, LVGL pointer-device registration is
+  skipped (previously a touch-less board would assert during input
+  polling); V1-only RS485/ADS1115 bring-up is compiled out via the V2
+  hardware version (the board's LCD_RST on GPIO12 collides with the
+  RS485 RX pin)
+- **Virtual-360 scaled output**: the UI still renders at 360x360 and the
+  flush path downsamples 3:2 (nearest neighbor) in chunks to the panel
+  (PSRAM full-frame shadow + DMA chunks + semaphore sync); layout,
+  themes and the boot animation are unchanged
+- **Display calibration**: the glass is natively mirrored left-right,
+  corrected at init with `esp_lcd_panel_mirror` on the X axis only; the
+  downscaled chunk submit must **take the DMA-done semaphore before
+  rewriting the chunk buffer** — writing first overwrites in-flight DMA
+  data and shows a periodic horizontal band every 20 rows
+- **Main task stack**: raised to 8192 in the ws128 overlay (the default
+  3584 overflows during app_main bring-up in this configuration and
+  boot-loops with `stack overflow in task main`)
+- Build: `idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128"
+  set-target esp32s3 && build` (see DEVELOPMENT.en.md, Porting a new board)
+
 ## Dynamic dashboard pages (user-defined gauges)
 
 The main UI upgrades from the static carousel to a **user-definable
