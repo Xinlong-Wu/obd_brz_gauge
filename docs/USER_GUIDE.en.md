@@ -5,6 +5,15 @@ English | [简体中文](USER_GUIDE.md)
 For flashing and building see [FLASH.en.md](FLASH.en.md); if you cannot
 connect, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 
+> **WS128 (1.28" no-touch board) users**: every operation in this guide
+> (navigation, settings, BLE scan) is touch-gesture based; the WS128 board has
+> no touch, so the firmware runs in **display-only mode** — boot, gauge pages
+> and automatic BLE reconnection to the last paired adapter all work, but
+> manual navigation/settings are unavailable (the UI stays on the default
+> home page, reusing the NVS settings configured earlier on a touch board).
+> See [DEVELOPMENT.en.md](DEVELOPMENT.en.md#porting-a-new-board) for build
+> instructions.
+
 ## First boot
 
 1. On power-up the Sky Gauge logo appears, then the boot animation set in

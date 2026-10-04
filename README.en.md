@@ -32,6 +32,7 @@ reads vehicle data, and renders a touch UI with LVGL.
 | | |
 |---|---|
 | Board | Waveshare ESP32-S3-Touch-LCD-1.85 (360×360 round ST77916 LCD, 16 MB flash, 8 MB PSRAM)|
+| Compatible boards | WS175 1.75" AMOLED (466×466); WS128 1.28" no-touch (240×240 GC9A01, 2 MB Quad PSRAM, display-only mode — see [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md#porting-a-new-board))|
 | Stack | ESP-IDF 5.5.3, LVGL 8 |
 | Link | BLE to an ELM327-compatible OBD adapter (standard PIDs + manufacturer Mode 21/22)|
 | Triple gauge | One master reads OBD; slaves mirror it over ESP-NOW with zero extra load |

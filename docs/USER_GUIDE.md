@@ -4,6 +4,12 @@
 
 编译烧录见 [FLASH.md](FLASH.md)，连不上先看 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)。
 
+> **WS128（1.28" 无触摸板）用户**：本指南的全部操作（导航、设置、BLE 扫描）都基于
+> 触摸手势；WS128 板没有触摸，固件以**纯显示模式**运行——开机、显示仪表页、
+> BLE 自动回连上次绑定的适配器都正常，但无法手动导航/进设置（页面停在默认首页，
+> 沿用之前在触摸板上配好的 NVS 设置）。构建方式见
+> [DEVELOPMENT.md](DEVELOPMENT.md#适配新开发板)。
+
 ## 首次开机
 
 1. 上电后先显示 Sky Gauge Logo，随后按设置的开机模式进入（默认 RACE 动画，可关）

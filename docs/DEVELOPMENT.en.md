@@ -135,6 +135,20 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
 idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 ```
 
+- **WS128**: Waveshare 1.28" IPS no-touch, GC9A01 4-wire SPI 240x240,
+  ESP32-S3R2 (2MB **Quad** PSRAM in package — the shared default is octal and
+  must be overridden via this board's overlay, otherwise boot loops with the
+  `octal_psram` error). No touch / TCA9554 / ADS1115, display-only: the UI
+  still renders at a virtual 360x360 and `board_ws_128_scale.c` downsamples
+  3:2 (nearest neighbor) into 240-wide chunks at flush time (layout, themes
+  and boot animation unchanged). Build:
+
+```bash
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" set-target esp32s3
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+```
+
 UI code should include screen symbols via `boards/board_display_compat.h`
 (WS185 forwards ST77916.h; WS175 provides same-name macros/shims) instead
 of including ST77916.h directly.

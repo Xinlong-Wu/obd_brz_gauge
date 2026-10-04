@@ -112,7 +112,7 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 按 Kconfig `OBD DSP Configuration → Display board` 静态分发;新板=新增一个
 `board_<id>.c` + spec 头 + Kconfig 选项,板文件用 `#if CONFIG_OBD_BOARD_<ID>`
 自守卫——组件 CMake 的 requirements 阶段拿不到 CONFIG_ 变量,不能在 CMake 里分流)。
-现有两块:
+现有三块:
 
 - **WS185**(默认):微雪 1.85" IPS,ST77916 QSPI + CST816 + TCA9554(V1/V2/V3 细分见 `OBD_HW_VERSION`)
 - **WS175**:微雪 1.75" AMOLED 466×466,CO5300 QSPI + CST9217(共享 I2C 可挂
@@ -122,6 +122,18 @@ build tag 就是它，所以发版前必须先 commit，见[发布流程](#发�
 idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3
 idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
+```
+
+- **WS128**:微雪 1.28" IPS 非触摸版,GC9A01 四线 SPI 240×240,ESP32-S3R2
+  (封装内 2MB **Quad** PSRAM——公共默认是 Octal,必须用本板叠加层覆盖,否则
+  启动即 `octal_psram` 报错循环重启)。无触摸/无 TCA9554/无 ADS1115,纯显示:
+  UI 仍按 360×360 虚拟分辨率渲染,`board_ws_128_scale.c` 在 flush 阶段 3:2
+  最近邻降采样到 240 分块发屏(布局/主题/开机动画零改动);构建:
+
+```bash
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" set-target esp32s3
+idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
 ```
 
 UI 层包含屏幕符号请用 `boards/board_display_compat.h`(WS185 转发 ST77916.h,
