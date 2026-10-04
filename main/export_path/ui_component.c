@@ -206,14 +206,13 @@ bool ui_comp_update(lv_obj_t *comp)
 
     int32_t raw = 0;
     if (!ui_disp_item_read_cache(p->desc.channel, &raw)) {
-        // 无效:只在从有效转无效时刷一次 "--"
-        if (p->shown_valid) {
-            p->shown_valid = false;
-            if (p->desc.type != UI_COMP_BAR &&
-                p->desc.type != UI_COMP_GFORCE &&
-                lv_obj_check_type(p->main, &lv_label_class)) {
-                lv_label_set_text(p->main, "--");
-            }
+        // 无效:刷 "--"(含首个样本即无效的情形,占位文本不能残留)。
+        // set_text 内部有变更检测,重复调用无额外代价。
+        p->shown_valid = false;
+        if (p->desc.type != UI_COMP_BAR &&
+            p->desc.type != UI_COMP_GFORCE &&
+            p->main && lv_obj_check_type(p->main, &lv_label_class)) {
+            lv_label_set_text(p->main, "--");
         }
         return false;
     }

@@ -71,6 +71,7 @@ int main(void)
     lv_obj_t *v = ui_comp_create(&d, scr);
     TEST_ASSERT(v != NULL);
     TEST_ASSERT(!ui_comp_update(v));      // CLT 未写 → 无效
+    TEST_ASSERT_EQ_STR("--", lv_label_get_text(find_value_label(v)));   // 首个无效也要刷占位
     obd_data_set_coolant_temp(92);
     TEST_ASSERT(ui_comp_update(v));
     TEST_ASSERT_EQ_STR("92", lv_label_get_text(find_value_label(v)));

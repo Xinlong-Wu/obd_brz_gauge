@@ -8,6 +8,7 @@
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/espnow_link.h"   /* ESPNOW_ROLE_* */
 #include "bsp_obd_dsp/nvs_error_log_logic.h"
+#include "bsp_obd_dsp/ui_dashboard_logic.h"
 #include "sim_platform.h"
 
 #include <stdarg.h>
@@ -60,6 +61,22 @@ static void ensure_defaults(void)
      * --bound pre-fills a saved adapter so boot lands straight on the gauges. */
 
     memset(&s_stat, 0, sizeof(s_stat));
+
+    /* M4:与固件 nvs_storage_init 同款的自愈 + 老配置迁移(mock 不落盘) */
+    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+    (void)ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
+                                               s_cfg.temp_display_map,
+                                               s_cfg.info_display_map,
+                                               s_cfg.needle_source_idx,
+                                               s_cfg.chart_source_idx);
+
+    /* M4:与固件 nvs_storage_init 同款的自愈 + 老配置迁移(mock 不落盘) */
+    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+    (void)ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
+                                               s_cfg.temp_display_map,
+                                               s_cfg.info_display_map,
+                                               s_cfg.needle_source_idx,
+                                               s_cfg.chart_source_idx);
 
     /* index = disp_item_t: CLT,IAT,OIL,LOD,TPS,RPM,SPD,BAT,OIP,BKT,BST,AFR */
     for (int i = 0; i < 12; i++) s_chart_alarm[i] = 32767; /* off */

@@ -38,6 +38,7 @@ void sim_opts_print_help(const char *prog)
         "  --tour N           inject N alternating swipes, screenshotting after each\n"
         "  --shots-dir DIR    where --tour screenshots go (default sim_shots)\n"
         "  --seed N           pin the fake-data PRNG (deterministic screenshots)\n"
+        "  --home             preview the user-dashboard home runtime (M4)\n"
         "  --clock MODE       real (default) | virtual — frame-locked clock for\n"
         "                     bit-identical headless screenshots (implies fast-run)\n"
         "  --tap X,Y,FRAME    scripted tap at screen coords on a given frame (headless)\n"
@@ -93,6 +94,8 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
             o->bound = true;
         } else if (strcmp(a, "--no-boot") == 0) {
             o->no_boot = true;
+        } else if (strcmp(a, "--home") == 0) {
+            o->home = true;
         } else if (strcmp(a, "--no-panel") == 0) {
             o->no_panel = true;
         } else if (strcmp(a, "--theme") == 0) {
