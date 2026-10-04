@@ -10,6 +10,7 @@
 #include "test_util.h"
 #include "ui_disp_item.h"
 #include "ui_disp_item_logic.h"
+#include "app_obd_dsp/obd_data_cache.h"
 #include "lvgl.h"
 
 /** 注册最小 display(无 flush 实现),让 lv_label_create 可用。 */
@@ -60,10 +61,13 @@ int main(void)
     TEST_ASSERT(setup_dummy_display() != NULL);
 
     // ---- 元数据表 ----
-    TEST_ASSERT_EQ_INT(12, DISP_ITEM_COUNT);
+    TEST_ASSERT_EQ_INT(18, DISP_ITEM_COUNT);   // M3: 12 原有 + TPMS×4 + G 力双轴
     TEST_ASSERT_EQ_STR("CLT", s_disp_meta[DISP_ITEM_CLT].name);
     TEST_ASSERT_EQ_STR("bar", s_disp_meta[DISP_ITEM_OILP].unit);
     TEST_ASSERT_EQ_STR("", s_disp_meta[DISP_ITEM_AFR].unit);
+    TEST_ASSERT_EQ_STR("TPFL", s_disp_meta[DISP_ITEM_TPMS_FL].name);
+    TEST_ASSERT_EQ_INT(10, s_needle_scale_meta[DISP_ITEM_TPMS_FL].div);
+    TEST_ASSERT_EQ_INT(100, s_needle_scale_meta[DISP_ITEM_GFORCE_LAT].div);
 
     // 越界访问:name 返回 "",unit/color/range 回退 CLT
     TEST_ASSERT_EQ_STR("", ui_disp_item_name(200));
@@ -176,6 +180,24 @@ int main(void)
     TEST_ASSERT(!ui_disp_item_alarm_over_threshold(80, 999, false)); // 无效值不报警
     TEST_ASSERT(!ui_disp_item_alarm_over_threshold(32767, 99999, true)); // 哨兵 = 报警关闭
     TEST_ASSERT(ui_disp_item_alarm_over_threshold(-5, -3, true));   // 负阈值按数值比较:-3 ≥ -5
+
+    // ---- 统一缓存读取器(M3):先写缓存再读,含扩展通道 ----
+    int32_t cv = 0;
+    TEST_ASSERT(!ui_disp_item_read_cache(DISP_ITEM_CLT, &cv));       // 未写 → 哨兵无效
+    obd_data_set_coolant_temp(92);
+    TEST_ASSERT(ui_disp_item_read_cache(DISP_ITEM_CLT, &cv));
+    TEST_ASSERT_EQ_INT(92, cv);
+    obd_data_set_tpms_bar_x10(1, 228);
+    TEST_ASSERT(ui_disp_item_read_cache(DISP_ITEM_TPMS_FR, &cv));
+    TEST_ASSERT_EQ_INT(228, cv);
+    TEST_ASSERT(!ui_disp_item_read_cache(DISP_ITEM_TPMS_RL, &cv));   // 未写轮无效
+    obd_data_set_gforce_x100(87, -42);
+    TEST_ASSERT(ui_disp_item_read_cache(DISP_ITEM_GFORCE_LAT, &cv));
+    TEST_ASSERT_EQ_INT(87, cv);
+    TEST_ASSERT(ui_disp_item_read_cache(DISP_ITEM_GFORCE_LON, &cv));
+    TEST_ASSERT_EQ_INT(-42, cv);
+    TEST_ASSERT(!ui_disp_item_read_cache((disp_item_t)99, &cv));     // 越界
+    TEST_ASSERT(!ui_disp_item_read_cache(DISP_ITEM_RPM, NULL));
 
     return TEST_RESULT();
 }

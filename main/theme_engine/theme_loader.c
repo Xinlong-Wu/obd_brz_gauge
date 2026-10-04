@@ -409,6 +409,18 @@ static bool theme_resolve_data_source(const obd_snapshot_t *obd, const char *src
         *out_value = obd->throttle;
     } else if (strcmp(src, "obd.intake_temp") == 0) {
         *out_value = obd->intake_temp;
+    } else if (strcmp(src, "obd.gforce_lat") == 0) {
+        *out_value = obd->gforce_lat_x100;          // 0.01 g, -32768 = invalid
+    } else if (strcmp(src, "obd.gforce_lon") == 0) {
+        *out_value = obd->gforce_lon_x100;
+    } else if (strcmp(src, "obd.tpms_fl") == 0) {   // 0.1 bar, 0xFF = invalid -> -1
+        *out_value = (obd->tpms_bar_x10[0] == 0xFF) ? -1 : obd->tpms_bar_x10[0];
+    } else if (strcmp(src, "obd.tpms_fr") == 0) {
+        *out_value = (obd->tpms_bar_x10[1] == 0xFF) ? -1 : obd->tpms_bar_x10[1];
+    } else if (strcmp(src, "obd.tpms_rl") == 0) {
+        *out_value = (obd->tpms_bar_x10[2] == 0xFF) ? -1 : obd->tpms_bar_x10[2];
+    } else if (strcmp(src, "obd.tpms_rr") == 0) {
+        *out_value = (obd->tpms_bar_x10[3] == 0xFF) ? -1 : obd->tpms_bar_x10[3];
     } else {
         return false;
     }

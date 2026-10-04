@@ -127,10 +127,13 @@ add_gauge_test(test_vehicle_profiles
             "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
             ${TEST_SHIMS})
 
-# ---- 数据项系统:有效性判定 / 格式化 / 自然量程 / 元数据访问 ----
+# ---- 数据项系统:有效性判定 / 格式化 / 自然量程 / 元数据访问 / 统一缓存读取 ----
+# (M3 起 ui_disp_item.c 读数据缓存,一并编入 obd_data_cache + vehicle_profiles)
 add_gauge_test(test_ui_disp_item
     SOURCES test_ui_disp_item.c
             "${MAIN_DIR}/export_path/ui_disp_item.c"
+            "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
+            "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
 
 # ---- 主题引擎:默认回退 + theme.bin v1 加载(manifest/颜色/页面) ----

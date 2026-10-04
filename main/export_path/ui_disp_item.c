@@ -5,6 +5,7 @@
 #include "ui_disp_item.h"
 #include "ui_disp_item_logic.h"
 #include "bsp_obd_dsp/nvs_storage.h"
+#include "app_obd_dsp/obd_data_cache.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,6 +25,12 @@ const disp_item_meta_t s_disp_meta[DISP_ITEM_COUNT] = {
     {"BKT", "'C", 0xFF5A5A},
     {"BST", "bar", 0x00DD88},
     {"AFR", "", 0xFFAA00},
+    {"TPFL", "bar", 0x66FF99},   // M3 扩展通道:胎压四轮(0.1bar)
+    {"TPFR", "bar", 0x66FF99},
+    {"TPRL", "bar", 0x66FF99},
+    {"TPRR", "bar", 0x66FF99},
+    {"GFL", "g", 0xFFC0CB},      // G 力纵/横(0.01g)
+    {"GFN", "g", 0xFFC0CB},
 };
 
 // Needle range per data item: nmin/nmax in natural units (used for both scale labels and needle position);
@@ -41,6 +48,12 @@ const needle_scale_meta_t s_needle_scale_meta[DISP_ITEM_COUNT] = {
     [DISP_ITEM_BKT]   = {0, 800, 10},
     [DISP_ITEM_BOOST] = {0, 20, 1},   // range in 0.1bar: 0 ~ +2.0 bar gauge pressure (negative pressure not displayed)
     [DISP_ITEM_AFR]   = {8, 22, 100}, // range 8.0~22.0:1, raw value ×100
+    [DISP_ITEM_TPMS_FL] = {0, 45, 10},   // 0~4.5 bar, raw ×10
+    [DISP_ITEM_TPMS_FR] = {0, 45, 10},
+    [DISP_ITEM_TPMS_RL] = {0, 45, 10},
+    [DISP_ITEM_TPMS_RR] = {0, 45, 10},
+    [DISP_ITEM_GFORCE_LAT] = {-15, 15, 100},  // ±1.50 g, raw ×100
+    [DISP_ITEM_GFORCE_LON] = {-15, 15, 100},
 };
 
 bool disp_item_read_value(disp_item_t item,
@@ -69,8 +82,42 @@ bool disp_item_read_value(disp_item_t item,
     }
 }
 
-int32_t disp_item_sweep_value(disp_item_t item, float r)
+// 统一通道读取(M3):任意 disp_item_t 直接读数据缓存,覆盖 ZC6 扩展通道。
+// 有效性与 disp_item_read_value 的哨兵规则一致。
+bool ui_disp_item_read_cache(disp_item_t item, int32_t *out)
 {
+    if (!out || (int)item < 0 || (int)item >= (int)DISP_ITEM_COUNT) return false;
+
+    // 各通道:先取缓存原始值,再走统一的哨兵判定
+    int32_t v = 0;
+    bool present = false;
+    switch (item) {
+    case DISP_ITEM_CLT:   v = obd_data_get_coolant_temp(); present = v > -40; break;
+    case DISP_ITEM_IAT:   v = obd_data_get_intake_temp();   present = v > -40;  break;
+    case DISP_ITEM_OIL:   v = obd_data_get_oil_temp();      present = v > -100; break;
+    case DISP_ITEM_LOAD:  v = obd_data_get_load_pct();      present = v >= 0;   break;
+    case DISP_ITEM_TPS:   v = obd_data_get_tps();           present = v >= 0;   break;
+    case DISP_ITEM_RPM:   v = obd_data_get_rpm();           present = true;     break;
+    case DISP_ITEM_SPEED: v = obd_data_get_speed();         present = true;     break;
+    case DISP_ITEM_BAT:   v = obd_data_get_bat_mv();        present = v > 0;    break;
+    case DISP_ITEM_OILP:  v = obd_data_get_oil_pressure_x10(); present = v >= 0; break;
+    case DISP_ITEM_BKT:   v = obd_data_get_brake_temp_x10();   present = v > -1000; break;
+    case DISP_ITEM_BOOST: v = obd_data_get_boost_x10();     present = v != -32768; break;
+    case DISP_ITEM_AFR:   v = obd_data_get_afr_x100();      present = v >= 800 && v <= 2200; break;
+    case DISP_ITEM_TPMS_FL: v = obd_data_get_tpms_bar_x10(0); present = v >= 0; break;
+    case DISP_ITEM_TPMS_FR: v = obd_data_get_tpms_bar_x10(1); present = v >= 0; break;
+    case DISP_ITEM_TPMS_RL: v = obd_data_get_tpms_bar_x10(2); present = v >= 0; break;
+    case DISP_ITEM_TPMS_RR: v = obd_data_get_tpms_bar_x10(3); present = v >= 0; break;
+    case DISP_ITEM_GFORCE_LAT: v = obd_data_get_gforce_lat_x100(); present = v != -32768; break;
+    case DISP_ITEM_GFORCE_LON: v = obd_data_get_gforce_lon_x100(); present = v != -32768; break;
+    default: return false;
+    }
+    if (!present) return false;
+    *out = v;
+    return true;
+}
+
+int32_t disp_item_sweep_value(disp_item_t item, float r){
     switch (item) {
         case DISP_ITEM_CLT:
         case DISP_ITEM_IAT:

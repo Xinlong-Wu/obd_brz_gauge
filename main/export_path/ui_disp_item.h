@@ -32,6 +32,13 @@ typedef enum {
     DISP_ITEM_BKT,
     DISP_ITEM_BOOST,
     DISP_ITEM_AFR,
+    // ---- M3 unified channel extension: append-only, values 0..11 unchanged ----
+    DISP_ITEM_TPMS_FL,     // tire pressure 0.1 bar (ZC6 0x6E2)
+    DISP_ITEM_TPMS_FR,
+    DISP_ITEM_TPMS_RL,
+    DISP_ITEM_TPMS_RR,
+    DISP_ITEM_GFORCE_LAT,  // 0.01 g (ZC6 0x0D0 / IMU)
+    DISP_ITEM_GFORCE_LON,
     DISP_ITEM_COUNT
 } disp_item_t;
 
@@ -62,6 +69,11 @@ bool disp_item_read_value(disp_item_t item,
                           uint16_t rpm, uint16_t speed, int16_t boost_x10,
                           int16_t afr_x100,
                           int32_t *out);
+
+// Unified channel accessor (M3): read any disp_item_t straight from the
+// data cache (covers the ZC6 extension channels too). Same validity rules
+// as disp_item_read_value. New code (components / theme bindings) uses this.
+bool ui_disp_item_read_cache(disp_item_t item, int32_t *out);
 
 // Sweep animation value: r ∈ [0,1] → sweep peak raw value for this data item
 int32_t disp_item_sweep_value(disp_item_t item, float r);

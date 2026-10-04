@@ -496,6 +496,14 @@ static void ui_build_theme_snapshot(obd_snapshot_t *out,
 
     int16_t iat = obd_data_get_intake_temp();
     out->intake_temp = (iat < 0) ? 0 : (iat > 255 ? 255 : (uint8_t)iat);
+
+    // M3 扩展通道:直接读缓存(哨兵透传,主题侧按无效处理)
+    out->gforce_lat_x100 = obd_data_get_gforce_lat_x100();
+    out->gforce_lon_x100 = obd_data_get_gforce_lon_x100();
+    for (int w = 0; w < 4; w++) {
+        int16_t p = obd_data_get_tpms_bar_x10((uint8_t)w);
+        out->tpms_bar_x10[w] = (p < 0 || p > 250) ? 0xFF : (uint8_t)p;
+    }
 }
 
 void my_timerMain(lv_timer_t * timer)
