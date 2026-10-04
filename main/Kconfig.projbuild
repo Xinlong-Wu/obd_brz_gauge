@@ -78,6 +78,27 @@ menu "OBD DSP Configuration"
             bool "V3: New board B (ST77916 v2 init, direct GPIO, no TCA9554/ADS1115)"
     endchoice
 
+    config OBD_SCREENSHOT
+        bool "WiFi screen capture (shadow framebuffer + MJPEG stream)"
+        default y
+        help
+            Capture the rendered frame into a PSRAM shadow (flush hook) and
+            serve it over WiFi: control page + MJPEG stream on :8080/:8081,
+            started at boot (OBD_SCREENSHOT_AUTO_START) or available while
+            the OTA-mode hotspot is up. PSRAM cost: res^2 * 2 bytes
+            (115 KB @240, 259 KB @360, 434 KB @466).
+
+    config OBD_SCREENSHOT_AUTO_START
+        bool "Start the screen-capture server at boot (for no-touch boards)"
+        depends on OBD_SCREENSHOT
+        default n
+        help
+            Bring up the capture hotspot automatically after boot, without
+            needing to navigate to the OTA page (impossible on touch-less
+            boards like the WS128). The gauge keeps running normally
+            (BLE OBD / ESP-NOW are not paused); enable in the board's
+            sdkconfig.defaults overlay.
+
     config OBD_RS485_TX_GPIO
         int "RS485 TX GPIO"
         range 0 48

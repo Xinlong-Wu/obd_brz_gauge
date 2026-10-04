@@ -15,3 +15,6 @@ CONFIG_SPIRAM_MODE_QUAD=y
 # 2MB PSRAM 下启动链路(app_main + nvs/esp_lcd 初始化)顶到默认 3584 栈,
 # 上下文切换时栈溢出挂掉;放宽 main 任务栈。
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# No touch: the OTA page is unreachable, so the WiFi screen-capture
+# hotspot must come up automatically at boot (OBD_SCREENSHOT is default y).
+CONFIG_OBD_SCREENSHOT_AUTO_START=y

@@ -35,6 +35,10 @@
 #define BOARD_WS_128_GC9A01_MIRROR_X 1
 #define BOARD_WS_128_GC9A01_MIRROR_Y 0
 
+// IPS 面板需要 INVON(0x21)才显示正确极性:组件默认初始化不含反相,
+// 不开时屏幕黑底白字反相成白底黑字(帧缓冲/截图是正确的,屏幕是反的)。
+#define BOARD_WS_128_GC9A01_INVERT_COLOR 1
+
 // LEDC 背光(高电平点亮,非反相;若整机不出画面再核查极性)
 #define BOARD_WS_128_GC9A01_BL_FREQ_HZ       5000
 #define BOARD_WS_128_GC9A01_BL_RESOLUTION    LEDC_TIMER_13_BIT

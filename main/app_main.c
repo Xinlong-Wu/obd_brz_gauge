@@ -43,6 +43,8 @@
 #endif
 #include "app_obd_dsp/obd_data_cache.h"
 #include "app_obd_dsp/vehicle_profiles.h"
+#include "app_obd_dsp/screen_capture.h"
+#include "app_obd_dsp/screen_capture_server.h"
 #include "export_path/ui_ext.h"
 #include "app_obd_dsp/app_event.h"
 #include "theme_engine/theme_interface.h"
@@ -103,6 +105,9 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
 /* LVGL flush callback */
 static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
+#if CONFIG_OBD_SCREENSHOT
+    screen_capture_on_flush(area, color_map);   // WiFi 取图:脏区并入影子帧缓冲
+#endif
     esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)drv->user_data;
     esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1,
                               area->x2 + 1, area->y2 + 1, color_map);
@@ -217,6 +222,11 @@ void app_main(void)
     ESP_ERROR_CHECK(board_register_display_flush_ready_callback(notify_lvgl_flush_ready, &disp_drv));
     board_display_context_t board_disp;
     ESP_ERROR_CHECK(board_display_init(&board_disp));
+
+    /* 4.5 WiFi 取图影子帧缓冲(Kconfig OBD_SCREENSHOT,失败自动降级禁用) */
+#if CONFIG_OBD_SCREENSHOT
+    screen_capture_init();
+#endif
 
     /* 5. LVGL init */
     lv_init();
@@ -421,6 +431,17 @@ void app_main(void)
         /* 10. Mileage statistics task (only the master counts, to avoid double counting by the slave) */
         vMileageDataStatisticTask();
     }
+
+    /* 11. WiFi 取图服务器开机自启(无触摸板专用,Kconfig OBD_SCREENSHOT_AUTO_START;
+           仪表正常运行不受影响,与 ESP-NOW/BLE 共存) */
+#if CONFIG_OBD_SCREENSHOT_AUTO_START
+    {
+        esp_err_t cap_err = screen_capture_server_start();
+        if (cap_err != ESP_OK) {
+            ESP_LOGW(TAG, "screen capture server not started: %s", esp_err_to_name(cap_err));
+        }
+    }
+#endif
 
     BaseType_t valid_task_started = xTaskCreate(mark_app_valid_task, "ota_valid", 4096, NULL, tskIDLE_PRIORITY + 1, NULL);
     if (valid_task_started != pdPASS) {

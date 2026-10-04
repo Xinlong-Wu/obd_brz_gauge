@@ -154,6 +154,10 @@ static esp_err_t board_ws_128_panel_init(void)
                                              BOARD_WS_128_GC9A01_MIRROR_Y),
                         TAG, "panel mirror failed");
 #endif
+#if BOARD_WS_128_GC9A01_INVERT_COLOR
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(s_panel_handle, true),
+                        TAG, "panel invert failed");
+#endif
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel_handle, true), TAG, "panel enable failed");
     ESP_LOGI(TAG, "panel ready (physical %ux%u; render res via CONFIG_OBD_UI_RENDER_RES)",
              (unsigned)BOARD_WS_128_GC9A01_H_RES, (unsigned)BOARD_WS_128_GC9A01_V_RES);

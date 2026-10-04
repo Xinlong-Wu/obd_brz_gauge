@@ -89,6 +89,22 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 1.2.1
+  espressif/esp_new_jpeg:
+    component_hash: e6af208a875abd0ecfc0213d3751a11b504b463ebde6930f24096047925fa5c1
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    - esp32c2
+    - esp32c3
+    - esp32c5
+    - esp32c6
+    version: 0.6.1
   espressif/knob:
     component_hash: 138ed090b4c9090a0a678f695b9d1884b368130c729b7333ed35bd7f4e8da80e
     dependencies:
@@ -134,10 +150,11 @@ direct_dependencies:
 - espressif/esp_lcd_gc9a01
 - espressif/esp_lcd_panel_io_additions
 - espressif/esp_lcd_touch
+- espressif/esp_new_jpeg
 - espressif/knob
 - idf
 - lvgl/lvgl
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: c7f88bef0c3b05e37c741d52b6235131ec58783efc23f04e5cf6b9a5aaa3b2d2
+manifest_hash: e3f8590f040d5d15330708e616fa75d0d0b80b40ec12410fbacb0681909d880b
 target: esp32s3
 version: 2.0.0
