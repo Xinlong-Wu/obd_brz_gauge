@@ -7,6 +7,31 @@ cleanups live in the git history.
 
 ---
 
+## Fix: factory boot animation never played (bootmedia image switched to the raw layout)
+
+The factory bootmedia image was always a SPIFFS filesystem image while the
+firmware reads a raw layout (manifest at partition offset 0, frame data at
+0x1000) — on factory/USB-flashed devices the boot animation always failed
+to parse and was silently skipped; only devices that had uploaded an
+animation via the App could play one.
+
+- **Build-time image generation moved to `tools/gen_bootmedia.py`**: raw
+  layout, ~232 KB (the SPIFFS image was 6.2 MB — 26x faster to flash);
+  `idf.py flash` integration and the flash address (0xA20000) are
+  unchanged; a manifest missing required keys now fails the build
+- **`binary_size` auto-injected**: without that key the player fell back
+  to probing the whole partition and allocating ~6 MB of PSRAM — a
+  guaranteed failure on the WS128's 2 MB Quad PSRAM and pure waste on
+  8 MB boards
+- **`manifest_present()` tightened**: requires the `canvas_width=` prefix
+  instead of "first byte is a lowercase letter", so garbage (e.g. stale
+  SPIFFS metadata) is no longer misdetected as a valid animation
+- SPIFFS component dependency removed from the firmware (zero runtime
+  users)
+- Known leftover: the BLE boot-animation upload path (`ota_update_ble.c`,
+  the `.new` staging flow) is dead code inconsistent with the current
+  layout; not re-enabled by this fix, kept for a separate cleanup
+
 ## WS128 board support (Waveshare 1.28" no-touch board)
 
 A third build-target board; existing WS185/WS175 builds and behavior are

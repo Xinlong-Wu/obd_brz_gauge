@@ -6,6 +6,24 @@
 
 ---
 
+## 修复：出厂开机动画无法播放（bootmedia 镜像改 raw 布局）
+
+出厂 bootmedia 镜像一直是 SPIFFS 文件系统格式，而固件读取的是 raw 布局
+（manifest 在分区偏移 0、帧数据在 0x1000）——出厂/USB 刷机的设备开机动画
+永远解析失败被静默跳过，只有经 App 上传过动画的设备能播。
+
+- **构建期镜像生成改为 `tools/gen_bootmedia.py`**：raw 布局，约 232KB
+  （原 SPIFFS 镜像 6.2MB，烧录快 26 倍）；`idf.py flash` 集成与烧录地址
+  （0xA20000）不变；manifest 缺必需键直接构建失败
+- **自动注入 `binary_size`**：此前 manifest 缺该键时播放器回退探测整个
+  分区并分配 ~6MB PSRAM——2MB Quad PSRAM 的 WS128 必然失败，8MB 板也是
+  纯浪费
+- **`manifest_present()` 收紧**：从"首字节是小写字母"改为要求
+  `canvas_width=` 前缀，垃圾数据（如残留的 SPIFFS 元数据）不再被误判
+- 固件移除 SPIFFS 组件依赖（运行时本就无使用者）
+- 已知遗留：BLE 路径的开机动画上传（`ota_update_ble.c` 的 `.new` 暂存流）
+  是与现布局不符的死代码，未随本修复启用，留待独立清理
+
 ## WS128 板型支持（Waveshare 1.28" 无触摸板）
 
 新增第三块编译目标板型，现有 WS185/WS175 构建与行为不受影响：
