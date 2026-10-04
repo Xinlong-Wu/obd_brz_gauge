@@ -7,6 +7,32 @@ cleanups live in the git history.
 
 ---
 
+## Theme component orchestration (schema 2.0) + packer completion
+
+- **theme.bin schema 2.0**: the manifest gains `components{}` (theme-
+  defined components composed of v1 primitives, coordinates relative to
+  the component rect); pages may orchestrate built-in + theme component
+  `instances[]`. Firmware accepts 2.0 and 1.0 (v1 behavior unchanged);
+  older firmware rejects 2.0 fail-closed to the default theme
+- **Built-in component library `ui_component`**: value (name+number+
+  unit) / arc / bar / bignum / gforce — skinning only via theme color
+  roles, data only via the unified channel vocabulary (`obd.*` <->
+  disp_item). Fixed a dirty-check bug where a first sample of exactly
+  zero never painted (regression assertion added)
+- **pack_theme.py completion** (capabilities the loader already had):
+  multi-page `layouts/<page_id>.json`, arbitrary named assets (`.png`
+  RGB565 / `.rgba.png` RGBA8888 / `.lv_font_bin` fonts),
+  `components.json` embedding, automatic schema bump to 2.0; image
+  packing generalized to any size (dial/ring still pinned to 360x360)
+- **Example theme `themes/example_v2_component/`** (value+arc+bar+
+  gforce+theme:badge orchestration) + new screenshot-regression scenario
+  `theme_v2_component` (packs then previews; 9/9 scenarios pass)
+- End-to-end: a synthetic v2 blob walks load -> create page -> update ->
+  rendered-label assertions in unit tests; visual acceptance via the
+  simulator preview
+
+---
+
 ## Board abstraction and WS175 AMOLED support
 
 - New board layer `bsp_obd_dsp/boards/` (ported from the validated

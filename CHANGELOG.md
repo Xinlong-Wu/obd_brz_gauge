@@ -6,6 +6,27 @@
 
 ---
 
+## 主题组件编排(schema 2.0)+ 打包器补齐
+
+- **theme.bin schema 2.0**:清单新增 `components{}`(主题自定义组件,
+  v1 原语组合、坐标相对组件矩形);页面布局可用 `instances[]` 编排
+  「内置组件 + 主题组件」;固件 2.0 与 1.0 双支持,v1 主题行为不变,
+  旧固件对 2.0 fail-closed 回退默认
+- **内置组件库 `ui_component`**:value(名称+数值+单位)/ arc / bar /
+  bignum / gforce 五件套,皮肤只走主题色角色、数据只走统一通道词汇表
+  (`obd.*` ↔ disp_item),修正首写零值不渲染的脏检查 bug(配套回归断言)
+- **pack_theme.py 补齐**(loader 早已支持、打包器缺的能力):多页
+  `layouts/<page_id>.json`、任意命名资产(`.png` RGB565 / `.rgba.png`
+  RGBA8888 / `.lv_font_bin` 字体)、`components.json` 嵌入、schema 自动
+  升 2.0;图片打包泛化到任意尺寸(dial/ring 仍强制 360×360)
+- **示例主题 `themes/example_v2_component/`**(value+arc+bar+gforce+
+  theme:badge 编排)+ 截图回归新场景 `theme_v2_component`(先打包再
+  预览,9/9 场景通过)
+- 端到端验证:测试内构造 v2 blob 走完整加载→建页→刷新→渲染断言;
+  模拟器预览视觉验收
+
+---
+
 ## 板级抽象与 WS175 AMOLED 支持
 
 - 新增板级抽象层 `bsp_obd_dsp/boards/`(移植自 Hokori23/obd_brz_gauge,

@@ -52,6 +52,12 @@ SCENARIOS = [
     ("slave_role", COMMON + ["--role", "slave", "--frames", "700",
                              "--screenshot", "{out}/slave_role.bmp"],
      ["slave_role.bmp"]),
+    # v2 组件编排主题(先打包 themes/example_v2_component 再预览)
+    ("theme_v2_component", COMMON + ["--bound",
+                                     "--theme", "{workdir}/v2demo.bin",
+                                     "--frames", "600",
+                                     "--screenshot", "{out}/theme_v2_component.bmp"],
+     ["theme_v2_component.bmp"]),
     # 整环巡览:8 次交替滑动,每页一张
     ("tour", COMMON + ["--bound", "--frames", "0", "--tour", "8",
                        "--shots-dir", "{out}"],
@@ -70,7 +76,7 @@ MAX_BAD_FRACTION = 0.005
 
 def run_scenario(bin_path, name, args, workdir):
     """跑一个场景,返回 (成功?, 产出说明)。"""
-    argv = [bin_path] + [a.replace("{out}", workdir) for a in args]
+    argv = [bin_path] + [a.replace("{out}", workdir).replace("{workdir}", os.path.dirname(workdir)) for a in args]
     env = dict(os.environ)
     env["SDL_VIDEODRIVER"] = "dummy"
     proc = subprocess.run(argv, cwd=REPO_ROOT, env=env,
@@ -142,6 +148,17 @@ def main():
     if os.path.isdir(args.workdir):
         shutil.rmtree(args.workdir)
     os.makedirs(args.workdir)
+
+    # v2 组件主题场景依赖打包产物:先离线打包(与固件同一 packer)
+    v2bin = os.path.join(args.workdir, "v2demo.bin")
+    pack = subprocess.run(
+        [sys.executable,
+         os.path.join(REPO_ROOT, "tools", "theme_packer", "pack_theme.py"),
+         os.path.join(REPO_ROOT, "themes", "example_v2_component"), v2bin],
+        cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    if pack.returncode != 0:
+        print("theme packer failed:\n%s" % pack.stderr.decode(errors="replace")[-400:])
+        return 2
     if args.update_goldens:
         os.makedirs(args.goldens, exist_ok=True)
 
