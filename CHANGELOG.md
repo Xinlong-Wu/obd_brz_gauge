@@ -6,6 +6,31 @@
 
 ---
 
+## 修复：非 360 板型使用 360 字体/图片（生成文件守卫失效）
+
+`gen_fonts.py` / `gen_assets.py` 生成的多分辨率 C 文件依赖
+`CONFIG_OBD_UI_RENDER_RES` 守卫，但文件内未包含 `sdkconfig.h`，固件构建中
+宏未定义、兜底值 360 恒生效——**WS128（240）与 WS175（466）实际一直在用
+360 字体/图片**（布局折叠正确、素材过大：标题挤压、NEARBY 被列表遮挡）。
+WS185 因渲染恰为 360 未暴露；模拟器因命令行 `-D` 传宏而幸免。修复为生成
+文件显式 `__has_include("sdkconfig.h")`；240 构建固件体积减 160KB。
+
+## WiFi 取图（MJPEG 实时流 + 截图下载）
+
+新增取图服务器（独立于 OTA 服务器，端口 8080/8081），与 ESP-NOW/BLE OBD
+共存，仪表正常运行：
+
+- **数据源**：flush 路径挂钩，PSRAM 影子帧缓冲（240→115KB / 360→259KB /
+  466→434KB，Kconfig `OBD_SCREENSHOT` 默认开，分配失败自动禁用）
+- **输出**：控制页（内嵌实时流 + 下载按钮）、`/snapshot.jpg`（软编码
+  esp_new_jpeg，RGB565_BE 直喂零转换）、`/screenshot.bmp`（24-bit 精确色）、
+  `:8081` MJPEG 流约 12fps（单客户端；独立 socket 任务，不阻塞 httpd）
+- **热点入口**：OTA 模式页复用，或 `OBD_SCREENSHOT_AUTO_START` 开机自启
+  （无触摸板专用，ws128 构建默认开；`OBD-Gauge-View-XXXX` / `88888888`）
+- 并修复 WS128 面板颜色极性：GC9A01 初始化补 `INVON`（此前屏幕黑白反相，
+  截图与实屏不一致暴露）
+- 已知限制：流为软编码，240 下约 10–20fps；取图无鉴权（热点密码即门槛）
+
 ## 720 母版 + 编译期缩放：全板原生渲染（分辨率无关 UI）
 
 UI/字体/素材/主题统一按 720×720 母版创作，编译期缩放到 `CONFIG_OBD_UI_RENDER_RES`

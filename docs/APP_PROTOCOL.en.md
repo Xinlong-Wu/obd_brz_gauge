@@ -96,6 +96,28 @@ Per-endpoint upload headers:
 every payload is SHA256-verified. Theme packaging is described in
 [THEMES.en.md](THEMES.en.md).
 
+## WiFi screen capture (screenshot / live stream)
+
+A dedicated capture server is built in (Kconfig `OBD_SCREENSHOT`, on by
+default); it coexists with the OTA server, ESP-NOW and BLE OBD:
+
+| Endpoint | Method | Description |
+|------|------|------|
+| `http://192.168.4.1:8080/` | GET | Control page: embedded MJPEG stream + download buttons |
+| `http://192.168.4.1:8080/snapshot.jpg` | GET | Current frame as JPEG (software encoder, quality 50) |
+| `http://192.168.4.1:8080/screenshot.bmp` | GET | Current frame as 24-bit BMP (exact colors, for pixel comparison) |
+| `http://192.168.4.1:8081/stream` | GET | MJPEG stream (multipart/x-mixed-replace, ~12fps, single client) |
+
+- **Two hotspot entries**: enter the OTA-mode page (ride its hotspot), or
+  Kconfig `OBD_SCREENSHOT_AUTO_START` (for touch-less boards — brings up the
+  `OBD-Gauge-View-XXXX` hotspot at boot, password `88888888`; BLE/ESP-NOW
+  keep running normally)
+- **No auth**: same level as `/ota/info` — the hotspot password is the gate;
+  capture is read-only with no side effects
+- Unusual builds where render != panel fall back to ui_scale; captured
+  content always equals the framebuffer (the final rendered frame)
+
+
 ## Boot-animation editor rules (app side)
 
 - 360×360 canvas, aspect locked to 1:1; a circular preview mask is

@@ -89,6 +89,25 @@ App 连上设备 SoftAP 后走 HTTP（所有端点均支持 OPTIONS 预检）。
 **安全性**：token 每会话随机；SoftAP WPA2-PSK；全部负载 SHA256 校验。
 主题打包格式见 [THEMES.md](THEMES.md)。
 
+## WiFi 取图（屏幕截图 / 实时流）
+
+固件内置独立的取图服务器（Kconfig `OBD_SCREENSHOT`，默认开），与 OTA 服务器、
+ESP-NOW、BLE OBD 共存，互不影响：
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `http://192.168.4.1:8080/` | GET | 控制页：MJPEG 实时流内嵌 + 下载按钮 |
+| `http://192.168.4.1:8080/snapshot.jpg` | GET | 当前帧 JPEG（软编码，质量 50）|
+| `http://192.168.4.1:8080/screenshot.bmp` | GET | 当前帧 24-bit BMP（精确色，用于像素对照）|
+| `http://192.168.4.1:8081/stream` | GET | MJPEG 流（multipart/x-mixed-replace，约 12fps，单客户端）|
+
+- **热点入口两种**：进入 OTA 模式页（复用其热点），或 Kconfig
+  `OBD_SCREENSHOT_AUTO_START`（无触摸板用，开机自动开热点
+  `OBD-Gauge-View-XXXX`，密码 `88888888`；仪表 BLE/ESP-NOW 正常运行）
+- **无鉴权**：与 `/ota/info` 同级——热点密码即门槛；取图只读、无副作用
+- 渲染分辨率 ≠ 面板分辨率的非常规构建由 ui_scale 兜底，取图内容始终
+  等于帧缓冲（即 UI 渲染的最终画面）
+
 ## 开机动画编辑规则（App 端）
 
 - 画布 360×360，比例锁 1:1；建议圆形预览遮罩（圆屏四角裁切）

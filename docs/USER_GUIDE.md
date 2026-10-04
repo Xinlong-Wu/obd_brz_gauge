@@ -7,7 +7,8 @@
 > **WS128（1.28" 无触摸板）用户**：本指南的全部操作（导航、设置、BLE 扫描）都基于
 > 触摸手势；WS128 板没有触摸，固件以**纯显示模式**运行——开机、显示仪表页、
 > BLE 自动回连上次绑定的适配器都正常，但无法手动导航/进设置（页面停在默认首页，
-> 沿用之前在触摸板上配好的 NVS 设置）。构建方式见
+> 沿用之前在触摸板上配好的 NVS 设置）。无触摸板可用 **WiFi 取图**远程查看
+> 画面（开机自动开热点，见下方「WiFi 取图」）。构建方式见
 > [DEVELOPMENT.md](DEVELOPMENT.md#适配新开发板)。
 
 ## 首次开机
@@ -118,6 +119,22 @@ OTA 按钮 → OTA 升级模式（见 [FLASH.md](FLASH.md#app-ota-升级双槽�
 
 设备会通过 BLE 只读清单服务（`0x1FFA`）暴露硬件 / 构建信息，App 刷写前自动做兼容校验，
 硬件不匹配会拒绝刷写。协议细节见 [APP_PROTOCOL.md](APP_PROTOCOL.md)。
+
+## WiFi 取图（远程看仪表 / 截图）
+
+固件可以把当前画面通过 WiFi 输出，仪表本身照常工作（BLE/ESP-NOW 不中断）：
+
+1. 触摸板：进 **MENU → INFO/OTA → OTA 按钮**（OTA 模式页热点开启时即可取图）；
+   **WS128 等无触摸板**：开机自动开热点（`OBD_SCREENSHOT_AUTO_START`，默认在
+   ws128 构建中打开）
+2. 手机/电脑加入热点（OTA 模式为 `OBD-Gauge-OTA-XXXX`，自动热点为
+   `OBD-Gauge-View-XXXX`，密码均 `88888888`）
+3. 浏览器打开 `http://192.168.4.1:8080/`：实时画面（约 12fps MJPEG）+
+   「下载当前帧 JPG」「下载精确色 BMP」按钮；也可直接 `curl -o shot.bmp
+   http://192.168.4.1:8080/screenshot.bmp`
+
+加入热点期间该设备没有外网，看完切回原 WiFi 即可。端点细节见
+[APP_PROTOCOL.md](APP_PROTOCOL.md)。
 
 ## 外接传感器（可选）
 

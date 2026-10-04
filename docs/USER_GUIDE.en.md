@@ -11,6 +11,8 @@ connect, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 > and automatic BLE reconnection to the last paired adapter all work, but
 > manual navigation/settings are unavailable (the UI stays on the default
 > home page, reusing the NVS settings configured earlier on a touch board).
+> Touch-less boards can use **WiFi screen capture** to view the display
+> remotely (hotspot starts at boot — see "WiFi screen capture" below).
 > See [DEVELOPMENT.en.md](DEVELOPMENT.en.md#porting-a-new-board) for build
 > instructions.
 
@@ -151,6 +153,24 @@ requires the gauge to be in OTA mode first (**version page → OTA button**):
 The device exposes a read-only BLE manifest service (`0x1FFA`) with hardware
 and build info; the app validates compatibility before flashing and refuses
 mismatched hardware. Protocol details in [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).
+
+## WiFi screen capture (remote view / screenshots)
+
+The firmware can output the current frame over WiFi while the gauge keeps
+running normally (BLE/ESP-NOW unaffected):
+
+1. Touch boards: enter **MENU -> INFO/OTA -> the OTA button** (capture is
+   available while the OTA-mode hotspot is up); **touch-less boards like the
+   WS128**: the hotspot starts automatically at boot
+   (`OBD_SCREENSHOT_AUTO_START`, enabled in the ws128 build)
+2. Join the hotspot from a phone/computer (`OBD-Gauge-OTA-XXXX` in OTA mode,
+   `OBD-Gauge-View-XXXX` for the auto hotspot, password `88888888` for both)
+3. Open `http://192.168.4.1:8080/` in a browser: live view (~12fps MJPEG) +
+   "download current frame JPG" and "download exact-color BMP" buttons; or
+   `curl -o shot.bmp http://192.168.4.1:8080/screenshot.bmp`
+
+The joined device has no internet while on the hotspot; switch back to your
+WiFi afterwards. Endpoint details in [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).
 
 ## Optional external sensors
 
