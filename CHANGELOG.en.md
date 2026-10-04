@@ -7,6 +7,40 @@ cleanups live in the git history.
 
 ---
 
+## 720 master + compile-time scaling: native rendering on every board (resolution-independent UI)
+
+UI, fonts, image assets and theme artwork are authored against a 720x720
+master and scaled at compile time to `CONFIG_OBD_UI_RENDER_RES`
+(WS185=360 / WS175=466 / WS128=240); **every board renders at its panel's
+native resolution**:
+
+- **Panels above 360 go full-screen**: WS175 switches from "360 layout
+  centered with dead margins" to native 466 rendering with zero layout,
+  asset or font changes (flip the render-resolution config)
+- **Layout `UIS()`**: `export_path/ui_res.h` folds 720-master pixels at
+  compile time; historical literals across `screens/*.c` were script-
+  migrated — **red-line revision**: screens are no longer SquareLine
+  artifacts; a re-export requires rerunning `tools/migrate_ui_literals.py`
+- **Asset/font pipelines**: `assets_src/images/` PNG masters →
+  `tools/gen_assets.py` multi-resolution C arrays; `fonts/Conthrax-
+  SemiBold.otf` (the common source of all 8 cuts) → `tools/gen_fonts.py`
+  true per-resolution rasterization; the 360 output matches history
+  (images byte-identical, fonts via a reviewed golden refresh)
+- **Themes/boot animation**: gen_themes/packer accept square >=360
+  masters; runtime theme assets are rescaled to the render resolution at
+  load; the boot canvas follows the render resolution (360-master videos
+  play full-screen)
+- **Simulator**: `--ui-res 240|466` previews non-360 builds; new
+  render_240/render_466 golden scenarios
+- **Rejected and documented**: rendering at 720/1080 at runtime then
+  downsampling (flash 1.03MB > partition headroom, WS128's 2MB PSRAM
+  cannot hold the shadow framebuffer, 4x fill rate, text softer than
+  native rasterization)
+- WS128 switches from "virtual 360 + flush downscale" to **native 240**
+  (0.44x pixel fill, measurably sharper and smoother); ui_scale remains
+  as the fallback scaler for render != panel, with the output path logged
+  at boot
+
 ## Fix: factory boot animation never played (bootmedia image switched to the raw layout)
 
 The factory bootmedia image was always a SPIFFS filesystem image while the

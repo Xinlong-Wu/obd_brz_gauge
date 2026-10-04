@@ -21,12 +21,16 @@ concurrency:
 
 jobs:
   themes-check:
-    name: Themes codegen check
+    name: Themes + assets + fonts codegen check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: gen_themes --check
         run: python3 tools/gen_themes.py --check
+      - name: gen_assets --check
+        run: python3 tools/gen_assets.py --check
+      - name: gen_fonts --check
+        run: python3 tools/gen_fonts.py --check
 
   unit-sim:
     name: Unit tests + simulator + screenshot regression

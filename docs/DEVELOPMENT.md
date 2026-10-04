@@ -106,6 +106,39 @@ tools/docker-build.sh menuconfig
 并把 git 分支 / 提交数 / 短哈希注入 `OBD_GAUGE_BUILD_TAG`（设备清单和版本页显示的
 build tag 就是它，所以发版前必须先 commit，见[发布流程](#发布流程)）。
 
+## 分辨率策略（720 母版）
+
+UI/字体/素材/主题资产统一按 **720×720 母版**创作，编译期缩放到目标渲染
+分辨率 `CONFIG_OBD_UI_RENDER_RES`（Kconfig，240–480，每板显式固定：
+WS185=360 / WS175=466 / WS128=240），**所有板以面板原生分辨率渲染**。
+大于 360 的屏幕（如 WS175）自动获得满屏原生 UI，无需任何布局改动。
+
+- **布局**：`export_path/ui_res.h` 的 `UIS(母版像素)` 在编译期折叠
+  （对称四舍五入）；新代码直接写母版值，`tools/migrate_ui_literals.py`
+  负责历史字面量迁移（角度/透明度/延时永远不裹 UIS）
+- **图片**：`assets_src/images/*.png` 母版 → `tools/gen_assets.py`
+  按分辨率生成 C 数组（LANCZOS；@360 与历史数据逐字节一致）
+- **字体**：`fonts/Conthrax-SemiBold.otf` 母版（720 号 = 360 时代值 ×2）
+  → `tools/gen_fonts.py` 经 `npx lv_font_conv` 每分辨率真光栅化；
+  需要 node（仅生成时），`--check` 免 node 供 CI
+- **主题**：`gen_themes.py` / `theme_packer` 接受 ≥360 方形母版
+  （360 的整数倍，如 720），构建/打包期 LANCZOS 到 360 契约；运行时
+  主题包里的资产在加载时若与渲染分辨率不符则盒式重采样（PSRAM，
+  unload 释放）；开机动画画布按渲染分辨率建、网格单元自动映射
+- **渲染 ≠ 面板**（非常规配置）时 `boards/ui_scale.c` 在 flush 阶段
+  缩放（下采样=盒式滤波/上采样=最近邻），启动 log 明示
+  `display: panel WxH, render N (native|...via ui_scale)`
+
+**否决记录**——"运行时按 720/1080 渲染再下采样"不可行：单张全屏图
+1.03MB(720)/2.33MB(1080) 超 app 分区余量(910KB)；WS128 仅 2MB PSRAM，
+720 影子帧缓冲就占 1.03MB；像素填充 4×/9× 拖垮动画帧率；文字超采样
+不如原生光栅化清晰。母版只存在于创作与编译期，板上永远是原生分辨率。
+
+**红线修订**：`screens/*.c` 自 UIS() 迁移后由本仓库维护（不再是
+"SquareLine 生成物、不得手改"）；SquareLine 重导出会丢掉 UIS() 包裹，
+必须重跑 `tools/migrate_ui_literals.py` 并过 sim_regress 金图门槛。
+新 UI 仍按 360 时代的视觉规格 ×2 书写母版值。
+
 ## 适配新开发板
 
 板级抽象在 `main/bsp_obd_dsp/boards/`(`board_api.h` 统一接口,`board_dispatch.c`
@@ -126,9 +159,8 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 
 - **WS128**:微雪 1.28" IPS 非触摸版,GC9A01 四线 SPI 240×240,ESP32-S3R2
   (封装内 2MB **Quad** PSRAM——公共默认是 Octal,必须用本板叠加层覆盖,否则
-  启动即 `octal_psram` 报错循环重启)。无触摸/无 TCA9554/无 ADS1115,纯显示:
-  UI 仍按 360×360 虚拟分辨率渲染,`board_ws_128_scale.c` 在 flush 阶段 3:2
-  最近邻降采样到 240 分块发屏(布局/主题/开机动画零改动);构建:
+  启动即 `octal_psram` 报错循环重启)。无触摸/无 TCA9554/无 ADS1115,纯显示;
+  渲染分辨率 240(720 母版编译期缩放,见[分辨率策略](#分辨率策略720-母版));构建:
 
 ```bash
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
@@ -142,7 +174,8 @@ WS175 提供同名宏/兼容壳),不要再直接 include ST77916.h。
 1. `Kconfig.projbuild` 加硬件版本选项（若 LCD / 触摸 / IO 扩展不同）
 2. 重点检查 `bsp_obd_dsp/`：`lcd_driver/`（初始化序列、QSPI 参数）、`touch_driver/`、
    `exio/`（有无 IO 扩展）、引脚定义
-3. 屏幕分辨率 / 色深宏在 `ST77916.h`，UI 按 360×360 设计，换屏要动 `export_path/`
+3. 渲染分辨率用本板 `sdkconfig.defaults.<id>` 固定为面板原生值（见
+   [分辨率策略](#分辨率策略720-母版)），布局/字体/素材自动适配
 4. 与车相关的都不用动 —— 车型逻辑全在 `app_obd_dsp/`
 
 ## PC 模拟器（UI 预览）
@@ -158,7 +191,9 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 - ESP-IDF 依赖由 `simulator/shims/`（include 路径遮蔽 + 桩实现）补齐，固件源码不动；
   LVGL 直接用 `managed_components/` 里与固件同版本的那份（8.4.0）
 - 支持编译期/运行时主题切换（`--theme-slot` / `--theme theme.bin`）、模拟未连接
-  （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）
+  （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）、
+  渲染分辨率（`--ui-res 240|466`，验证非 360 布局/字体/素材，等价于改
+  `CONFIG_OBD_UI_RENDER_RES`）
 - 无头截图验收：`SDL_VIDEODRIVER=dummy ... --frames 500 --screenshot x.bmp`，
   或 `--tour N` 自动巡览一圈逐页截图
 - 里程统计、开机动画解码、主题 manifest 解析路径与固件完全一致；BLE/OTA/三连表

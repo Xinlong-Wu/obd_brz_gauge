@@ -133,12 +133,18 @@ The generator enforces all of this at build time and tells you how to fix it.
 
 ### Artwork specs
 
-| Asset | Size | Alpha | Compiled size | Replaces |
-|-------|------|-------|---------------|----------|
-| `ring` | **exactly 360×360** | required (transparent center) | 380 KB | Outer bezel ring |
-| `needle` | ≤ 360×360 | required | w×h×3 B | Needle-page needle |
-| `dial` | **exactly 360×360** | ignored | 253 KB | Page background |
+| Asset | Master size | Alpha | Compiled size | Replaces |
+|-------|-------------|-------|---------------|----------|
+| `ring` | 360x360, or square **360xN master** (720 recommended) | required (transparent center) | 380 KB | Outer bezel ring |
+| `needle` | ≤ 720x720 (scaled to the 360 contract) | required | w×h×3 B | Needle-page needle |
+| `dial` | 360x360, or square **360xN master** (720 recommended) | ignored | 253 KB | Page background |
 
+- **Master resolution (author at 720x720)**: ring/dial accept square masters
+  that are integer multiples of 360 (e.g. 720x720); the build/pack pipeline
+  LANCZOS-downscales to the 360 contract, so the output is unchanged, and
+  360-sized artwork stays byte-identical to the historical output. Write
+  `needle_pivot_x/y` in **master pixels** — the tooling folds them by
+  master/360
 - **Needle art must point RIGHT (east)**: LVGL angle 0 draws unrotated, so
   art pointing up ends up 90° off
 - **Space is a hard constraint**: every registered theme's artwork is linked

@@ -114,6 +114,50 @@ theme table, and injects the git branch / commit count / short hash as
 on the version page — so commit *before* releasing, see
 [release workflow](#release-workflow)).
 
+## Resolution strategy (720 master)
+
+UI, fonts, image assets and theme artwork are all authored against a
+**720x720 master** and scaled at compile time to the render resolution
+`CONFIG_OBD_UI_RENDER_RES` (Kconfig, 240-480, pinned per board:
+WS185=360 / WS175=466 / WS128=240). **Every board renders at its panel's
+native resolution.** Panels larger than 360 (WS175) get the full-screen
+native UI with zero layout changes.
+
+- **Layout**: `UIS(master_px)` in `export_path/ui_res.h` folds at compile
+  time (symmetric rounding); write master values in new code,
+  `tools/migrate_ui_literals.py` migrates historical literals (angles/
+  opacities/delays are never wrapped)
+- **Images**: `assets_src/images/*.png` masters → `tools/gen_assets.py`
+  emits C arrays per resolution (LANCZOS; the 360 data is byte-identical
+  to the historical arrays)
+- **Fonts**: `fonts/Conthrax-SemiBold.otf` master (720 sizes = the 360-era
+  values x2) → `tools/gen_fonts.py` rasterizes truly per resolution via
+  `npx lv_font_conv`; node is needed only when generating, `--check` is
+  node-free for CI
+- **Themes**: `gen_themes.py` / `theme_packer` accept square masters
+  >=360 (integer multiples of 360, e.g. 720) and LANCZOS down to the 360
+  contract at build/pack time; runtime theme assets are box-rescaled at
+  load when they don't match the render resolution (PSRAM, freed on
+  unload); the boot animation canvas follows the render resolution with
+  grid cells mapped automatically
+- **Render != panel** (unusual configs) engages `boards/ui_scale.c` at
+  flush time (downscale = box filter / upscale = nearest), and the boot
+  log states the path: `display: panel WxH, render N (native|...via ui_scale)`
+
+**Rejected alternative** — "render at 720/1080 at runtime and downsample"
+does not fit this hardware: one full-screen image is 1.03MB (720) /
+2.33MB (1080) vs 910KB of app-partition headroom; the WS128 has only
+2MB PSRAM and a 720 shadow framebuffer alone is 1.03MB; 4x/9x pixel
+fill kills animation frame rates; supersampled text is softer than
+native rasterization. Masters exist only at authoring and compile
+time — on the board, everything renders natively.
+
+**Red-line revision**: since the UIS() migration, `screens/*.c` is
+maintained in this repo (no longer "SquareLine-generated, do not edit");
+a SquareLine re-export would drop the UIS() wrapping — rerun
+`tools/migrate_ui_literals.py` and pass the sim_regress golden gate.
+New UI keeps writing master values (the 360-era visual spec x2).
+
 ## Porting a new board
 
 The board layer lives in `main/bsp_obd_dsp/boards/` (`board_api.h` is the
@@ -138,10 +182,9 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 - **WS128**: Waveshare 1.28" IPS no-touch, GC9A01 4-wire SPI 240x240,
   ESP32-S3R2 (2MB **Quad** PSRAM in package — the shared default is octal and
   must be overridden via this board's overlay, otherwise boot loops with the
-  `octal_psram` error). No touch / TCA9554 / ADS1115, display-only: the UI
-  still renders at a virtual 360x360 and `board_ws_128_scale.c` downsamples
-  3:2 (nearest neighbor) into 240-wide chunks at flush time (layout, themes
-  and boot animation unchanged). Build:
+  `octal_psram` error). No touch / TCA9554 / ADS1115, display-only; renders
+  at 240 (720 master folded at compile time, see
+  [Resolution strategy](#resolution-strategy-720-master)). Build:
 
 ```bash
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
@@ -157,8 +200,9 @@ of including ST77916.h directly.
    IO expander differ)
 2. Focus on `bsp_obd_dsp/`: `lcd_driver/` (init sequence, QSPI parameters),
    `touch_driver/`, `exio/` (IO expander present?), pin definitions
-3. Resolution / color-depth macros live in `ST77916.h`; the UI assumes
-   360×360, so a different screen means touching `export_path/`
+3. Pin the render resolution to the panel's native value in this board's
+   `sdkconfig.defaults.<id>` (see [Resolution strategy](#resolution-strategy-720-master));
+   layout/fonts/assets adapt automatically
 4. Nothing vehicle-related needs to change — all car logic lives in
    `app_obd_dsp/`
 
@@ -178,7 +222,9 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
   `managed_components/` — the exact copy the firmware builds against (8.4.0)
 - Compile-time / runtime theme switching (`--theme-slot` / `--theme
   theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
-  (`--no-boot`), fake-data scenarios (`--scenario`)
+  (`--no-boot`), fake-data scenarios (`--scenario`), render resolution
+  (`--ui-res 240|466`, verifies non-360 layout/fonts/assets — equivalent to
+  changing `CONFIG_OBD_UI_RENDER_RES`)
 - Headless screenshot acceptance: `SDL_VIDEODRIVER=dummy ... --frames 500
   --screenshot x.bmp`, or `--tour N` to walk the whole carousel with a
   screenshot per page
