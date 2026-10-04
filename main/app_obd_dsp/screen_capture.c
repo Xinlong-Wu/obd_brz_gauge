@@ -13,6 +13,7 @@
 
 #include "esp_check.h"
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_jpeg_enc.h"
 #include "lvgl.h"
@@ -29,6 +30,7 @@ static bool s_ready;
 // JPEG 编码器(懒打开,httpd 快照与流任务共用,内部互斥串行化)
 static SemaphoreHandle_t s_jpeg_mtx;
 static jpeg_enc_handle_t s_jpeg;
+static int64_t s_encoder_retry_after_us;   // 编码器打开失败后的退避截止时间
 static uint8_t *s_jpeg_in;          // 16 字节对齐的整帧输入(jpeg_calloc_align)
 static size_t s_jpeg_in_bytes;
 
@@ -74,7 +76,9 @@ void screen_capture_on_flush(const lv_area_t *area, const lv_color_t *color_map)
     }
 }
 
-/** 短持 lvgl 锁把影子快照进对齐编码输入缓冲(flush 只在 LVGL 锁内发生)。 */
+/** 短持 lvgl 锁把影子快照进对齐编码输入缓冲(flush 只在 LVGL 锁内发生)。
+ *  影子是大端 RGB565,编码器只收 RGB888(见 esp_jpeg_common.h 格式表),
+ *  拷贝时逐像素展开。 */
 static esp_err_t screen_capture_snapshot_aligned(void)
 {
     extern SemaphoreHandle_t lvgl_mux;   // app_main.c 全局(BLE 扫描页同款用法)
@@ -84,7 +88,16 @@ static esp_err_t screen_capture_snapshot_aligned(void)
     if (xSemaphoreTake(lvgl_mux, pdMS_TO_TICKS(200)) != pdTRUE) {
         return ESP_ERR_TIMEOUT;
     }
-    memcpy(s_jpeg_in, s_shadow, s_jpeg_in_bytes);
+    const size_t px = (size_t)s_res * s_res;
+    const uint16_t *src = s_shadow;
+    uint8_t *dst = s_jpeg_in;
+    for (size_t i = 0; i < px; i++) {
+        const uint16_t v = (uint16_t)((src[i] << 8) | (src[i] >> 8));   // unswap
+        const uint16_t r5 = (v >> 11) & 0x1f, g6 = (v >> 5) & 0x3f, b5 = v & 0x1f;
+        *dst++ = (uint8_t)((r5 << 3) | (r5 >> 2));
+        *dst++ = (uint8_t)((g6 << 2) | (g6 >> 4));
+        *dst++ = (uint8_t)((b5 << 3) | (b5 >> 2));
+    }
     xSemaphoreGive(lvgl_mux);
     return ESP_OK;
 }
@@ -94,19 +107,31 @@ static esp_err_t screen_capture_ensure_encoder(void)
     if (s_jpeg != NULL) {
         return ESP_OK;
     }
-    s_jpeg_in_bytes = (size_t)s_res * s_res * sizeof(uint16_t);
-    s_jpeg_in = jpeg_calloc_align(s_jpeg_in_bytes, 16);
-    ESP_RETURN_ON_FALSE(s_jpeg_in != NULL, ESP_ERR_NO_MEM, TAG, "jpeg input alloc failed");
+    // 失败冷却:编码器打开失败(如组件不支持/内存不足)时退避 5s,
+    // 避免流任务每帧重试刷屏 + 输入缓冲反复分配
+    if (esp_timer_get_time() < s_encoder_retry_after_us) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (s_jpeg_in == NULL) {   // 只分配一次:失败重试不得重复分配(泄漏)
+        s_jpeg_in_bytes = (size_t)s_res * s_res * 3;   // RGB888
+        s_jpeg_in = jpeg_calloc_align(s_jpeg_in_bytes, 16);
+        ESP_RETURN_ON_FALSE(s_jpeg_in != NULL, ESP_ERR_NO_MEM, TAG, "jpeg input alloc failed");
+    }
 
     jpeg_enc_config_t cfg = DEFAULT_JPEG_ENC_CONFIG();
     cfg.width = s_res;
     cfg.height = s_res;
-    cfg.src_type = JPEG_PIXEL_FORMAT_RGB565_BE;   // LV_COLOR_16_SWAP=y → 大端,零转换
+    cfg.src_type = JPEG_PIXEL_FORMAT_RGB888;   // 编码器不支持 RGB565_BE/LE(仅解码支持)
     cfg.subsampling = JPEG_SUBSAMPLE_420;
     cfg.quality = 50;
     cfg.task_enable = false;
-    ESP_RETURN_ON_ERROR(jpeg_enc_open(&cfg, &s_jpeg), TAG, "jpeg encoder open failed");
-    ESP_LOGI(TAG, "jpeg encoder open (res %u, q%u)", s_res, cfg.quality);
+    const jpeg_error_t err = jpeg_enc_open(&cfg, &s_jpeg);
+    if (err != JPEG_ERR_OK) {
+        s_encoder_retry_after_us = esp_timer_get_time() + 5000000;
+        ESP_LOGE(TAG, "jpeg encoder open failed: %d (retry after 5s)", err);
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "jpeg encoder open (res %u, RGB888, q%u)", s_res, cfg.quality);
     return ESP_OK;
 }
 
@@ -120,8 +145,9 @@ esp_err_t screen_capture_jpeg(uint8_t *out, size_t cap, int *out_size)
     }
     ESP_RETURN_ON_FALSE(s_jpeg_mtx != NULL, ESP_ERR_NO_MEM, TAG, "jpeg mutex alloc failed");
 
-    ESP_RETURN_ON_ERROR(screen_capture_snapshot_aligned(), TAG, "snapshot failed");
+    // 顺序不可换:先 ensure(分配输入缓冲),再快照(往缓冲里写)
     ESP_RETURN_ON_ERROR(screen_capture_ensure_encoder(), TAG, "encoder init failed");
+    ESP_RETURN_ON_ERROR(screen_capture_snapshot_aligned(), TAG, "snapshot failed");
 
     xSemaphoreTake(s_jpeg_mtx, portMAX_DELAY);
     esp_err_t err = jpeg_enc_process(s_jpeg, s_jpeg_in, (int)s_jpeg_in_bytes,

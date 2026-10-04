@@ -27,10 +27,11 @@ coexisting with ESP-NOW/BLE OBD while the gauge runs normally:
   (240 -> 115KB / 360 -> 259KB / 466 -> 434KB; Kconfig `OBD_SCREENSHOT`
   default on, auto-disabled if allocation fails)
 - **Output**: control page (embedded live stream + download buttons),
-  `/snapshot.jpg` (software-encoded via esp_new_jpeg, RGB565_BE fed with
-  zero conversion), `/screenshot.bmp` (24-bit exact color), and a ~12fps
-  MJPEG stream on :8081 (single client; separate socket task so httpd never
-  starves)
+  `/snapshot.jpg` (software-encoded via esp_new_jpeg; the snapshot expands
+  RGB565 to RGB888 per pixel — the encoder does not accept RGB565 input,
+  the first version failed to open per frame on RGB565_BE),
+  `/screenshot.bmp` (24-bit exact color), and a ~12fps MJPEG stream on
+  :8081 (single client; separate socket task so httpd never starves)
 - **Hotspot entry**: rides the OTA-mode page, or boots up automatically via
   `OBD_SCREENSHOT_AUTO_START` (for touch-less boards, default on in the
   ws128 build; `OBD-Gauge-View-XXXX` / `88888888`)

@@ -132,7 +132,9 @@ static esp_err_t board_ws_128_panel_init(void)
         .lcd_param_bits = 8,
         .spi_mode = 0,
         .trans_queue_depth = BOARD_WS_128_GC9A01_LCD_TRANS_QUEUE,
-        .on_color_trans_done = native_color_trans_done,   // 默认直通;ui_scale 激活时重挂
+        // 完成回调留空:register_display_flush_ready_callback 阶段统一挂接
+        // (在此预挂会导致之后重挂触发 esp_lcd 的 overwritten 警告)
+        .on_color_trans_done = NULL,
     };
     ESP_RETURN_ON_ERROR(
         esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)BOARD_WS_128_GC9A01_SPI_HOST,
@@ -159,6 +161,8 @@ static esp_err_t board_ws_128_panel_init(void)
                         TAG, "panel invert failed");
 #endif
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel_handle, true), TAG, "panel enable failed");
+    // io 建好后立即挂接完成回调(register 阶段 io 尚不存在,当时的挂接是空操作)
+    ESP_RETURN_ON_ERROR(board_ws_128_wire_trans_done(), TAG, "wire trans done failed");
     ESP_LOGI(TAG, "panel ready (physical %ux%u; render res via CONFIG_OBD_UI_RENDER_RES)",
              (unsigned)BOARD_WS_128_GC9A01_H_RES, (unsigned)BOARD_WS_128_GC9A01_V_RES);
     return ESP_OK;

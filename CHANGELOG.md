@@ -23,8 +23,10 @@ WS185 因渲染恰为 360 未暴露；模拟器因命令行 `-D` 传宏而幸免
 - **数据源**：flush 路径挂钩，PSRAM 影子帧缓冲（240→115KB / 360→259KB /
   466→434KB，Kconfig `OBD_SCREENSHOT` 默认开，分配失败自动禁用）
 - **输出**：控制页（内嵌实时流 + 下载按钮）、`/snapshot.jpg`（软编码
-  esp_new_jpeg，RGB565_BE 直喂零转换）、`/screenshot.bmp`（24-bit 精确色）、
-  `:8081` MJPEG 流约 12fps（单客户端；独立 socket 任务，不阻塞 httpd）
+  esp_new_jpeg，快照时 RGB565→RGB888 逐像素展开——编码器不支持 RGB565
+  输入，首版曾因误用 RGB565_BE 每帧打开失败）、`/screenshot.bmp`
+  （24-bit 精确色）、`:8081` MJPEG 流约 12fps（单客户端；独立 socket
+  任务，不阻塞 httpd）
 - **热点入口**：OTA 模式页复用，或 `OBD_SCREENSHOT_AUTO_START` 开机自启
   （无触摸板专用，ws128 构建默认开；`OBD-Gauge-View-XXXX` / `88888888`）
 - 并修复 WS128 面板颜色极性：GC9A01 初始化补 `INVON`（此前屏幕黑白反相，
