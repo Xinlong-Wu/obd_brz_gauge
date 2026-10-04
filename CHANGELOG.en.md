@@ -35,6 +35,13 @@ coexisting with ESP-NOW/BLE OBD while the gauge runs normally:
 - **Hotspot entry**: rides the OTA-mode page, or boots up automatically via
   `OBD_SCREENSHOT_AUTO_START` (for touch-less boards, default on in the
   ws128 build; `OBD-Gauge-View-XXXX` / `88888888`)
+- **Remote touch** (Kconfig `OBD_REMOTE_TOUCH`, available to any board):
+  the control page picture doubles as a touchscreen — swipes/taps/
+  long-presses are injected through a virtual pointer device, and the whole
+  gesture system (paging, long-press edit, settings rollers) works exactly
+  as with a real finger; coexists with a real touch panel (LVGL multiple
+  input devices); all UI gestures are LVGL-indev driven, so a virtual indev
+  lights them up with zero UI changes
 - Also fixes the WS128 panel color polarity: GC9A01 init now sends `INVON`
   (the screen previously showed inverted black/white — exposed by comparing
   screenshots against the panel)

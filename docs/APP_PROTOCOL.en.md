@@ -107,13 +107,17 @@ default); it coexists with the OTA server, ESP-NOW and BLE OBD:
 | `http://192.168.4.1:8080/snapshot.jpg` | GET | Current frame as JPEG (software encoder, quality 50) |
 | `http://192.168.4.1:8080/screenshot.bmp` | GET | Current frame as 24-bit BMP (exact colors, for pixel comparison) |
 | `http://192.168.4.1:8081/stream` | GET | MJPEG stream (multipart/x-mixed-replace, ~12fps, single client) |
+| `/touch?x=&y=&p=` | GET | Remote touch injection: x/y normalized 0-10000, p=`1`/`0`
+      press/release; requires Kconfig `OBD_REMOTE_TOUCH` (204 on success,
+      500 when not enabled) |
 
 - **Two hotspot entries**: enter the OTA-mode page (ride its hotspot), or
   Kconfig `OBD_SCREENSHOT_AUTO_START` (for touch-less boards — brings up the
   `OBD-Gauge-View-XXXX` hotspot at boot, password `88888888`; BLE/ESP-NOW
   keep running normally)
 - **No auth**: same level as `/ota/info` — the hotspot password is the gate;
-  capture is read-only with no side effects
+  capture is read-only with no side effects (with remote touch enabled,
+  `/touch` injects input, gated by the same hotspot password)
 - Unusual builds where render != panel fall back to ui_scale; captured
   content always equals the framebuffer (the final rendered frame)
 

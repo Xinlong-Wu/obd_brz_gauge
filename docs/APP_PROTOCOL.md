@@ -100,11 +100,14 @@ ESP-NOW、BLE OBD 共存，互不影响：
 | `http://192.168.4.1:8080/snapshot.jpg` | GET | 当前帧 JPEG（软编码，质量 50）|
 | `http://192.168.4.1:8080/screenshot.bmp` | GET | 当前帧 24-bit BMP（精确色，用于像素对照）|
 | `http://192.168.4.1:8081/stream` | GET | MJPEG 流（multipart/x-mixed-replace，约 12fps，单客户端）|
+| `/touch?x=&y=&p=` | GET | 远程触摸注入：x/y 为 0–10000 归一化坐标，p=`1`/`0` 按下/抬起；
+      需 Kconfig `OBD_REMOTE_TOUCH`（返回 204；未启用返回 500）|
 
 - **热点入口两种**：进入 OTA 模式页（复用其热点），或 Kconfig
   `OBD_SCREENSHOT_AUTO_START`（无触摸板用，开机自动开热点
   `OBD-Gauge-View-XXXX`，密码 `88888888`；仪表 BLE/ESP-NOW 正常运行）
 - **无鉴权**：与 `/ota/info` 同级——热点密码即门槛；取图只读、无副作用
+  （启用远程触摸后 `/touch` 可注入输入，同样以热点密码为门槛）
 - 渲染分辨率 ≠ 面板分辨率的非常规构建由 ui_scale 兜底，取图内容始终
   等于帧缓冲（即 UI 渲染的最终画面）
 

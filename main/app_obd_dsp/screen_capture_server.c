@@ -6,6 +6,7 @@
 
 #if CONFIG_OBD_SCREENSHOT
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "freertos/FreeRTOS.h"
@@ -21,6 +22,7 @@
 
 #include "app_obd_dsp/screen_capture.h"
 #include "app_obd_dsp/screen_capture_server.h"
+#include "app_obd_dsp/remote_touch.h"
 
 static const char *TAG = "capture_srv";
 
@@ -138,21 +140,40 @@ static esp_err_t page_handler(httpd_req_t *req)
         }
     }
 
-    char *html = heap_caps_malloc(1536, MALLOC_CAP_SPIRAM);
+    char *html = heap_caps_malloc(4096, MALLOC_CAP_SPIRAM);
     ESP_RETURN_ON_FALSE(html != NULL, ESP_ERR_NO_MEM, TAG, "page buf alloc failed");
-    snprintf(html, 1536,
+    snprintf(html, 4096,
              "<!doctype html><html><head><meta charset='utf-8'>"
              "<meta name='viewport' content='width=device-width,initial-scale=1'>"
              "<title>OBD Gauge View</title>"
              "<style>body{background:#111;color:#eee;font-family:sans-serif;text-align:center;margin:0;padding:16px}"
-             "img{max-width:96vw;border-radius:50%%}"
+             "#cv{display:inline-block;touch-action:none;border:3px solid #333;border-radius:14px}"
+             "#cv.on{border-color:#2a2}"
+             "#cv img{max-width:88vw;max-height:70vh;display:block;border-radius:50%%}"
              "a.btn{display:inline-block;margin:10px 6px;padding:10px 18px;background:#2266cc;"
-             "color:#fff;border-radius:8px;text-decoration:none;font-size:15px}</style></head><body>"
+             "color:#fff;border-radius:8px;text-decoration:none;font-size:15px}"
+             "label{font-size:14px;color:#9bd}</style></head><body>"
              "<h3>OBD Gauge 实时画面</h3>"
-             "<img src='http://%s:%d/stream' alt='stream'>"
+             "<div id='cv'><img src='http://%s:%d/stream' alt='stream'></div>"
+             "<div><label><input type='checkbox' id='tc' checked> 远程触摸(在画面上滑动/点按)</label></div>"
              "<div><a class='btn' href='/snapshot.jpg' download='frame.jpg'>下载当前帧 JPG</a>"
              "<a class='btn' href='/screenshot.bmp' download='screenshot.bmp'>下载精确色 BMP</a></div>"
              "<p style='color:#777;font-size:13px'>若画面未刷新,点这里重连流:<a style='color:#8ab4ff' href='http://%s:%d/stream'>stream</a></p>"
+             "<script>"
+             "var cv=document.getElementById('cv'),tc=document.getElementById('tc'),v=cv.querySelector('img'),lt=0;"
+             "function n(e){var r=v.getBoundingClientRect();"
+             "return [Math.min(10000,Math.max(0,(e.clientX-r.left)*10000/r.width|0)),"
+             "Math.min(10000,Math.max(0,(e.clientY-r.top)*10000/r.height|0))];}"
+             "function s(x,y,p){fetch('/touch?x='+x+'&y='+y+'&p='+(p?1:0)+'&t='+Date.now(),{cache:'no-store'});}"
+             "tc.onchange=function(){cv.classList.toggle('on',tc.checked);};"
+             "cv.onpointerdown=function(e){if(!tc.checked)return;cv.setPointerCapture(e.pointerId);"
+             "var c=n(e);s(c[0],c[1],1);e.preventDefault();};"
+             "cv.onpointermove=function(e){if(!tc.checked||e.buttons===0)return;"
+             "var t=Date.now();if(t-lt<40)return;lt=t;var c=n(e);s(c[0],c[1],1);};"
+             "cv.onpointerup=cv.onpointercancel=function(e){if(!tc.checked)return;"
+             "var c=n(e);s(c[0],c[1],0);};"
+             "cv.classList.add('on');"
+             "</script>"
              "</body></html>",
              ip, VIEW_STREAM_PORT, ip, VIEW_STREAM_PORT);
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -178,6 +199,27 @@ static esp_err_t snapshot_handler(httpd_req_t *req)
     err = httpd_resp_send(req, (const char *)buf, size);
     free(buf);
     return err;
+}
+
+static esp_err_t touch_handler(httpd_req_t *req)
+{
+    if (!remote_touch_ready()) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "remote touch not enabled");
+        return ESP_OK;
+    }
+    char query[64] = "", val[12] = "";
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "missing query");
+        return ESP_OK;
+    }
+    int x = 5000, y = 5000;
+    bool pressed = false;
+    if (httpd_query_key_value(query, "x", val, sizeof(val)) == ESP_OK) x = atoi(val);
+    if (httpd_query_key_value(query, "y", val, sizeof(val)) == ESP_OK) y = atoi(val);
+    if (httpd_query_key_value(query, "p", val, sizeof(val)) == ESP_OK) pressed = (val[0] == '1');
+    remote_touch_feed(x, y, pressed);
+    httpd_resp_set_status(req, "204 No Content");
+    return httpd_resp_send(req, NULL, 0);
 }
 
 static esp_err_t screenshot_handler(httpd_req_t *req)
@@ -292,7 +334,7 @@ esp_err_t screen_capture_server_start(void)
 
     httpd_config_t httpd_cfg = HTTPD_DEFAULT_CONFIG();
     httpd_cfg.server_port = VIEW_HTTP_PORT;
-    httpd_cfg.max_uri_handlers = 4;
+    httpd_cfg.max_uri_handlers = 6;
     httpd_cfg.stack_size = 8192;
     httpd_cfg.task_priority = 3;      // 低于 LVGL(4)
     httpd_cfg.core_id = 1;
@@ -304,6 +346,7 @@ esp_err_t screen_capture_server_start(void)
         { .uri = "/",              .method = HTTP_GET, .handler = page_handler },
         { .uri = "/snapshot.jpg",  .method = HTTP_GET, .handler = snapshot_handler },
         { .uri = "/screenshot.bmp", .method = HTTP_GET, .handler = screenshot_handler },
+        { .uri = "/touch",          .method = HTTP_GET, .handler = touch_handler },
     };
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {
         ESP_RETURN_ON_ERROR(httpd_register_uri_handler(s_httpd, &uris[i]), TAG,

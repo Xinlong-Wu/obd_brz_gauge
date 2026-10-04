@@ -45,6 +45,7 @@
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "app_obd_dsp/screen_capture.h"
 #include "app_obd_dsp/screen_capture_server.h"
+#include "app_obd_dsp/remote_touch.h"
 #include "export_path/ui_ext.h"
 #include "app_obd_dsp/app_event.h"
 #include "theme_engine/theme_interface.h"
@@ -300,6 +301,12 @@ void app_main(void)
     } else {
         ESP_LOGI(TAG, "Board reports no touch input, running display-only");
     }
+
+    /* Remote touch: virtual pointer indev fed by the capture control page
+       (Kconfig OBD_REMOTE_TOUCH; coexists with a real touch panel). */
+#if CONFIG_OBD_REMOTE_TOUCH
+    ESP_ERROR_CHECK(remote_touch_register(disp));
+#endif
 
     /* 6. Start LVGL task */
     lvgl_mux = xSemaphoreCreateMutex();

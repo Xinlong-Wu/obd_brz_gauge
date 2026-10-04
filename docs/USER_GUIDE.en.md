@@ -12,7 +12,8 @@ connect, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 > manual navigation/settings are unavailable (the UI stays on the default
 > home page, reusing the NVS settings configured earlier on a touch board).
 > Touch-less boards can use **WiFi screen capture** to view the display
-> remotely (hotspot starts at boot — see "WiFi screen capture" below).
+> remotely and operate it fully via **remote touch** (hotspot starts at
+> boot — see "WiFi screen capture" below).
 > See [DEVELOPMENT.en.md](DEVELOPMENT.en.md#porting-a-new-board) for build
 > instructions.
 
@@ -168,6 +169,12 @@ running normally (BLE/ESP-NOW unaffected):
 3. Open `http://192.168.4.1:8080/` in a browser: live view (~12fps MJPEG) +
    "download current frame JPG" and "download exact-color BMP" buttons; or
    `curl -o shot.bmp http://192.168.4.1:8080/screenshot.bmp`
+
+**Remote touch** (`OBD_REMOTE_TOUCH`, on by default in the ws128 build): the
+control page itself becomes a touchscreen — **swipe / tap / long-press** on
+the live view to operate the gauge (paging, settings, long-press edit all
+work exactly like a real finger); the "remote touch" checkbox below the
+picture disables it temporarily (the page scrolls normally when off).
 
 The joined device has no internet while on the hotspot; switch back to your
 WiFi afterwards. Endpoint details in [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).

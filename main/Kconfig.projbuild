@@ -99,6 +99,18 @@ menu "OBD DSP Configuration"
             (BLE OBD / ESP-NOW are not paused); enable in the board's
             sdkconfig.defaults overlay.
 
+    config OBD_REMOTE_TOUCH
+        bool "Remote touch injection from the capture control page"
+        depends on OBD_SCREENSHOT
+        default n
+        help
+            Registers a virtual LVGL pointer device fed by the capture
+            server's /touch endpoint, so the gauge can be fully operated
+            (swipes, long-press, taps) from the control page in a browser.
+            Coexists with a real touch panel (LVGL supports multiple
+            pointer devices); primarily for touch-less boards — enable in
+            the board's sdkconfig.defaults overlay.
+
     config OBD_RS485_TX_GPIO
         int "RS485 TX GPIO"
         range 0 48
