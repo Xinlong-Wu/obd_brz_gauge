@@ -7,6 +7,35 @@ cleanups live in the git history.
 
 ---
 
+## Dynamic dashboard pages (user-defined gauges)
+
+The main UI upgrades from the static carousel to a **user-definable
+pager**: MENU → gauge pages (1..8) → ADD.
+
+- **Data model**: `ui_dashboard_cfg_t` (6 pages x 6 unified-channel
+  slots, METRIC/GEAR/G-FORCE page types) appended to the NVS config per
+  the red line; corruption self-heals and old devices migrate from the
+  existing TEMP/INFO/CHART/NEEDLE mappings (same look, boots on TEMP)
+- **Runtime**: `ui_home_runtime` renders the tiles — MENU (vehicle name
+  + BLE SCAN/SETTINGS/INFO-OTA entries), METRIC slot grids (the
+  round-screen row model [1]..[2,2,2] validated by ref), GEAR big digit
+  + RPM arc, G-FORCE dot plot, ADD geometric "+"; swipe steps tiles, a
+  100ms timer refreshes (components self-read the unified channels)
+- **Editing**: long-press a gauge page → EDIT/DELETE/BACK overlay; EDIT
+  opens the roller config page (TYPE / SLOTS 1-6 / SLOT / CHANNEL over
+  18 items), every change persists immediately; ADD appends a default
+  RPM page (8-page cap)
+- **Navigation takeover**: boot lands on home; the version page (MENU →
+  INFO/OTA) keeps swipe-up BLE / swipe-down settings / OTA button /
+  hidden entries; partition themes with pages still take over at boot
+- **Settings loses the BOOT PAGE row** (superseded); retiring the static
+  carousel screens lands as a follow-up cleanup commit
+- Simulator `--home` preview (now a no-op — boot lands on home
+  naturally); mock mirrors the firmware migration/mutators; goldens
+  regenerated for the new UI (tour walks MENU/TEMP/INFO/GFORCE/CHART/ADD)
+
+---
+
 ## Theme component orchestration (schema 2.0) + packer completion
 
 - **theme.bin schema 2.0**: the manifest gains `components{}` (theme-

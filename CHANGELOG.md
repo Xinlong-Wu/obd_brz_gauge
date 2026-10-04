@@ -6,6 +6,30 @@
 
 ---
 
+## 动态仪表页（用户自定义表盘）
+
+主界面从静态轮播升级为**可自定义分页**：MENU → 仪表页(1..8) → ADD。
+
+- **数据模型**：`ui_dashboard_cfg_t`（6 页 × 6 槽统一通道，METRIC/GEAR/
+  G-FORCE 页型）按 NVS 追加红线并入配置；损坏自愈 + 老设备按现有
+  TEMP/INFO/CHART/NEEDLE 映射自动迁移（外观对齐，开机停 TEMP）
+- **运行时**：`ui_home_runtime` 渲染平铺——MENU（车型名 + BLE SCAN/
+  SETTINGS/INFO-OTA 入口）、METRIC 槽位网格（ref 验证过的圆屏行模型
+  [1]..[2,2,2]）、GEAR 大字挡位+RPM 弧、G-FORCE 点图、ADD 几何 "+"；
+  左右滑切页、100ms 刷新（组件自读统一通道）
+- **编辑**：长按仪表页 → EDIT/DELETE/BACK 蒙层；EDIT 进滚轮配置页
+  （TYPE / SLOTS 1-6 / SLOT / CHANNEL 18 通道），改动即时持久化；
+  ADD 追加默认 RPM 页（上限 8）
+- **导航接管**：开机进 home；版本页（MENU → INFO/OTA）保留上滑 BLE/
+  下滑设置/OTA 按钮/隐藏入口；加载带页面的运行时主题时仍先进主题页
+- **设置页 BOOT PAGE 项移除**（被动态页取代）；静态轮播页
+  （Temp/Info/Needle/Gear/Rpm/Speed 等）退役工作随后续清理提交完成
+- 模拟器 `--home` 预览（现为 no-op，boot 天然进 home）；mock 与固件
+  同款迁移/变更器；金图按新 UI 重生（tour 遍历 MENU/TEMP/INFO/GFORCE/
+  CHART/ADD）
+
+---
+
 ## 主题组件编排(schema 2.0)+ 打包器补齐
 
 - **theme.bin schema 2.0**:清单新增 `components{}`(主题自定义组件,
