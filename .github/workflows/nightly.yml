@@ -60,7 +60,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
-              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" \
+              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws175" \
               set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
@@ -69,7 +69,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
-              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" \
+              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128" \
               set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build

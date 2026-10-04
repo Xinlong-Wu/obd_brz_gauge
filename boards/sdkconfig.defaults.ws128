@@ -1,6 +1,6 @@
 # WS128 (Waveshare ESP32-S3-LCD-1.28 非触摸版) board overlay — build with (Docker):
 #   idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
-#     -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" set-target esp32s3 && build
+#     -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128" set-target esp32s3 && build
 # Hardware: ESP32-S3R2 (16MB Flash + 2MB Quad PSRAM), GC9A01 240x240 4-wire SPI, no touch.
 CONFIG_OBD_BOARD_WS_128_GC9A01=y
 # V1-only bring-up (RS485 / ADS1115) is compiled out on non-WS185 boards; the

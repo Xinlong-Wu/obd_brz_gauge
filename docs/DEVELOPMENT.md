@@ -153,7 +153,7 @@ WS185=360 / WS175=466 / WS128=240），**所有板以面板原生分辨率渲染
 
 ```bash
 idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
-  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws175" set-target esp32s3
 idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 ```
 
@@ -164,7 +164,7 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 
 ```bash
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
-  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws128" set-target esp32s3
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128" set-target esp32s3
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
 ```
 
