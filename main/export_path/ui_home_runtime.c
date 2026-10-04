@@ -264,8 +264,20 @@ static void home_gesture_cb(lv_event_t *e)
 {
     if (s_edit_mode) return;   // 编辑态锁翻页(overlay 按钮退出)
     lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
-    if (dir == LV_DIR_LEFT)  (void)ui_home_step(+1);
-    if (dir == LV_DIR_RIGHT) (void)ui_home_step(-1);
+    if (dir == LV_DIR_LEFT)  { (void)ui_home_step(+1); return; }
+    if (dir == LV_DIR_RIGHT) { (void)ui_home_step(-1); return; }
+    // 对齐 ref 约定:MENU 平铺上滑 → BLE 扫描、下滑 → 设置(仅 MENU;
+    // 仪表页的上下滑预留给报警阈值配置)。按钮入口并存,防手势误触。
+    if (s_active_tile != UI_HOME_PAGE_MENU) return;
+    if (dir == LV_DIR_TOP) {
+        lv_indev_wait_release(lv_indev_get_act());
+        _ui_screen_change(&ui_ScreenPageBLEScan, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0,
+                          &ui_ScreenPageBLEScan_screen_init);
+    } else if (dir == LV_DIR_BOTTOM) {
+        lv_indev_wait_release(lv_indev_get_act());
+        _ui_screen_change(&ui_ScreenPageSettings, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0,
+                          &ui_ScreenPageSettings_screen_init);
+    }
 }
 
 /* ---- 编辑态(M4.d):长按仪表页 → 三区 overlay ---- */
