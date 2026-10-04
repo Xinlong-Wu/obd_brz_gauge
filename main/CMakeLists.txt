@@ -106,6 +106,8 @@ idf_component_register(SRC_DIRS
                     "."
                     "export_path/components"
                     "export_path/fonts"
+                    "export_path/fonts_r240"
+                    "export_path/fonts_r466"
                     "export_path/images"
                     "export_path/images_r240"
                     "export_path/images_r466"
