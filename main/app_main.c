@@ -255,6 +255,8 @@ void app_main(void)
         ESP_ERROR_CHECK(ui_scale_init(board_disp.panel, render_res, board_disp.hor_res));
         disp_drv.flush_cb = ui_scale_flush_cb;
     }
+    /* 板级按最终输出模式重挂 DMA 完成回调(native=直通 / 缩放=经 ui_scale) */
+    ESP_ERROR_CHECK(board_notify_output_mode(scaled_output));
     ESP_LOGI(TAG, "display: panel %ux%u, render %u (%s)", board_disp.hor_res, board_disp.ver_res,
              render_res, scaled_output
                  ? (render_res < board_disp.hor_res ? "upscale via ui_scale" : "downscale via ui_scale")

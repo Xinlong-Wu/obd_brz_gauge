@@ -68,6 +68,38 @@ static esp_err_t board_ws_128_backlight_init(void)
     return ESP_OK;
 }
 
+/** DMA 传输完成的直通回调:直接转发 LVGL flush_ready(native 渲染路径,
+ *  ui_scale 未激活时使用——缩放回调会触碰未初始化的信号量,不能无条件挂)。 */
+static bool native_color_trans_done(esp_lcd_panel_io_handle_t panel_io,
+                                    esp_lcd_panel_io_event_data_t *edata,
+                                    void *user_ctx)
+{
+    lv_disp_drv_t *disp_driver = (lv_disp_drv_t *)user_ctx;
+    lv_disp_flush_ready(disp_driver);
+    return false;
+}
+
+/** 当前挂接的传输完成回调(native=直通 / ui_scale=缩放层),供延迟重挂。 */
+static board_display_flush_ready_cb_t s_flush_ready_cb;
+static void *s_flush_ready_user_ctx;
+
+/** 按当前模式把正确的完成回调挂到 panel IO 上。 */
+static esp_err_t board_ws_128_wire_trans_done(void)
+{
+    if (s_panel_io_handle == NULL) {
+        return ESP_OK;
+    }
+    const esp_lcd_panel_io_callbacks_t cbs = {
+        .on_color_trans_done = ui_scale_active()
+                                   ? ui_scale_on_color_trans_done
+                                   : native_color_trans_done,
+    };
+    return esp_lcd_panel_io_register_event_callbacks(s_panel_io_handle, &cbs,
+                                                     ui_scale_active()
+                                                         ? NULL
+                                                         : s_flush_ready_user_ctx);
+}
+
 /** 初始化 GC9A01 面板链路:四线 SPI 总线 → panel IO → 上电复位。 */
 static esp_err_t board_ws_128_panel_init(void)
 {
@@ -100,7 +132,7 @@ static esp_err_t board_ws_128_panel_init(void)
         .lcd_param_bits = 8,
         .spi_mode = 0,
         .trans_queue_depth = BOARD_WS_128_GC9A01_LCD_TRANS_QUEUE,
-        .on_color_trans_done = ui_scale_on_color_trans_done,   // 降采样层串接 LVGL flush_ready
+        .on_color_trans_done = native_color_trans_done,   // 默认直通;ui_scale 激活时重挂
     };
     ESP_RETURN_ON_ERROR(
         esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)BOARD_WS_128_GC9A01_SPI_HOST,
@@ -134,11 +166,24 @@ esp_err_t board_ws_128_init(void)
     return ESP_OK;
 }
 
-/** 注册 WS128 面板刷屏完成回调(经降采样层转发)。 */
+/** 注册 WS128 面板刷屏完成回调(按当前模式直通或经缩放层转发)。 */
 esp_err_t board_ws_128_register_display_flush_ready_callback(board_display_flush_ready_cb_t cb, void *user_ctx)
 {
-    ui_scale_set_flush_ready_chain(cb, user_ctx);
-    return ESP_OK;
+    s_flush_ready_cb = cb;
+    s_flush_ready_user_ctx = user_ctx;
+    if (!ui_scale_active()) {
+        ui_scale_set_flush_ready_chain(cb, user_ctx);   // native: 直通回调要用
+    }
+    return board_ws_128_wire_trans_done();
+}
+
+/** app_main 在 display_init 之后决定是否启用 ui_scale;此处按最终模式重挂回调。 */
+esp_err_t board_ws_128_notify_output_mode(bool scaled_output)
+{
+    if (scaled_output) {
+        ui_scale_set_flush_ready_chain(s_flush_ready_cb, s_flush_ready_user_ctx);
+    }
+    return board_ws_128_wire_trans_done();
 }
 
 /** 初始化 WS128 显示上下文(无触摸,纯显示)。 */

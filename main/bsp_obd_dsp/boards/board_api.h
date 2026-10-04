@@ -53,6 +53,8 @@ typedef struct {
 
 esp_err_t board_init(void);
 esp_err_t board_register_display_flush_ready_callback(board_display_flush_ready_cb_t cb, void *user_ctx);
+/** 通知最终输出模式(app_main 决定 ui_scale 是否启用后调用,板级重挂 DMA 完成回调)。 */
+esp_err_t board_notify_output_mode(bool scaled_output);
 esp_err_t board_display_init(board_display_context_t *ctx);
 esp_err_t board_set_brightness(uint8_t percent);
 esp_err_t board_get_shared_i2c_bus(i2c_master_bus_handle_t *out_bus);  // WS185 无共享总线 → NOT_SUPPORTED
