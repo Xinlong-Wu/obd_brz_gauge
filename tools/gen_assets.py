@@ -146,9 +146,36 @@ INCLUDE_BLOCK = """#ifdef __has_include
 """
 
 
+def check():
+    """--check:零第三方依赖(与 gen_fonts --check 同模式)——校验每个目标
+    文件存在且头部记录的母版 SHA / 模板版本与当前一致。生成内容已入库,
+    母版或模板一变头部即失配;完整重渲染(需 Pillow)只在真正 apply 时跑。"""
+    problems = []
+    for symbol in ASSETS:
+        master = MASTER_DIR / f"{symbol}.png"
+        if not master.exists():
+            problems.append(f"missing master: {master.relative_to(ROOT)}")
+            continue
+        sha = hashlib.sha256(master.read_bytes()).hexdigest()[:16]
+        for res in ASSET_RESOLUTIONS:
+            out = OUT_DIRS[res] / f"{symbol}.c"
+            if not out.exists():
+                problems.append(f"missing: {out.relative_to(ROOT)}")
+                continue
+            text = out.read_text()
+            if f"sha256:{sha}" not in text or f"template:{TEMPLATE_VERSION}" not in text:
+                problems.append(f"stale: {out.relative_to(ROOT)} "
+                                f"(master sha or template version mismatch)")
+    if problems:
+        print("\n".join(problems))
+        print("run tools/gen_assets.py and commit the result")
+        return 1
+    print("gen_assets: up to date")
+    return 0
+
+
 def masters_fresh():
-    """免 Pillow 快路径:所有目标文件存在且头部记录的母版 SHA 与当前一致。
-    (IDF Docker 容器无 Pillow;只要母版没变,configure 期不需要它。)"""
+    """生成模式(apply)的免 Pillow 快路径:全部命中则无需 Pillow。"""
     for symbol in ASSETS:
         master = MASTER_DIR / f"{symbol}.png"
         if not master.exists():
@@ -166,10 +193,9 @@ def masters_fresh():
 
 def generate(apply=True):
     if masters_fresh():
-        if apply:
-            print("gen_assets: up to date (sha fast-path)")
-            return []
-        # --check 仍需完整比对(内容可能被手改),走慢路径
+        print("gen_assets: up to date (sha fast-path)")
+        return []
+    # 有母版变更/生成物缺失 → 真正重渲染(需要 Pillow)
     from PIL import Image
     problems = []
     for symbol, cf in ASSETS.items():
@@ -244,14 +270,15 @@ def main():
     if ns.extract:
         extract()
         return 0
-    problems = generate(apply=not ns.check)
+    if ns.check:
+        return check()
+    problems = generate(apply=True)
     if ns.verify_roundtrip and not verify_roundtrip():
         return 1
     if problems:
         print("\n".join(problems))
         print("run tools/gen_assets.py and commit the result")
         return 1
-    print("gen_assets: up to date")
     return 0
 
 
