@@ -2,8 +2,9 @@
 
 [English](README.en.md) | 简体中文
 
-主机侧开发/调试工具，不参与固件编译。唯一的构建期例外是 `gen_themes.py`：
-它被 `main/CMakeLists.txt` 在 CMake 配置阶段自动调用。逐工具速查表见
+主机侧开发/调试工具，不参与固件编译。构建期例外有两个：`gen_themes.py` 在
+CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeLists.txt`
+自动调用。逐工具速查表见
 [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md#工具脚本)。
 
 ## 构建 / 发布 / 测试
@@ -11,6 +12,7 @@
 | 脚本 | 用途 |
 |------|------|
 | `gen_themes.py` | 编译期主题代码生成：`themes/registry.txt` + 各主题 `theme.toml` → `ui_theme_generated.c` + `theme_assets/`。CMake 配置期自动跑；`--check` 校验入库生成物是否过期（零第三方依赖）|
+| `gen_bootmedia.py` | 编译期出厂开机动画镜像：`bootmedia/slot_a/` 的 manifest+帧流 → raw 布局 `bootmedia.bin`（manifest 补齐 4KB 槽后拼接帧数据，缺 `binary_size` 自动注入）。manifest 缺必需键直接构建失败，防止出厂静默无动画 |
 | `release.sh` | 一键发版：commit（**必须先提交**，build tag 的 count 取 git 提交数）→ `idf.py build` → push |
 | `sim_regress.py` | 模拟器截图回归（Pillow）：固定 seed + 虚拟时钟无头跑场景，逐像素对比 `tests/goldens/` 金图。`--update-goldens` 在有意改 UI 后刷新金图。CI 的 unit-sim job 调用 |
 

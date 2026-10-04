@@ -31,7 +31,9 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
   0xA20000 build/bootmedia.bin
 ```
 
-- `bootmedia.bin`（开机动画）可选，不烧只是没有 VIDEO 模式动画
+- `bootmedia.bin`（开机动画）可选，不烧只是没有 VIDEO 模式动画。镜像为
+  raw 布局（构建期 `tools/gen_bootmedia.py` 自动生成：偏移 0 是 manifest
+  文本、0x1000 起是帧数据），不是文件系统镜像
 - 可选追加主题：`0x620000 your_theme.bin`
 - **从老分区表（bootmedia 在其他地址、无 theme_0）的设备升级必须 USB 全量重刷** ——
   OTA 无法改写分区表本身
@@ -46,8 +48,10 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
 3. 设备重启进新槽，**开机 15 秒自检**通过才标记有效；
    新固件在早期启动崩溃 → bootloader 自动回滚到旧槽
 
-开机动画更新是事务式的：先写 `boot_block.txt.new` / `boot_block.bin.new` 暂存，
-再原子提交；传输中断不会破坏现有动画。传输期间 RS485 与 ESP-NOW 暂停让出 CPU。
+开机动画经 WiFi OTA 更新：请求体是 `[manifest][bin]` 拼接流（头部与端点见
+[APP_PROTOCOL.md](APP_PROTOCOL.md)）。设备先擦除并写入 0x1000 起的帧数据区，
+**manifest 最后落盘**——传输/掉电中断只会让 manifest 保持无效（开机跳过
+动画），不会播放到损坏的半成品。传输期间 RS485 采集暂停让出 CPU。
 
 BLE / WiFi 传输的完整协议（服务 UUID、HTTP 端点、请求头）见
 [APP_PROTOCOL.md](APP_PROTOCOL.md)。

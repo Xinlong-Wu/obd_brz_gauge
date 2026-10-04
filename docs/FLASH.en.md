@@ -33,7 +33,9 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
 ```
 
 - `bootmedia.bin` (boot animation) is optional — without it you just don't get
-  the VIDEO mode animation
+  the VIDEO mode animation. The image uses the raw layout (generated at build
+  time by `tools/gen_bootmedia.py`: manifest text at offset 0, frame data from
+  0x1000); it is not a filesystem image
 - Optionally append a theme: `0x620000 your_theme.bin`
 - **Upgrading a device on an old partition table (bootmedia elsewhere, no
   theme_0) requires a full USB reflash** — OTA cannot rewrite the partition
@@ -53,10 +55,12 @@ animations and theme packages; the entry point on the device is always
    a **15-second boot self-check** — if the new firmware crashes early, the
    bootloader rolls back to the previous slot
 
-Boot-animation updates are transactional: the device stages
-`boot_block.txt.new` / `boot_block.bin.new` first, then commits atomically;
-an interrupted transfer never corrupts the running animation. RS485 and
-ESP-NOW are paused during the transfer to free the CPU.
+Boot animations update over WiFi OTA: the request body is a `[manifest][bin]`
+concatenated stream (headers and endpoints in [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md)).
+The device first erases and writes the frame-data region at 0x1000 and commits
+the **manifest last** — an interrupted transfer or power loss just leaves the
+manifest invalid (boot skips the animation) instead of playing a corrupted
+half-written one. RS485 acquisition is paused during the transfer to free the CPU.
 
 The full transfer protocol (service UUIDs, HTTP endpoints, headers) is in
 [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).
