@@ -87,6 +87,7 @@ set(FW_SOURCES
     "${UI_DIR}/ui.c"
     "${UI_DIR}/ui_ext.c"
     "${UI_DIR}/ui_disp_item.c"
+    "${UI_DIR}/ui_component.c"
     "${UI_DIR}/ui_theme.c"
     "${UI_DIR}/ui_helpers.c"
     "${UI_DIR}/ui_theme_generated.c"

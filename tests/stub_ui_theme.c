@@ -37,3 +37,8 @@ const ui_theme_t *ui_theme_active(void)
 {
     return &s_stub_default;
 }
+
+lv_color_t ui_theme_color_lv(ui_color_role_t role)
+{
+    return lv_color_hex(s_stub_default.colors[role]);
+}

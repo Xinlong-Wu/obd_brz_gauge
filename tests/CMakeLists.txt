@@ -114,6 +114,20 @@ add_gauge_test(test_nvs_poll_mode
     SOURCES test_nvs_poll_mode.c
             ${TEST_SHIMS})
 
+# ---- 内置仪表组件(M3.2):类型映射 / 防御式 / 格式化 / 进度换算 ----
+add_gauge_test(test_ui_component
+    SOURCES test_ui_component.c
+            stub_ui_theme.c
+            "${MAIN_DIR}/export_path/ui_component.c"
+            "${MAIN_DIR}/export_path/ui_disp_item.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize16.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize24.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize44.c"
+            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize56.c"
+            "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
+            "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
+            ${TEST_SHIMS})
+
 # ---- 错误日志环形缓冲:sanitize / append 回绕饱和 / mock API ----
 add_gauge_test(test_nvs_error_log
     SOURCES test_nvs_error_log.c
