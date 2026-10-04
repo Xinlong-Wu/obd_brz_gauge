@@ -57,6 +57,31 @@ if(ASSET_GEN_STDOUT)
     message(STATUS "${ASSET_GEN_STDOUT}")
 endif()
 
+# ---- Capture control page (minify + gzip, embedded via EMBED_FILES) --------
+# Source: assets_src/web/capture.html (authored, highlighted, unescaped);
+# served with Content-Encoding: gzip. Pure stdlib — no node/Pillow needed.
+# 生成器从脚本位置自定仓库根、产物写源树(main/app_obd_dsp/,已 gitignore):
+# 本文件在 requirements 阶段会被以构建目录为上下文重复 include,传路径不可信
+# (gen_themes/gen_assets 同款自定根约定);重复执行幂等(确定性 gzip)。
+set(CAPTURE_PAGE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../assets_src/web/capture.html")
+set(CAPTURE_PAGE_GZ  "${CMAKE_CURRENT_SOURCE_DIR}/app_obd_dsp/capture_page.html.gz")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CAPTURE_PAGE_SRC}")
+
+execute_process(
+    COMMAND "${python}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_capture_page.py"
+    RESULT_VARIABLE CAPTURE_PAGE_RESULT
+    OUTPUT_VARIABLE CAPTURE_PAGE_STDOUT
+    ERROR_VARIABLE  CAPTURE_PAGE_STDERR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE)
+if(NOT CAPTURE_PAGE_RESULT EQUAL 0)
+    message(FATAL_ERROR
+            "Capture page generation failed.\n${CAPTURE_PAGE_STDOUT}\n${CAPTURE_PAGE_STDERR}")
+endif()
+if(CAPTURE_PAGE_STDOUT)
+    message(STATUS "${CAPTURE_PAGE_STDOUT}")
+endif()
+
 # Build metadata for app-side compatibility checks and on-device manifests.
 set(OBD_GAUGE_GIT_HASH "unknown")
 set(OBD_GAUGE_GIT_BRANCH "unknown")
@@ -134,7 +159,8 @@ idf_component_register(SRC_DIRS
                     app_update
                     json
                     esp_lcd
-                    driver)
+                    driver
+                    EMBED_FILES "app_obd_dsp/capture_page.html.gz")
 
 # Auto-generate the factory bootmedia image in the raw layout the firmware
 # reads (manifest at partition offset 0, frame stream at 0x1000 — see

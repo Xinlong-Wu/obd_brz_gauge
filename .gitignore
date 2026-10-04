@@ -29,3 +29,4 @@ tools/pids_full.csv
 AGENTS.local.md
 sdkconfig.ws175.old
 sim_build_*/
+main/app_obd_dsp/capture_page.html.gz
