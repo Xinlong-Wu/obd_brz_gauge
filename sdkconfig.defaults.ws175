@@ -2,3 +2,5 @@
 #   idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
 #     -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.ws175" set-target esp32s3 && build
 CONFIG_OBD_BOARD_WS_175_AMOLED=y
+# 466 = panel native render (preserves the pre-P2 native-466 behavior)
+CONFIG_OBD_UI_RENDER_RES=466

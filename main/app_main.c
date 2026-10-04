@@ -28,10 +28,8 @@
 #endif
 #include "bsp_obd_dsp/boards/board_api.h"        // board abstraction (WS185/WS175/WS128/...)
 #include "bsp_obd_dsp/boards/board_display_compat.h"  // Set_Backlight/LCD_H_RES compat facade
-#if CONFIG_OBD_BOARD_WS_128_GC9A01
-#include "bsp_obd_dsp/boards/board_ws_128_gc9a01_spec.h"  // BOARD_WS_128_GC9A01_UI_RES
-#include "bsp_obd_dsp/boards/board_ws_128_scale.h"        // virtual-360 downscale flush
-#endif
+#include "bsp_obd_dsp/boards/ui_scale.h"         // render-res != panel-res flush scaler
+#include "export_path/ui_res.h"                  // UI_RENDER_RES (720-master UIS() folding)
 
 /* Application layer */
 #include "bsp_obd_dsp/bsp_board.h"
@@ -79,10 +77,9 @@ SemaphoreHandle_t lvgl_mux = NULL; // non-static: used by BLE scan page
 //////////////////// LCD & LVGL configuration ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* Resolution via board_display_compat.h (WS185 macros / WS175 board_profile) */
+/* Resolution: UI_RENDER_RES (ui_res.h, = CONFIG_OBD_UI_RENDER_RES); panel via board_disp */
 
 /* LVGL parameters */
-#define LVGL_BUFF_SIZE              (LCD_H_RES * 20)   /* fallback: 20 lines (per-board draw_buffer_lines takes precedence) */
 #define LVGL_TICK_PERIOD_MS         2
 #define LVGL_TASK_MAX_DELAY_MS      500
 #define LVGL_TASK_MIN_DELAY_MS      2
@@ -224,21 +221,22 @@ void app_main(void)
     /* 5. LVGL init */
     lv_init();
 
+    /* Render resolution: 720-master UI folded to CONFIG_OBD_UI_RENDER_RES at
+       compile time (ui_res.h). Normally equals the panel resolution (native
+       rendering, direct flush); a different value engages ui_scale at flush
+       time — logged below so misconfigurations are visible at boot. */
+    const uint16_t render_res = (uint16_t)UI_RENDER_RES;
+    const bool scaled_output = (render_res != board_disp.hor_res);
+
     /* Allocate double buffers (DMA memory). Larger buffers -> full-screen render strips halved -> higher frame rate.
        Only affects LVGL render chunking, not the SPI single-transfer size (still chunked by max_transfer_sz), so no screen corruption.
        Falls back automatically to the original 20 lines when internal DMA RAM is insufficient, avoiding boot-time OOM. */
-#if CONFIG_OBD_BOARD_WS_128_GC9A01
-    /* WS128: UI renders at virtual 360x360 (layout/fonts/assets are 360-based);
-       the flush path downsamples to the physical 240x240, so buffers follow the virtual resolution. */
-    size_t buf_px = BOARD_WS_128_GC9A01_UI_RES * 40;
-#else
-    size_t buf_px = board_disp.hor_res * 40;
-#endif
+    size_t buf_px = (size_t)render_res * 40;
     lv_color_t *buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     lv_color_t *buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     if (!buf1 || !buf2) {
         heap_caps_free(buf1); heap_caps_free(buf2);
-        buf_px = LVGL_BUFF_SIZE;   // fall back to 20 lines
+        buf_px = (size_t)render_res * 20;   // fall back to 20 lines
         buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
         buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     }
@@ -247,20 +245,20 @@ void app_main(void)
 
     /* Register display driver */
     lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = board_disp.hor_res;
-    disp_drv.ver_res = board_disp.ver_res;
+    disp_drv.hor_res = render_res;
+    disp_drv.ver_res = render_res;
     disp_drv.flush_cb = lvgl_flush_cb;
     disp_drv.rounder_cb = lvgl_rounder_cb;
     disp_drv.draw_buf = &disp_buf;
     disp_drv.user_data = board_disp.panel;  // esp_lcd_panel_handle_t (board agnostic)
-#if CONFIG_OBD_BOARD_WS_128_GC9A01
-    /* WS128: LVGL renders at virtual 360x360; board_ws_128_scale merges into a
-       full-frame shadow and downsamples 3:2 to the physical 240x240 panel. */
-    disp_drv.hor_res = BOARD_WS_128_GC9A01_UI_RES;
-    disp_drv.ver_res = BOARD_WS_128_GC9A01_UI_RES;
-    disp_drv.flush_cb = ws128_scale_flush_cb;
-    ESP_ERROR_CHECK(ws128_scale_init(board_disp.panel));
-#endif
+    if (scaled_output) {
+        ESP_ERROR_CHECK(ui_scale_init(board_disp.panel, render_res, board_disp.hor_res));
+        disp_drv.flush_cb = ui_scale_flush_cb;
+    }
+    ESP_LOGI(TAG, "display: panel %ux%u, render %u (%s)", board_disp.hor_res, board_disp.ver_res,
+             render_res, scaled_output
+                 ? (render_res < board_disp.hor_res ? "upscale via ui_scale" : "downscale via ui_scale")
+                 : "native");
 #if CONFIG_OBD_BOARD_WS_175_AMOLED
     /* WS175 mounting orientation is 180° inverted, LVGL software rotation (coordinates stay in logical orientation) */
     disp_drv.sw_rotate = 1;

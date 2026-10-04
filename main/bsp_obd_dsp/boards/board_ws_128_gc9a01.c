@@ -18,7 +18,7 @@
 
 #include "bsp_obd_dsp/boards/board_api.h"
 #include "bsp_obd_dsp/boards/board_ws_128_gc9a01_spec.h"
-#include "bsp_obd_dsp/boards/board_ws_128_scale.h"
+#include "bsp_obd_dsp/boards/ui_scale.h"
 #include "esp_log.h"
 
 static const char *TAG = "board_ws_128";
@@ -100,7 +100,7 @@ static esp_err_t board_ws_128_panel_init(void)
         .lcd_param_bits = 8,
         .spi_mode = 0,
         .trans_queue_depth = BOARD_WS_128_GC9A01_LCD_TRANS_QUEUE,
-        .on_color_trans_done = ws128_scale_on_color_trans_done,   // 降采样层串接 LVGL flush_ready
+        .on_color_trans_done = ui_scale_on_color_trans_done,   // 降采样层串接 LVGL flush_ready
     };
     ESP_RETURN_ON_ERROR(
         esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)BOARD_WS_128_GC9A01_SPI_HOST,
@@ -123,9 +123,8 @@ static esp_err_t board_ws_128_panel_init(void)
                         TAG, "panel mirror failed");
 #endif
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_panel_handle, true), TAG, "panel enable failed");
-    ESP_LOGI(TAG, "panel ready (physical %ux%u, UI virtual %ux%u downscaled)",
-             (unsigned)BOARD_WS_128_GC9A01_H_RES, (unsigned)BOARD_WS_128_GC9A01_V_RES,
-             (unsigned)BOARD_WS_128_GC9A01_UI_RES, (unsigned)BOARD_WS_128_GC9A01_UI_RES);
+    ESP_LOGI(TAG, "panel ready (physical %ux%u; render res via CONFIG_OBD_UI_RENDER_RES)",
+             (unsigned)BOARD_WS_128_GC9A01_H_RES, (unsigned)BOARD_WS_128_GC9A01_V_RES);
     return ESP_OK;
 }
 
@@ -138,7 +137,7 @@ esp_err_t board_ws_128_init(void)
 /** 注册 WS128 面板刷屏完成回调(经降采样层转发)。 */
 esp_err_t board_ws_128_register_display_flush_ready_callback(board_display_flush_ready_cb_t cb, void *user_ctx)
 {
-    ws128_scale_set_flush_ready_chain(cb, user_ctx);
+    ui_scale_set_flush_ready_chain(cb, user_ctx);
     return ESP_OK;
 }
 

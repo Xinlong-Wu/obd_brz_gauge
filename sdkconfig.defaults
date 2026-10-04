@@ -2,6 +2,9 @@
 # Espressif IoT Development Framework (ESP-IDF) 5.5.3 Project Minimal Configuration
 #
 CONFIG_IDF_TARGET="esp32s3"
+# UI render resolution (720-master UIS() folding, export_path/ui_res.h);
+# 360 = WS185 panel native. Each board pins its value (ws175/ws128 overlays).
+CONFIG_OBD_UI_RENDER_RES=360
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_PARTITION_TABLE_CUSTOM=y

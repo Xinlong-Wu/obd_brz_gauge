@@ -14,10 +14,8 @@
 #define BOARD_WS_128_GC9A01_DRAW_BUFFER_LINES 40
 #define BOARD_WS_128_GC9A01_HAS_TOUCH 0
 
-// UI 虚拟分辨率:export_path/ 的布局、字体、开机动画与主题资产全部按
-// 360×360 绝对像素生成,本板渲染仍走 360,由 board_ws_128_scale.c 在
-// flush 阶段 3:2 降采样到物理 240(比例固定 360:240)。
-#define BOARD_WS_128_GC9A01_UI_RES 360
+// 渲染分辨率由 CONFIG_OBD_UI_RENDER_RES 决定(export_path/ui_res.h,
+// 720 母版编译期缩放):=240 原生渲染;≠240 时 app_main 自动启用 ui_scale。
 
 // 四线 SPI 总线与面板控制引脚
 #define BOARD_WS_128_GC9A01_SPI_HOST     SPI2_HOST
