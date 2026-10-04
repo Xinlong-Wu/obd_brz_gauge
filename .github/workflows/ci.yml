@@ -61,8 +61,15 @@ jobs:
           if-no-files-found: ignore
 
   firmware:
-    name: Firmware build (Docker, esp32s3)
+    name: Firmware ${{ matrix.board }} (Docker, esp32s3)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # 一板失败不影响其他板的产物
+      matrix:
+        include:
+          - { board: ws185, build_dir: build }
+          - { board: ws175, build_dir: build_ws175 }
+          - { board: ws128, build_dir: build_ws128 }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -72,16 +79,18 @@ jobs:
         with:
           path: managed_components
           key: idf-components-${{ runner.os }}-${{ hashFiles('dependencies.lock') }}
-      # 三块板全部构建(各板独立 build 目录 + sdkconfig,见 docs/DEVELOPMENT.md)。
-      # 第一次 set-target 触发组件下载,后续板复用 managed_components 缓存;
-      # 主题/图片/字体 codegen 走 SHA 快路径,容器内无需 Pillow。
+      # 三腿并行,各板独立 build 目录 + sdkconfig(见 docs/DEVELOPMENT.md);
+      # 冷缓存时各腿自行下载组件(并行,总时长仍优于串行);主题/图片/字体
+      # codegen 走 SHA 快路径,容器内无需 Pillow。
       - name: Build WS185 (default, 360)
+        if: matrix.board == 'ws185'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py build
       - name: Build WS175 (466)
+        if: matrix.board == 'ws175'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
@@ -90,6 +99,7 @@ jobs:
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
       - name: Build WS128 (240)
+        if: matrix.board == 'ws128'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
@@ -97,36 +107,14 @@ jobs:
               set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
-      - name: Upload firmware artifacts (WS185)
+      - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-bin-ws185
+          name: firmware-bin-${{ matrix.board }}
           path: |
-            build/bootloader/bootloader.bin
-            build/partition_table/partition-table.bin
-            build/obd_brz_gauge.bin
-            build/ota_data_initial.bin
-            build/bootmedia.bin
-          if-no-files-found: error
-      - name: Upload firmware artifacts (WS175)
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-bin-ws175
-          path: |
-            build_ws175/bootloader/bootloader.bin
-            build_ws175/partition_table/partition-table.bin
-            build_ws175/obd_brz_gauge.bin
-            build_ws175/ota_data_initial.bin
-            build_ws175/bootmedia.bin
-          if-no-files-found: error
-      - name: Upload firmware artifacts (WS128)
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-bin-ws128
-          path: |
-            build_ws128/bootloader/bootloader.bin
-            build_ws128/partition_table/partition-table.bin
-            build_ws128/obd_brz_gauge.bin
-            build_ws128/ota_data_initial.bin
-            build_ws128/bootmedia.bin
+            ${{ matrix.build_dir }}/bootloader/bootloader.bin
+            ${{ matrix.build_dir }}/partition_table/partition-table.bin
+            ${{ matrix.build_dir }}/obd_brz_gauge.bin
+            ${{ matrix.build_dir }}/ota_data_initial.bin
+            ${{ matrix.build_dir }}/bootmedia.bin
           if-no-files-found: error

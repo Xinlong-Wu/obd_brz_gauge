@@ -2,7 +2,8 @@
 # 三块板的完整固件,产物双通道分发:
 #   1. workflow artifacts(保留 7 天)
 #   2. 滚动 `nightly` 预发布 Release(标签固定,每次覆盖 — 提供稳定下载链接)
-# 构建命令与 ci.yml 的 firmware job 完全一致。
+# 三板走 matrix 并行构建(命令与 ci.yml 的 firmware job 完全一致);
+# 任一板失败时不发布(Release job 需要 build 全绿才会跑)。
 #
 # 注意:
 #   - 计划任务只在**默认分支**上按仓库 schedule 运行(GitHub 语义);
@@ -25,8 +26,15 @@ concurrency:
 
 jobs:
   build:
-    name: Nightly firmware (all boards)
+    name: Nightly ${{ matrix.board }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false   # 一板失败不影响其他板的产物
+      matrix:
+        include:
+          - { board: ws185, build_dir: build }
+          - { board: ws175, build_dir: build_ws175 }
+          - { board: ws128, build_dir: build_ws128 }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,15 +46,17 @@ jobs:
           path: managed_components
           key: idf-components-${{ runner.os }}-${{ hashFiles('dependencies.lock') }}
 
-      # 三板构建(各板独立 build 目录 + sdkconfig;第一次 set-target 下载
-      # 组件,后续复用;codegen 走 SHA 快路径,容器内无需 Pillow/node)
+      # 三腿并行,各板独立 build 目录 + sdkconfig(docs/DEVELOPMENT.md);
+      # codegen 走 SHA 快路径,容器内无需 Pillow/node
       - name: Build WS185 (default, 360)
+        if: matrix.board == 'ws185'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py build
       - name: Build WS175 (466)
+        if: matrix.board == 'ws175'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 \
@@ -55,6 +65,7 @@ jobs:
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
       - name: Build WS128 (240)
+        if: matrix.board == 'ws128'
         run: |
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
@@ -63,28 +74,42 @@ jobs:
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
 
-      # 每板打包完整烧录集合(与 docs/FLASH.md 的地址表配套)
-      - name: Package per-board flash sets
+      # 本板打包完整烧录集合(与 docs/FLASH.md 的地址表配套)
+      - name: Package flash set
         run: |
           set -e
           mkdir -p out
-          date_tag="$(date -u +%F)"
-          for b in ws185 ws175 ws128; do
-            dir=build; [ "$b" != ws185 ] && dir=build_$b
-            (cd "$dir" && zip -j "../out/firmware-nightly-${date_tag}-${b}.zip" \
-               bootloader/bootloader.bin partition_table/partition-table.bin \
-               ota_data_initial.bin obd_brz_gauge.bin bootmedia.bin)
-          done
+          (cd "${{ matrix.build_dir }}" && \
+           zip -j "../out/firmware-nightly-$(date -u +%F)-${{ matrix.board }}.zip" \
+             bootloader/bootloader.bin partition_table/partition-table.bin \
+             ota_data_initial.bin obd_brz_gauge.bin bootmedia.bin)
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-nightly-${{ github.run_id }}
+          name: nightly-zip-${{ matrix.board }}
           path: out/*.zip
           retention-days: 7
           if-no-files-found: error
 
-      - name: Rolling nightly release
+  # 三板全绿才发布(任一板失败则本 job 自动跳过,不覆盖昨天的 nightly)
+  release:
+    name: Rolling nightly release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1   # 仅取 HEAD,用于 release notes 里的短哈希
+
+      - name: Collect all board zips
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nightly-zip-*
+          merge-multiple: true
+          path: out
+
+      - name: Refresh rolling nightly release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
