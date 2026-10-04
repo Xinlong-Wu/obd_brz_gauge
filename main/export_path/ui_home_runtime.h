@@ -24,6 +24,9 @@ uint8_t ui_home_active_tile(void);
 /** 滑到相邻平铺(dir:左/右);越界不动。返回是否切换。 */
 bool ui_home_step(int dir);
 
+/** 取首页根对象(不存在则构建);供其它页面返回导航使用。 */
+lv_obj_t *ui_home_get(void);
+
 /** 数据刷新(由宿主定时器驱动;组件自读缓存)。 */
 void ui_home_refresh(void);
 

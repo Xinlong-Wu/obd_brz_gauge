@@ -7,6 +7,7 @@
 // ================================================================
 
 #include "ui_home_runtime.h"
+#include "ui.h"
 #include "ui_component.h"
 #include "ui_theme.h"
 #include "ui_helpers.h"
@@ -51,7 +52,27 @@ static void home_clear_content(void)
     }
 }
 
-/* ---- MENU 平铺:车型名 + BLE/设置入口(交互接线随下一增量) ---- */
+/* ---- MENU 平铺:车型名 + BLE/设置/版本页入口 ---- */
+static void home_menu_btn_cb(lv_event_t *e)
+{
+    lv_obj_t *btn = lv_event_get_target(e);
+    int which = (int)(uintptr_t)lv_obj_get_user_data(btn);
+    switch (which) {
+    case 0:
+        _ui_screen_change(&ui_ScreenPageBLEScan, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0,
+                          &ui_ScreenPageBLEScan_screen_init);
+        break;
+    case 1:
+        _ui_screen_change(&ui_ScreenPageSettings, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0,
+                          &ui_ScreenPageSettings_screen_init);
+        break;
+    default:
+        _ui_screen_change(&ui_ScreenPageEasterEgg, LV_SCR_LOAD_ANIM_FADE_ON, 300, 0,
+                          &ui_ScreenPageEasterEgg_screen_init);
+        break;
+    }
+}
+
 static void home_build_menu(lv_obj_t *parent)
 {
     lv_obj_t *title = lv_label_create(parent);
@@ -66,13 +87,15 @@ static void home_build_menu(lv_obj_t *parent)
     lv_obj_set_style_text_color(veh, ui_theme_color_lv(UI_COLOR_TEXT_SECONDARY), 0);
     lv_obj_align(veh, LV_ALIGN_TOP_MID, 0, 34);
 
-    const char *const entries[] = {"BLE SCAN", "SETTINGS"};
-    for (int i = 0; i < 2; i++) {
+    static const char *const entries[] = {"BLE SCAN", "SETTINGS", "INFO / OTA"};
+    for (int i = 0; i < 3; i++) {
         lv_obj_t *btn = lv_btn_create(parent);
-        lv_obj_set_size(btn, 170, 44);
-        lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 70 + i * 54);
+        lv_obj_set_size(btn, 170, 40);
+        lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 64 + i * 50);
         lv_obj_set_style_bg_color(btn, ui_theme_color_lv(UI_COLOR_PANEL), LV_PART_MAIN);
         lv_obj_set_style_bg_opa(btn, 255, LV_PART_MAIN);
+        lv_obj_set_user_data(btn, (void *)(uintptr_t)i);
+        lv_obj_add_event_cb(btn, home_menu_btn_cb, LV_EVENT_CLICKED, NULL);
         lv_obj_t *lbl = lv_label_create(btn);
         lv_label_set_text(lbl, entries[i]);
         lv_obj_set_style_text_font(lbl, &ui_font_FontTypoderSize16, 0);
@@ -250,6 +273,11 @@ lv_obj_t *ui_home_init(void)
 
     lv_obj_move_foreground(ring);
     return s_home;
+}
+
+lv_obj_t *ui_home_get(void)
+{
+    return s_home ? s_home : ui_home_init();
 }
 
 uint8_t ui_home_active_tile(void)

@@ -15,6 +15,7 @@
 #include "bsp_obd_dsp/bsp_board.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "bsp_obd_dsp/boards/board_display_compat.h"
+#include "ui_home_runtime.h"
 #include "bsp_obd_dsp/elm327_ble_client.h"
 #include "bsp_obd_dsp/espnow_link.h"
 #include "bsp_obd_dsp/gauge_pair_ble_client.h"
@@ -1208,8 +1209,8 @@ void ui_event_easter_egg_background(lv_event_t * e)
                 }
                 _ui_screen_change(&ui_ScreenPageThemeGauge, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageThemeGauge_screen_init);
             } else {
-                // No theme loaded, return to Gear page
-                _ui_screen_change(&ui_ScreenPageGear, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageGear_screen_init);
+                // No theme loaded, return to the home pager
+                lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
             }
         }
         else if(dir == LV_DIR_TOP) {
@@ -1381,12 +1382,12 @@ void ui_event_ble_scan_background(lv_event_t * e)
                 elm327_ble_scan_only_stop();
             }
             lv_indev_wait_release(lv_indev_get_act());
-            _ui_screen_change(&ui_ScreenPageEasterEgg, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageEasterEgg_screen_init);
+            lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
         }
     }
 }
 
-/* Settings page events - swipe left/right returns to the device info page */
+/* Settings page events - swipe left/right returns to the home pager */
 void ui_event_settings_background(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
@@ -1394,7 +1395,7 @@ void ui_event_settings_background(lv_event_t * e)
         lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
         if(dir == LV_DIR_LEFT || dir == LV_DIR_RIGHT){
             lv_indev_wait_release(lv_indev_get_act());
-            _ui_screen_change(&ui_ScreenPageEasterEgg, LV_SCR_LOAD_ANIM_FADE_ON, 5, 0, &ui_ScreenPageEasterEgg_screen_init);
+            lv_scr_load_anim(ui_home_get(), LV_SCR_LOAD_ANIM_FADE_ON, 300, 0, false);
         }
         else if(dir == LV_DIR_BOTTOM){   // swipe down enters the triple-gauge settings page
             lv_indev_wait_release(lv_indev_get_act());

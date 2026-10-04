@@ -412,11 +412,9 @@ int main(int argc, char **argv)
     ui_init();
     ui_ext_init();
 
-    /* M4 preview: the user-dashboard home runtime replaces the boot page */
-    if (opts.home) {
-        lv_obj_t *home = ui_home_init();
-        if (home) lv_scr_load(home);
-    }
+    /* M4: boot enters the home pager via ui_ext (flag kept as a no-op for
+     * compat with existing scenario scripts) */
+    (void)opts.home;
 
     /* build the control panel on its own display */
     if (s_panel_on) {
