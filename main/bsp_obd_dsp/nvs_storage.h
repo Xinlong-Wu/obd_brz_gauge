@@ -3,6 +3,35 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
+/*------------------ User dashboard pages (M4) ------------------*/
+
+#define UI_DASHBOARD_VERSION     1u
+#define UI_DASHBOARD_MAX_PAGES   8u
+#define UI_DASHBOARD_MAX_SLOTS   6u
+
+/** 页类型:METRIC=槽位网格;GEAR=大字挡位+RPM 弧;GFORCE=G 力点图。 */
+typedef enum {
+    UI_DASHBOARD_PAGE_METRIC = 0,
+    UI_DASHBOARD_PAGE_GEAR,
+    UI_DASHBOARD_PAGE_GFORCE,
+    UI_DASHBOARD_PAGE_TYPE_COUNT
+} ui_dashboard_page_type_t;
+
+typedef struct {
+    uint8_t slot_items[UI_DASHBOARD_MAX_SLOTS];  // disp_item_t 值
+    uint8_t slot_count;                          // 1..MAX_SLOTS
+    uint8_t type;                                // ui_dashboard_page_type_t
+    uint8_t rsv;
+} ui_dashboard_page_cfg_t;
+
+typedef struct {
+    uint8_t version;       // UI_DASHBOARD_VERSION;不匹配 → 整体重置
+    uint8_t page_count;    // 1..MAX_PAGES;0 = 待迁移
+    uint8_t default_page;  // 0=MENU,1..page_count=仪表页
+    uint8_t rsv;
+    ui_dashboard_page_cfg_t pages[UI_DASHBOARD_MAX_PAGES];
+} ui_dashboard_cfg_t;
+
 // Theme config. The index/selectors are real now (see ui_theme.c); the two
 // color fields are legacy and unused, kept only to preserve struct layout.
 typedef struct {
@@ -41,9 +70,14 @@ typedef struct {
                                  // Only applies when neither the vehicle override nor the profile pins
                                  // poll_gap_ms (see elm327_ble_client.c gap resolution). Appended LAST
                                  // for old-device NVS compatibility.
+    ui_dashboard_cfg_t dashboard; // user-defined gauge pages (M4); zero page_count =
+                                 // not yet migrated (runtime fills from the legacy maps
+                                 // below on first boot, see ui_dashboard_logic.h)
                                  // NOTE: new fields MUST be appended at the END of this struct;
                                  // see the load_blob grow logic comment in nvs_storage.c.
 } nvs_user_cfg_t;
+
+
 
 /*------------------ OBD poll mode helpers ------------------*/
 

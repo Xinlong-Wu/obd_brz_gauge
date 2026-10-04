@@ -13,6 +13,7 @@
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "espnow_link.h"   // ESPNOW_ROLE_* (device_role default / bounds)
 #include "nvs_error_log_logic.h"
+#include "ui_dashboard_logic.h"
 
 #define TAG                   "nvs_storage"
 #define NS_CFG                "cfg"
@@ -178,6 +179,17 @@ esp_err_t nvs_storage_init(void)
     if(s_cfg.rpm_warn_threshold < 1000) s_cfg.rpm_warn_threshold = 6000;
     // poll mode tier: 0=NORMAL 1=FAST 2=TURBO (0 is also the grow-default for old blobs)
     if(s_cfg.obd_poll_mode >= NVS_OBD_POLL_MODE_COUNT) s_cfg.obd_poll_mode = NVS_OBD_POLL_MODE_NORMAL;
+    // 用户自定义仪表页:清洗损坏值;老设备(page_count==0)按既有显示映射迁移
+    bool dash_dirty_save = false;
+    {
+        bool dash_changed = ui_dashboard_logic_sanitize(&s_cfg.dashboard);
+        dash_changed |= ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
+                                                             s_cfg.temp_display_map,
+                                                             s_cfg.info_display_map,
+                                                             s_cfg.needle_source_idx,
+                                                             s_cfg.chart_source_idx);
+        if (dash_changed) dash_dirty_save = true;
+    }
 
     // Validate TEMP/INFO custom display-item maps: 0..(DISP_ITEM_COUNT-1)
     for (int i = 0; i < 3; ++i) {
@@ -188,6 +200,10 @@ esp_err_t nvs_storage_init(void)
             static const uint8_t def_map[5] = {0, 2, 3, 4, 1};
             s_cfg.info_display_map[i] = def_map[i];
         }
+    }
+
+    if (dash_dirty_save) {
+        save_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));   // 迁移/修复落盘
     }
 
     s_mux = xSemaphoreCreateMutex();

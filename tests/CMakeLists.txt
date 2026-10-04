@@ -128,6 +128,11 @@ add_gauge_test(test_ui_component
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
 
+# ---- 用户自定义仪表页数据模型(M4):清洗 / 迁移 / 平铺数 ----
+add_gauge_test(test_ui_dashboard
+    SOURCES test_ui_dashboard.c
+            ${TEST_SHIMS})
+
 # ---- 错误日志环形缓冲:sanitize / append 回绕饱和 / mock API ----
 add_gauge_test(test_nvs_error_log
     SOURCES test_nvs_error_log.c
