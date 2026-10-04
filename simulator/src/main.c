@@ -36,8 +36,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define SIM_RES   360
+#define SIM_RES_MAX 480
 #define PANEL_RES 240
+
+/* 仪表区渲染分辨率 = CONFIG_OBD_UI_RENDER_RES 的模拟(--ui-res 覆盖,
+ * 默认 360 = ui_res.h 的 host 回退);窗口/纹理/flush 全部随之参数化。 */
+static int s_ui_res = 360;
+#define SIM_RES s_ui_res
 
 enum { REGION_NONE = 0, REGION_GAUGE, REGION_PANEL };
 
@@ -61,7 +66,7 @@ static bool s_inject_active;
 static int  s_press_region = REGION_NONE;
 
 /* ---- LVGL flush: byte-swap RGB565 into the SDL texture (drv->user_data) ---- */
-static uint16_t s_stage[SIM_RES * SIM_RES];
+static uint16_t s_stage[SIM_RES_MAX * SIM_RES_MAX];
 
 static void sim_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
 {
@@ -298,6 +303,12 @@ int main(int argc, char **argv)
     }
     s_scale = opts.scale;
     s_panel_on = !opts.no_panel;
+    if (opts.ui_res >= 120 && opts.ui_res <= SIM_RES_MAX) {
+        s_ui_res = opts.ui_res;
+    } else if (opts.ui_res != 0) {
+        fprintf(stderr, "--ui-res out of range (120-%d): %d\n", SIM_RES_MAX, opts.ui_res);
+        return 1;
+    }
     if (opts.seed != 0) sim_esp_random_seed((uint64_t)opts.seed); /* determinism */
     sim_clock_set_virtual(opts.virtual_clock);
     if (opts.virtual_clock) sim_esp_timer_use_clock(sim_clock_us);
@@ -346,7 +357,7 @@ int main(int argc, char **argv)
     lv_init();
 
     static lv_disp_draw_buf_t gauge_buf;
-    static lv_color_t gauge_fb[SIM_RES * SIM_RES];   /* full-frame buffer; PC RAM is cheap */
+    static lv_color_t gauge_fb[SIM_RES_MAX * SIM_RES_MAX];   /* full-frame buffer; PC RAM is cheap */
     lv_disp_draw_buf_init(&gauge_buf, gauge_fb, NULL, SIM_RES * SIM_RES);
 
     static lv_disp_drv_t gauge_drv;
@@ -373,7 +384,7 @@ int main(int argc, char **argv)
 
     /* ---- panel display (second LVGL display, same window) ---- */
     static lv_disp_draw_buf_t panel_buf;
-    static lv_color_t panel_fb[PANEL_RES * SIM_RES];
+    static lv_color_t panel_fb[PANEL_RES * SIM_RES_MAX];
     static lv_disp_drv_t panel_drv;
     static lv_indev_drv_t panel_indev;
     lv_disp_t *panel_disp = NULL;

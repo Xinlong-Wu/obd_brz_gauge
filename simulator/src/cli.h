@@ -4,6 +4,7 @@
 
 typedef struct {
     int          scale;        // window scale factor (default 2 → 720x720 window)
+    int          ui_res;       // gauge render resolution (default 360; --ui-res)
     const char  *theme;        // theme.bin path for the runtime-theme partition (NULL = none)
     const char  *bootmedia;    // dir with boot_block.txt/bin (NULL = <repo>/bootmedia/slot_a)
     const char  *scenario;     // fake-data scenario: "drive" (default) | "idle"

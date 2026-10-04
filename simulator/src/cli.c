@@ -9,6 +9,7 @@ void sim_opts_defaults(sim_opts_t *o)
 {
     memset(o, 0, sizeof(*o));
     o->scale = 2;
+    o->ui_res = 360;
     o->scenario = "drive";
     o->profile = 0;
     o->theme_slot = 0;
@@ -64,6 +65,10 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
         if (strcmp(a, "--help") == 0 || strcmp(a, "-h") == 0) {
             sim_opts_print_help(argv[0]);
             exit(0);
+        } else if (strcmp(a, "--ui-res") == 0) {
+            const char *v = NEXT();
+            if (!v) return false;
+            o->ui_res = atoi(v);
         } else if (strcmp(a, "--scale") == 0) {
             const char *v = NEXT();
             if (!v) return false;

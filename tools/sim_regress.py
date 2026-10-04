@@ -66,6 +66,16 @@ SCENARIOS = [
     ("tap_settings", COMMON + ["--bound", "--tap", "180,180,400", "--frames", "900",
                                "--screenshot", "{out}/tap_settings.bmp"],
      ["tap_settings.bmp"]),
+    # 非 360 渲染分辨率(720 母版编译期缩放的长期回归门槛):
+    # WS128 @240 原生 / WS175 @466 原生;--ui-res 模拟 CONFIG_OBD_UI_RENDER_RES
+    ("render_240", COMMON + ["--bound", "--no-panel", "--ui-res", "240",
+                             "--frames", "500",
+                             "--screenshot", "{out}/render_240.bmp"],
+     ["render_240.bmp"]),
+    ("render_466", COMMON + ["--bound", "--no-panel", "--ui-res", "466",
+                             "--frames", "500",
+                             "--screenshot", "{out}/render_466.bmp"],
+     ["render_466.bmp"]),
 ]
 
 # 对比阈值:单像素任一通道差 > PER_PIXEL_TOL 记为坏点;

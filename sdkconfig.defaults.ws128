@@ -6,6 +6,9 @@ CONFIG_OBD_BOARD_WS_128_GC9A01=y
 # V1-only bring-up (RS485 / ADS1115) is compiled out on non-WS185 boards; the
 # board's LCD_RST (GPIO12) also collides with the default RS485 RX pin.
 CONFIG_OBD_HW_VERSION_V2_NEW=y
+# 240 = panel native render (720-master UI folded down at compile time);
+# replaces the former virtual-360 + flush downscale path entirely.
+CONFIG_OBD_UI_RENDER_RES=240
 # In-package PSRAM is Quad — the shared octal default fails to boot on this
 # board ("octal_psram: PSRAM chip is not connected, or wrong PSRAM line mode").
 CONFIG_SPIRAM_MODE_QUAD=y
