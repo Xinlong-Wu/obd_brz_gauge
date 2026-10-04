@@ -26,8 +26,12 @@
 #if CONFIG_OBD_HW_VERSION_V1_WAVESHARE
 #include "bsp_obd_dsp/exio/TCA9554PWR.h"
 #endif
-#include "bsp_obd_dsp/boards/board_api.h"        // board abstraction (WS185/WS175/...)
+#include "bsp_obd_dsp/boards/board_api.h"        // board abstraction (WS185/WS175/WS128/...)
 #include "bsp_obd_dsp/boards/board_display_compat.h"  // Set_Backlight/LCD_H_RES compat facade
+#if CONFIG_OBD_BOARD_WS_128_GC9A01
+#include "bsp_obd_dsp/boards/board_ws_128_gc9a01_spec.h"  // BOARD_WS_128_GC9A01_UI_RES
+#include "bsp_obd_dsp/boards/board_ws_128_scale.h"        // virtual-360 downscale flush
+#endif
 
 /* Application layer */
 #include "bsp_obd_dsp/bsp_board.h"
@@ -223,7 +227,13 @@ void app_main(void)
     /* Allocate double buffers (DMA memory). Larger buffers -> full-screen render strips halved -> higher frame rate.
        Only affects LVGL render chunking, not the SPI single-transfer size (still chunked by max_transfer_sz), so no screen corruption.
        Falls back automatically to the original 20 lines when internal DMA RAM is insufficient, avoiding boot-time OOM. */
+#if CONFIG_OBD_BOARD_WS_128_GC9A01
+    /* WS128: UI renders at virtual 360x360 (layout/fonts/assets are 360-based);
+       the flush path downsamples to the physical 240x240, so buffers follow the virtual resolution. */
+    size_t buf_px = BOARD_WS_128_GC9A01_UI_RES * 40;
+#else
     size_t buf_px = board_disp.hor_res * 40;
+#endif
     lv_color_t *buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     lv_color_t *buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
     if (!buf1 || !buf2) {
@@ -243,6 +253,14 @@ void app_main(void)
     disp_drv.rounder_cb = lvgl_rounder_cb;
     disp_drv.draw_buf = &disp_buf;
     disp_drv.user_data = board_disp.panel;  // esp_lcd_panel_handle_t (board agnostic)
+#if CONFIG_OBD_BOARD_WS_128_GC9A01
+    /* WS128: LVGL renders at virtual 360x360; board_ws_128_scale merges into a
+       full-frame shadow and downsamples 3:2 to the physical 240x240 panel. */
+    disp_drv.hor_res = BOARD_WS_128_GC9A01_UI_RES;
+    disp_drv.ver_res = BOARD_WS_128_GC9A01_UI_RES;
+    disp_drv.flush_cb = ws128_scale_flush_cb;
+    ESP_ERROR_CHECK(ws128_scale_init(board_disp.panel));
+#endif
 #if CONFIG_OBD_BOARD_WS_175_AMOLED
     /* WS175 mounting orientation is 180° inverted, LVGL software rotation (coordinates stay in logical orientation) */
     disp_drv.sw_rotate = 1;
@@ -259,14 +277,19 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 1000));
 
-    /* Register touch input device (polling mode, uses the global tp created by Touch_Init) */
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.disp = disp;
-    indev_drv.read_cb = lvgl_touch_cb;
-    indev_drv.user_data = board_disp.touch;  // esp_lcd_touch_handle_t (board agnostic)
-    lv_indev_drv_register(&indev_drv);
+    /* Register touch input device (polling mode, uses the global tp created by Touch_Init).
+       Boards without touch (WS128) skip registration: display-only firmware. */
+    if (board_disp.has_touch) {
+        static lv_indev_drv_t indev_drv;
+        lv_indev_drv_init(&indev_drv);
+        indev_drv.type = LV_INDEV_TYPE_POINTER;
+        indev_drv.disp = disp;
+        indev_drv.read_cb = lvgl_touch_cb;
+        indev_drv.user_data = board_disp.touch;  // esp_lcd_touch_handle_t (board agnostic)
+        lv_indev_drv_register(&indev_drv);
+    } else {
+        ESP_LOGI(TAG, "Board reports no touch input, running display-only");
+    }
 
     /* 6. Start LVGL task */
     lvgl_mux = xSemaphoreCreateMutex();

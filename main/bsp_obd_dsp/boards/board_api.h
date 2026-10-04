@@ -7,6 +7,8 @@
 //           CST816 触摸 + TCA9554 IO 扩展,V1/V2/V3 由 OBD_HW_VERSION 细分)
 //    WS175  微雪 ESP32-S3-Touch-AMOLED-1.75(466×466 AMOLED,CO5300 QSPI +
 //           CST9217 触摸,共享 I2C 总线可挂 QMI8658 IMU / ADS1115)
+//    WS128  微雪 ESP32-S3-LCD-1.28 非触摸版(240×240 IPS,GC9A01 四线 SPI,
+//           2MB Quad PSRAM,无触摸;UI 虚拟 360 渲染后降采样输出)
 //  app_main 只面向本 API;屏驱动/背光/触摸映射差异全部封在 boards/ 里。
 // ================================================================
 

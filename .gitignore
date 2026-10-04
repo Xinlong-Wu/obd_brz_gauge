@@ -8,6 +8,9 @@ sdkconfig.old
 sdkconfig
 sdkconfig.ws175
 build_ws175/
+sdkconfig.ws128
+sdkconfig.ws128.old
+build_ws128/
 .vscode/
 .qwen/
 .DS_Store

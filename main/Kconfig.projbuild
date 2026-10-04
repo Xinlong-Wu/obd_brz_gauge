@@ -15,6 +15,14 @@ menu "OBD DSP Configuration"
 
         config OBD_BOARD_WS_175_AMOLED
             bool "WS175: Waveshare ESP32-S3-Touch-AMOLED-1.75 (466x466 AMOLED)"
+
+        config OBD_BOARD_WS_128_GC9A01
+            bool "WS128: Waveshare ESP32-S3-LCD-1.28 no-touch (240x240 IPS, GC9A01)"
+            help
+                Round 1.28" IPS board, 4-wire SPI GC9A01, ESP32-S3R2 (2MB Quad
+                PSRAM — build with sdkconfig.defaults.ws128 overlay which also
+                selects Quad PSRAM mode). No touch: display-only firmware.
+                The UI renders at a virtual 360x360 and is downscaled to 240.
     endchoice
 
     # Waveshare ESP32-S3-Touch-LCD-1.85
@@ -26,7 +34,7 @@ menu "OBD DSP Configuration"
         prompt "OBD display hardware version"
         default OBD_HW_VERSION_V1_WAVESHARE
         help
-            WS185 hardware variant (ignored when the WS175 board is selected —
+            WS185 hardware variant (ignored when a non-WS185 board is selected —
             kept selectable everywhere so the ST77916 driver always compiles).
         help
             Select which display board this firmware is built for.
