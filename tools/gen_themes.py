@@ -220,6 +220,11 @@ def convert_png(asset):
     has_alpha = asset["bpp"] == 3
     img = Image.open(asset["png"]).convert("RGBA" if has_alpha else "RGB")
     w, h = img.size
+    want_w, want_h = asset.get("w"), asset.get("h")
+    if want_w and want_h and (w, h) != (want_w, want_h):
+        # 高分辨率母版(如 720)→ 契约尺寸(360),LANCZOS
+        img = img.resize((want_w, want_h), Image.LANCZOS)
+        w, h = want_w, want_h
     px = img.load()
     sym = asset["symbol"]
     attr = sym.upper()
@@ -396,17 +401,32 @@ def load_assets(sec, path, folder, theme_id):
             fail(path, lineno, f"{kind}: {exc}")
 
         want = spec["size"]
+        # 母版分辨率放宽(P5):ring/dial 接受方形 ≥360(推荐 720 创作),
+        # >360 时 convert_png 用 LANCZOS 缩到 360,输出契约(360)不变;
+        # 恰为 360 的母版输出与历史逐字节一致。needle 同比例放宽。
+        master_scale = 1.0
         if want and (w, h) != want:
+            square_ok = (w == h and w >= want[0] and h >= want[1])
+            if square_ok:
+                if want and (w % want[0] != 0):
+                    fail(path, lineno,
+                         f"{kind}: master is {w}x{h}; for clean downscaling the "
+                         f"master edge must be an integer multiple of {want[0]}")
+                master_scale = w / want[0]
+                w, h = want   # 记录目标尺寸,convert_png 负责缩放
+            else:
+                fail(path, lineno,
+                     f"{kind}: artwork is {w}x{h}, must be exactly {want[0]}x{want[1]} "
+                     f"(or a square master of {want[0]}x{want[1]} x N, e.g. 720)")
+        if not want and (w > 2 * SCREEN_W or h > 2 * SCREEN_H):
             fail(path, lineno,
-                 f"{kind}: artwork is {w}x{h}, must be exactly {want[0]}x{want[1]} "
-                 f"(it covers the whole round display)")
-        if not want and (w > SCREEN_W or h > SCREEN_H):
-            fail(path, lineno,
-                 f"{kind}: artwork is {w}x{h}, must fit within {SCREEN_W}x{SCREEN_H}")
+                 f"{kind}: artwork is {w}x{h}, master must fit within "
+                 f"{2 * SCREEN_W}x{2 * SCREEN_H}")
 
         symbol = f"theme_{theme_id.replace('-', '_')}_{kind}"
         assets[kind] = {
             "kind": kind, "png": png, "w": w, "h": h,
+            "_master_scale": master_scale,
             "cf": spec["cf"], "bpp": spec["bpp"], "field": spec["field"],
             "symbol": symbol,
             "data_size": w * h * spec["bpp"],
@@ -426,6 +446,10 @@ def load_assets(sec, path, folder, theme_id):
         px, px_line = as_int(sec, "needle_pivot_x", path)
         py, py_line = as_int(sec, "needle_pivot_y", path)
         n = assets["needle"]
+        # pivot 按母版坐标书写;母版尺寸≠契约尺寸时折算到契约像素
+        if n.get("_master_scale") and n["_master_scale"] != 1.0:
+            px = round(px / n["_master_scale"])
+            py = round(py / n["_master_scale"])
         if not 0 <= px < n["w"]:
             fail(path, px_line, f"needle_pivot_x {px} outside artwork width {n['w']}")
         if not 0 <= py < n["h"]:

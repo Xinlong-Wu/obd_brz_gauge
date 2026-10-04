@@ -48,8 +48,15 @@ def pack_image_rgb565(img_path: Path, offset: int, data: bytearray) -> int:
 
     img = Image.open(img_path).convert('RGB')
     w, h = img.size
-    if img_path.name in ("dial.png", "ring.png") and (w, h) != (360, 360):
-        raise ValueError(f"Image {img_path} must be 360x360, got {img.size}")
+    # 母版分辨率放宽(P5):dial/ring 接受方形 ≥360(如 720),LANCZOS 缩到
+    # 契约尺寸 360;恰为 360 时与历史打包逐字节一致
+    if img_path.name in ("dial.png", "ring.png"):
+        if w != h or w < 360 or w % 360 != 0:
+            raise ValueError(f"Image {img_path} must be 360x360 (or a square "
+                             f"360xN master, e.g. 720), got {img.size}")
+        if (w, h) != (360, 360):
+            img = img.resize((360, 360), Image.LANCZOS)
+            w, h = img.size
 
     print(f"  Packing {img_path.name} as RGB565 ({w}x{h})...")
     pixels = img.load()
@@ -74,8 +81,13 @@ def pack_image_rgba8888(img_path: Path, offset: int, data: bytearray) -> int:
 
     img = Image.open(img_path).convert('RGBA')
     w, h = img.size
-    if img_path.name in ("dial.png", "ring.png") and (w, h) != (360, 360):
-        raise ValueError(f"Image {img_path} must be 360x360, got {img.size}")
+    if img_path.name in ("dial.png", "ring.png"):
+        if w != h or w < 360 or w % 360 != 0:
+            raise ValueError(f"Image {img_path} must be 360x360 (or a square "
+                             f"360xN master, e.g. 720), got {img.size}")
+        if (w, h) != (360, 360):
+            img = img.resize((360, 360), Image.LANCZOS)
+            w, h = img.size
 
     print(f"  Packing {img_path.name} as RGBA8888 ({w}x{h})...")
     pixels = img.load()

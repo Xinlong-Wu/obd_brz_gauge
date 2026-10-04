@@ -62,6 +62,7 @@ typedef struct {
     const void *data;
     esp_partition_mmap_handle_t handle;
     lv_img_dsc_t img;
+    uint8_t *scaled_data;      // 非 360 渲染分辨率下的重采样缓冲(PSRAM,unload 释放)
 } theme_named_asset_t;
 
 // A compiled LVGL binary font ("lv_font_bin" asset), mmap'd from flash like
@@ -620,6 +621,9 @@ void theme_unload(void) {
         if (s_ctx.named_assets[i].handle) {
             esp_partition_munmap(s_ctx.named_assets[i].handle);
         }
+        if (s_ctx.named_assets[i].scaled_data) {
+            heap_caps_free(s_ctx.named_assets[i].scaled_data);
+        }
     }
     s_ctx.dial_handle = 0;
     s_ctx.dial_data = NULL;
@@ -773,6 +777,81 @@ static lv_img_cf_t theme_asset_color_format(const char *format) {
     return LV_IMG_CF_TRUE_COLOR;
 }
 
+/**
+ * 渲染分辨率 ≠ 360 时把 mmap 的主题图片资产盒式重采样到目标尺寸(P5)。
+ * 成功后 slot->img 指向新缓冲(slot->scaled_data),unload 时统一释放;
+ * 失败仅告警并继续用原 360 资产(居中显示,不致命)。
+ * 资产格式:RGB565(2B/px,大端)或 RGBA8888(4B/px)。
+ */
+static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
+    const int target = (int)UI_RENDER_RES;
+    const int src_w = slot->img.header.w;
+    const int src_h = slot->img.header.h;
+    if (target == src_w && target == src_h) {
+        return;
+    }
+    if (slot->img.header.cf != LV_IMG_CF_TRUE_COLOR &&
+        slot->img.header.cf != LV_IMG_CF_TRUE_COLOR_ALPHA) {
+        return;   // 未知/索引格式不动
+    }
+    const bool rgba = (slot->img.header.cf == LV_IMG_CF_TRUE_COLOR_ALPHA);
+    const int bpp = rgba ? 4 : 2;
+
+    uint8_t *dst = heap_caps_malloc((size_t)target * target * bpp, MALLOC_CAP_SPIRAM);
+    if (!dst) {
+        ESP_LOGW(TAG, "Asset '%s': no %d B PSRAM for %dx%d rescale, keeping %dx%d",
+                 name, target * target * bpp, target, target, src_w, src_h);
+        return;
+    }
+
+    for (int y = 0; y < target; y++) {
+        int sy0 = (y * src_h) / target;
+        int sy1 = ((y + 1) * src_h + target - 1) / target;
+        if (sy1 <= sy0) sy1 = sy0 + 1;
+        if (sy1 > src_h) sy1 = src_h;
+        for (int x = 0; x < target; x++) {
+            int sx0 = (x * src_w) / target;
+            int sx1 = ((x + 1) * src_w + target - 1) / target;
+            if (sx1 <= sx0) sx1 = sx0 + 1;
+            if (sx1 > src_w) sx1 = src_w;
+
+            uint32_t r = 0, g = 0, b = 0, a = 0;
+            for (int sy = sy0; sy < sy1; sy++) {
+                const uint8_t *row = (const uint8_t *)slot->data + (size_t)sy * src_w * bpp;
+                for (int sx = sx0; sx < sx1; sx++) {
+                    const uint8_t *p = row + (size_t)sx * bpp;
+                    if (rgba) {
+                        r += p[0]; g += p[1]; b += p[2]; a += p[3];
+                    } else {
+                        uint16_t v = (uint16_t)((p[0] << 8) | p[1]);
+                        r += (v >> 11) & 0x1f;
+                        g += (v >> 5) & 0x3f;
+                        b += v & 0x1f;
+                    }
+                }
+            }
+            const int n = (sx1 - sx0) * (sy1 - sy0);
+            uint8_t *q = dst + ((size_t)y * target + x) * bpp;
+            if (rgba) {
+                q[0] = (uint8_t)(r / n); q[1] = (uint8_t)(g / n);
+                q[2] = (uint8_t)(b / n); q[3] = (uint8_t)(a / n);
+            } else {
+                uint16_t v = (uint16_t)(((r / n) << 11) | ((g / n) << 5) | (b / n));
+                q[0] = (uint8_t)(v >> 8);
+                q[1] = (uint8_t)(v & 0xff);
+            }
+        }
+    }
+
+    slot->scaled_data = dst;
+    slot->img.header.w = target;
+    slot->img.header.h = target;
+    slot->img.data = dst;
+    slot->img.data_size = (uint32_t)target * target * bpp;
+    ESP_LOGI(TAG, "Asset '%s' rescaled %dx%d -> %dx%d for render res %d",
+             name, src_w, src_h, target, target, target);
+}
+
 static esp_err_t theme_load_assets(void) {
     cJSON *assets = cJSON_GetObjectItem(s_ctx.manifest, "assets");
     if (!assets) {
@@ -854,6 +933,9 @@ static esp_err_t theme_load_assets(void) {
         slot->img.header.cf = theme_asset_color_format(format);
         slot->img.data = (const uint8_t *)slot->data;
         slot->img.data_size = size;
+        slot->scaled_data = NULL;
+        // 渲染分辨率 ≠ 资产尺寸(默认 360)时重采样;360 构建零开销直通
+        theme_asset_rescale(slot, name);
         s_ctx.named_asset_count++;
         ESP_LOGI(TAG, "Asset '%s' loaded: %zu bytes @ 0x%zx", name, size, offset);
 
