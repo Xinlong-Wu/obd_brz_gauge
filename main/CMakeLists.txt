@@ -102,7 +102,6 @@ idf_component_register(SRC_DIRS
                     esp_http_server
                     esp_wifi
                     bt
-                    spiffs
                     mbedtls
                     nvs_flash
                     app_update
@@ -110,8 +109,24 @@ idf_component_register(SRC_DIRS
                     esp_lcd
                     driver)
 
-# Auto-generate the bootmedia SPIFFS image; flashed together via idf.py flash
-spiffs_create_partition_image(bootmedia ${CMAKE_CURRENT_SOURCE_DIR}/../bootmedia/slot_a FLASH_IN_PROJECT)
+# Auto-generate the factory bootmedia image in the raw layout the firmware
+# reads (manifest at partition offset 0, frame stream at 0x1000 — see
+# app_obd_dsp/boot_media_mount.c); flashed together with idf.py flash.
+set(BOOTMEDIA_SLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../bootmedia/slot_a)
+# Emit at the build root so the documented flashing path build/bootmedia.bin
+# (docs/FLASH.md, host esptool flows) stays valid.
+set(BOOTMEDIA_IMG ${CMAKE_BINARY_DIR}/bootmedia.bin)
+add_custom_command(
+    OUTPUT ${BOOTMEDIA_IMG}
+    COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_bootmedia.py
+            ${BOOTMEDIA_SLOT_DIR} ${BOOTMEDIA_IMG}
+    DEPENDS ${BOOTMEDIA_SLOT_DIR}/boot_block.txt ${BOOTMEDIA_SLOT_DIR}/boot_block.bin
+    COMMENT "Generating raw bootmedia image"
+    VERBATIM)
+add_custom_target(bootmedia_img DEPENDS ${BOOTMEDIA_IMG})
+add_dependencies(${COMPONENT_LIB} bootmedia_img)
+partition_table_get_partition_info(bootmedia_offset "--partition-name bootmedia" offset)
+esptool_py_flash_target_image(flash bootmedia "${bootmedia_offset}" "${BOOTMEDIA_IMG}")
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     OBD_GAUGE_GIT_HASH="${OBD_GAUGE_GIT_HASH}"
