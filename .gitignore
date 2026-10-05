@@ -9,6 +9,7 @@ sdkconfig
 sdkconfig.ws175
 build_ws175/
 sdkconfig.ws128
+sdkconfig.ws128t
 sdkconfig.ws128.old
 build_ws128/
 build_ws128t/
