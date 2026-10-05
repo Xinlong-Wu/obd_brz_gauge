@@ -12,7 +12,7 @@
             font-family: sans-serif;
             text-align: center;
             margin: 0;
-            padding: 16px
+            padding: 10px
         }
 
         #cv {
@@ -27,10 +27,25 @@
         }
 
         #cv img {
-            max-width: 88vw;
-            max-height: 70vh;
+            /* 网页侧上采样:画面放大到视口短边的 90%(浏览器 GPU 缩放),
+               流仍按板端渲染分辨率编码,板端开销不变;更大的触摸目标
+               也让远程触摸在手机上更好操作。上限(流原生分辨率 x2,见
+               下方 JS)防止电脑大屏上放得过大过糊 */
+            width: min(90vw, 90vh);
+            width: min(90vw, 90dvh);
+            height: auto;
             display: block;
             border-radius: 50%
+        }
+
+        /* 远程触摸开启时长按必须透传给板子:掐掉浏览器对 <img> 长按的
+           默认行为(存储图像弹窗/呼出菜单/选中/拖拽),否则长按会触发
+           pointercancel,按下态被提前送抬起、板端 long-press 出不来 */
+        #cv.on img {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none
         }
 
         a.btn {
@@ -54,12 +69,12 @@
 <body>
     <h3>OBD Gauge 实时画面</h3>
     <div id='cv'><img alt='stream'></div>
-    <div><label><input type='checkbox' id='tc' checked> 远程触摸(在画面上滑动/点按)</label></div>
+    <div id='ctl'><label><input type='checkbox' id='tc' checked> 远程触摸(在画面上滑动/点按/长按)</label></div>
     <div>
         <a class='btn' href='/snapshot.jpg' download='frame.jpg'>下载当前帧 JPG</a>
         <a class='btn' href='/screenshot.bmp' download='screenshot.bmp'>下载精确色 BMP</a>
     </div>
-    <p style='color:#777;font-size:13px'>若画面未刷新,点这里重连流:<a style='color:#8ab4ff' data-stream>stream</a></p>
+    <p id='hint' style='color:#777;font-size:13px'>若画面未刷新,点这里重连流:<a style='color:#8ab4ff' data-stream>stream</a></p>
     <script>
         // 板子自己服务本页面,location.hostname 即设备 IP;流走独立端口 8081
         var STREAM = '//' + location.hostname + ':8081/stream';
@@ -73,6 +88,9 @@
         }
         function s(x, y, p) { fetch('/touch?x=' + x + '&y=' + y + '&p=' + (p ? 1 : 0) + '&t=' + Date.now(), { cache: 'no-store' }); }
         tc.onchange = function () { cv.classList.toggle('on', tc.checked); };
+        // 长按透传的前置:关闭远程触摸时保留浏览器原生长按(可存图),开启则屏蔽
+        cv.oncontextmenu = function (e) { if (tc.checked) e.preventDefault(); };
+        cv.ondragstart = function (e) { if (tc.checked) e.preventDefault(); };
         cv.onpointerdown = function (e) {
             if (!tc.checked) return; cv.setPointerCapture(e.pointerId);
             var c = n(e); s(c[0], c[1], 1); e.preventDefault();
@@ -84,6 +102,11 @@
         cv.onpointerup = cv.onpointercancel = function (e) {
             if (!tc.checked) return;
             var c = n(e); s(c[0], c[1], 0);
+        };
+        // 放大上限:不超过流原生分辨率的 2 倍(首帧测定,即板端渲染分辨率;
+        // WS128 流 240 → 上限 480px)。再放大只有模糊没有细节
+        v.onload = function () {
+            v.style.maxWidth = v.style.maxHeight = v.naturalWidth * 2 + 'px';
         };
         cv.classList.add('on');
     </script>

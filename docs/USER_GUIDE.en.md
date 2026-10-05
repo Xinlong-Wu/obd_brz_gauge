@@ -173,8 +173,16 @@ running normally (BLE/ESP-NOW unaffected):
 **Remote touch** (`OBD_REMOTE_TOUCH`, on by default in the ws128 build): the
 control page itself becomes a touchscreen — **swipe / tap / long-press** on
 the live view to operate the gauge (paging, settings, long-press edit all
-work exactly like a real finger); the "remote touch" checkbox below the
-picture disables it temporarily (the page scrolls normally when off).
+work exactly like a real finger). While remote touch is on, the browser's
+long-press image menu (save image / context menu) is suppressed so
+long-presses pass through to the gauge untouched; unchecking restores the
+native browser behavior (the page scrolls normally when off).
+
+The picture renders at 90% of the page viewport's shorter side (browser
+scaling/upsampling, zero extra board load), capped at twice the stream's
+native resolution (measured from the first frame: WS128 stream 240 → 480px
+cap, WS185/WS175 720/932px) — a larger touch target on phones without
+oversharpening-free over-upscaling on desktop monitors.
 
 The joined device has no internet while on the hotspot; switch back to your
 WiFi afterwards. Endpoint details in [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).

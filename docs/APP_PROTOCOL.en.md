@@ -120,6 +120,12 @@ default); it coexists with the OTA server, ESP-NOW and BLE OBD:
   `/touch` injects input, gated by the same hotspot password)
 - Unusual builds where render != panel fall back to ui_scale; captured
   content always equals the framebuffer (the final rendered frame)
+- The picture renders at 90% of the page viewport's shorter side (CSS
+  upsampling, GPU scaling), capped at twice the stream's native resolution
+  (measured from the first frame): the stream is always encoded at the board's
+  render resolution with zero extra board load; with remote touch on, the page
+  suppresses the browser's default long-press image behavior (save image /
+  context menu) so long-presses flow through `/touch` as-is
 
 
 ## Boot-animation editor rules (app side)
