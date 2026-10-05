@@ -16,6 +16,10 @@ connect, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 > boot — see "WiFi screen capture" below).
 > See [DEVELOPMENT.en.md](DEVELOPMENT.en.md#porting-a-new-board) for build
 > instructions.
+>
+> The 1.28" **touch variant** (ESP32-S3-Touch-LCD-1.28, board ID WS128T) is not
+> affected: it has full capacitive touch, so everything in this guide works
+> as written with no special handling.
 
 ## First boot
 

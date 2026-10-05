@@ -165,7 +165,7 @@ unified interface; `board_dispatch.c` dispatches statically on the Kconfig
 `OBD DSP Configuration -> Display board`). A new board = one `board_<id>.c`
 + spec header + Kconfig option, self-guarded with `#if CONFIG_OBD_BOARD_<ID>`
 (the component CMake requirements phase has no CONFIG_ variables, so the
-split cannot happen in CMake). Existing boards:
+split cannot happen in CMake). Existing boards (four):
 
 - **WS185** (default): Waveshare 1.85" IPS, ST77916 QSPI + CST816 + TCA9554
   (V1/V2/V3 variants under `OBD_HW_VERSION`)
@@ -190,6 +190,17 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128" set-target esp32s3
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+```
+
+- **WS128T**: Waveshare 1.28" IPS **touch** variant (ESP32-S3-Touch-LCD-1.28),
+  same panel and MCU as the WS128 (GC9A01 4-wire SPI 240x240, 2MB Quad PSRAM)
+  with a CST816S capacitive touch controller on the shared I2C bus
+  (SDA=6/SCL=7, RST=13/INT=5). **Pins differ from the no-touch WS128**:
+  LCD_RST=14, BL=2 (Waveshare wiki pin table). Build:
+```bash
+idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128t" set-target esp32s3
+idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t build
 ```
 
 UI code should include screen symbols via `boards/board_display_compat.h`

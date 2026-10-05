@@ -145,7 +145,7 @@ WS185=360 / WS175=466 / WS128=240），**所有板以面板原生分辨率渲染
 按 Kconfig `OBD DSP Configuration → Display board` 静态分发;新板=新增一个
 `board_<id>.c` + spec 头 + Kconfig 选项,板文件用 `#if CONFIG_OBD_BOARD_<ID>`
 自守卫——组件 CMake 的 requirements 阶段拿不到 CONFIG_ 变量,不能在 CMake 里分流)。
-现有三块:
+现有四块:
 
 - **WS185**(默认):微雪 1.85" IPS,ST77916 QSPI + CST816 + TCA9554(V1/V2/V3 细分见 `OBD_HW_VERSION`)
 - **WS175**:微雪 1.75" AMOLED 466×466,CO5300 QSPI + CST9217(共享 I2C 可挂
@@ -166,6 +166,16 @@ idf.py -B build_ws175 -DSDKCONFIG=sdkconfig.ws175 build
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128" set-target esp32s3
 idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+```
+
+- **WS128T**:微雪 1.28" IPS **触摸版**(ESP32-S3-Touch-LCD-1.28),面板与主控
+  同 WS128(GC9A01 四线 SPI 240×240,2MB Quad PSRAM),CST816S 电容触摸挂在
+  共享 I2C(SDA=6/SCL=7,RST=13/INT=5)。**引脚与非触摸版不同**:LCD_RST=14、
+  BL=2(wiki 引脚分布表)。构建:
+```bash
+idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128t" set-target esp32s3
+idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t build
 ```
 
 UI 层包含屏幕符号请用 `boards/board_display_compat.h`(WS185 转发 ST77916.h,
