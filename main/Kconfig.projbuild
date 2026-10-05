@@ -36,6 +36,16 @@ menu "OBD DSP Configuration"
                 PSRAM — build with sdkconfig.defaults.ws128 overlay which also
                 selects Quad PSRAM mode). No touch: display-only firmware.
                 The UI renders at a virtual 360x360 and is downscaled to 240.
+
+        config OBD_BOARD_WS_128T_GC9A01
+            bool "WS128T: Waveshare ESP32-S3-Touch-LCD-1.28 (240x240 IPS + CST816)"
+            help
+                Round 1.28" IPS board with capacitive touch, same GC9A01
+                4-wire SPI panel and ESP32-S3R2 (2MB Quad PSRAM — build with
+                sdkconfig.defaults.ws128t overlay) as the no-touch WS128.
+                Pin differences vs WS128 (per Waveshare wiki): LCD_RST=14,
+                LCD_BL=2; CST816S touch on shared I2C SDA=6/SCL=7 with
+                TP_RST=13/TP_INT=5.
     endchoice
 
     config OBD_UI_RENDER_RES

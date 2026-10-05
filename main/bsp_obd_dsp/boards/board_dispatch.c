@@ -30,6 +30,15 @@ const board_profile_t *board_ws_128_profile(void);
 const char *board_ws_128_name(void);
 bool board_ws_128_has_touch(void);
 
+esp_err_t board_ws_128t_init(void);
+esp_err_t board_ws_128t_register_display_flush_ready_callback(board_display_flush_ready_cb_t cb, void *user_ctx);
+esp_err_t board_ws_128t_display_init(board_display_context_t *ctx);
+esp_err_t board_ws_128t_set_brightness(uint8_t percent);
+esp_err_t board_ws_128t_notify_output_mode(bool scaled_output);
+const board_profile_t *board_ws_128t_profile(void);
+const char *board_ws_128t_name(void);
+bool board_ws_128t_has_touch(void);
+
 esp_err_t board_init(void)
 {
 #if CONFIG_OBD_BOARD_WS_185
@@ -38,6 +47,8 @@ esp_err_t board_init(void)
     return board_ws_175_amoled_init();
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_init();
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_init();
 #else
 #error "No board selected"
 #endif
@@ -51,6 +62,8 @@ esp_err_t board_register_display_flush_ready_callback(board_display_flush_ready_
     return board_ws_175_amoled_register_display_flush_ready_callback(cb, user_ctx);
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_register_display_flush_ready_callback(cb, user_ctx);
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_register_display_flush_ready_callback(cb, user_ctx);
 #else
 #error "No board selected"
 #endif
@@ -66,6 +79,8 @@ esp_err_t board_notify_output_mode(bool scaled_output)
     return ESP_OK;   // 同上:panel IO 回调为静态直通(espressif 组件管理)
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_notify_output_mode(scaled_output);
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_notify_output_mode(scaled_output);
 #else
 #error "No board selected"
 #endif
@@ -79,6 +94,8 @@ esp_err_t board_display_init(board_display_context_t *ctx)
     return board_ws_175_amoled_display_init(ctx);
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_display_init(ctx);
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_display_init(ctx);
 #else
 #error "No board selected"
 #endif
@@ -92,6 +109,8 @@ esp_err_t board_set_brightness(uint8_t percent)
     return board_ws_175_amoled_set_brightness(percent);
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_set_brightness(percent);
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_set_brightness(percent);
 #else
 #error "No board selected"
 #endif
@@ -108,6 +127,9 @@ esp_err_t board_get_shared_i2c_bus(i2c_master_bus_handle_t *out_bus)
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     (void)out_bus;
     return ESP_ERR_NOT_SUPPORTED;   // 板上 I2C 只挂本仓库不用的 QMI8658,不初始化
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    (void)out_bus;
+    return ESP_ERR_NOT_SUPPORTED;   // 板上 I2C 挂 QMI8658(不用)+ CST816(触摸私有总线),不共享
 #else
 #error "No board selected"
 #endif
@@ -122,6 +144,9 @@ esp_err_t board_i2c_reg_write(uint8_t device_addr, uint8_t reg_addr, const uint8
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     (void)device_addr; (void)reg_addr; (void)data; (void)len;
     return ESP_ERR_NOT_SUPPORTED;   // 无共享 I2C 设备
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    (void)device_addr; (void)reg_addr; (void)data; (void)len;
+    return ESP_ERR_NOT_SUPPORTED;   // 无共享 I2C 设备(触摸总线为板级私有)
 #else
 #error "No board selected"
 #endif
@@ -136,6 +161,9 @@ esp_err_t board_i2c_reg_read(uint8_t device_addr, uint8_t reg_addr, uint8_t *dat
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     (void)device_addr; (void)reg_addr; (void)data; (void)len;
     return ESP_ERR_NOT_SUPPORTED;   // 无共享 I2C 设备
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    (void)device_addr; (void)reg_addr; (void)data; (void)len;
+    return ESP_ERR_NOT_SUPPORTED;   // 无共享 I2C 设备(触摸总线为板级私有)
 #else
 #error "No board selected"
 #endif
@@ -149,6 +177,8 @@ const board_profile_t *board_profile(void)
     return board_ws_175_amoled_profile();
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_profile();
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_profile();
 #else
 #error "No board selected"
 #endif
@@ -162,6 +192,8 @@ const char *board_name(void)
     return board_ws_175_amoled_name();
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_name();
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_name();
 #else
 #error "No board selected"
 #endif
@@ -175,6 +207,8 @@ bool board_has_touch(void)
     return board_ws_175_amoled_has_touch();
 #elif CONFIG_OBD_BOARD_WS_128_GC9A01
     return board_ws_128_has_touch();
+#elif CONFIG_OBD_BOARD_WS_128T_GC9A01
+    return board_ws_128t_has_touch();
 #else
 #error "No board selected"
 #endif

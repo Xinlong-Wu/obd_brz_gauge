@@ -161,6 +161,15 @@ static esp_err_t del(esp_lcd_touch_handle_t tp)
 
 static esp_err_t reset(esp_lcd_touch_handle_t tp)
 {
+    /* 配置了真实 RST 脚的板(WS128T=GPIO13)直接拉脚复位;
+       WS185 的复位接在 TCA9554 EXIO1,走 IO 扩展器(保持原行为) */
+    if (tp->config.rst_gpio_num != GPIO_NUM_NC) {
+        gpio_set_level(tp->config.rst_gpio_num, false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        gpio_set_level(tp->config.rst_gpio_num, true);
+        vTaskDelay(pdMS_TO_TICKS(50));
+        return ESP_OK;
+    }
 
     Set_EXIO(TCA9554_EXIO1,false);
     vTaskDelay(pdMS_TO_TICKS(10));

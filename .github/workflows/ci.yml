@@ -70,6 +70,7 @@ jobs:
           - { board: ws185, build_dir: build }
           - { board: ws175, build_dir: build_ws175 }
           - { board: ws128, build_dir: build_ws128 }
+          - { board: ws128t, build_dir: build_ws128t }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,6 +108,15 @@ jobs:
               set-target esp32s3
           docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
             idf.py -B build_ws128 -DSDKCONFIG=sdkconfig.ws128 build
+      - name: Build WS128T (240, touch)
+        if: matrix.board == 'ws128t'
+        run: |
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t \
+              -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;boards/sdkconfig.defaults.ws128t" \
+              set-target esp32s3
+          docker run --rm -v "$PWD":/project -w /project espressif/idf:v5.5.3 \
+            idf.py -B build_ws128t -DSDKCONFIG=sdkconfig.ws128t build
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
