@@ -143,7 +143,9 @@ static esp_err_t board_ws_128_panel_init(void)
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = BOARD_WS_128_GC9A01_LCD_RST,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        // GC9A01 玻璃为 BGR 原序(NO SIGNAL 红字在屏上呈蓝色的现象暴露;
+        // 灰度画面 R/B 交换不可见,极易漏检)
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
         .bits_per_pixel = BOARD_WS_128_GC9A01_COLOR_BITS,
     };
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_gc9a01(s_panel_io_handle, &panel_config, &s_panel_handle),
