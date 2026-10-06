@@ -65,27 +65,18 @@ static sim_pointer_t s_inject;   /* tour/tap override (gauge region only) */
 static bool s_inject_active;
 static int  s_press_region = REGION_NONE;
 
-/* ---- LVGL flush: byte-swap RGB565 into the SDL texture (drv->user_data) ---- */
-static uint16_t s_stage[SIM_RES_MAX * SIM_RES_MAX];
-
-static void sim_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
+/* ---- LVGL flush: native RGB565 straight into the SDL texture (user_data) ----
+ * v9 display runs NATIVE RGB565 (image sources are big-endian and get converted
+ * by the SW renderer at draw time), so no byte swapping is needed here. */
+static void sim_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
-    SDL_Texture *tex = (SDL_Texture *)drv->user_data;
+    SDL_Texture *tex = (SDL_Texture *)lv_display_get_user_data(disp);
     int w = area->x2 - area->x1 + 1;
     int h = area->y2 - area->y1 + 1;
 
-    for (int y = 0; y < h; y++) {
-        const uint16_t *src = (const uint16_t *)(color_p + (size_t)y * w);
-        uint16_t *dst = s_stage + (size_t)y * w;
-        for (int x = 0; x < w; x++) {
-            uint16_t v = src[x];
-            dst[x] = (uint16_t)((v << 8) | (v >> 8)); /* undo LV_COLOR_16_SWAP */
-        }
-    }
-
     SDL_Rect rect = { area->x1, area->y1, w, h };
-    SDL_UpdateTexture(tex, &rect, s_stage, (int)(w * sizeof(uint16_t)));
-    lv_disp_flush_ready(drv);
+    SDL_UpdateTexture(tex, &rect, px_map, w * 2);
+    lv_display_flush_ready(disp);
 }
 
 /* ---- touch: region-routed mouse (+ injectors on the gauge) ---- */
@@ -96,7 +87,7 @@ static void feed_pointer(lv_indev_data_t *data, const sim_pointer_t *p)
     data->state = p->pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
-static void sim_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+static void sim_touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
     if (s_inject_active) {
         feed_pointer(data, &s_inject); /* injectors always drive the gauge */
@@ -105,10 +96,10 @@ static void sim_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
     sim_pointer_t p = { s_mouse.x, s_mouse.y,
                         s_mouse.pressed && s_press_region == REGION_GAUGE };
     feed_pointer(data, &p);
-    (void)drv;
+    (void)indev;
 }
 
-static void sim_touch_cb_panel(lv_indev_drv_t *drv, lv_indev_data_t *data)
+static void sim_touch_cb_panel(lv_indev_t *indev, lv_indev_data_t *data)
 {
     sim_pointer_t p = { s_mouse.x - SIM_RES, s_mouse.y,
                         s_mouse.pressed && s_press_region == REGION_PANEL };
@@ -116,7 +107,7 @@ static void sim_touch_cb_panel(lv_indev_drv_t *drv, lv_indev_data_t *data)
     if (p.x >= PANEL_RES) p.x = PANEL_RES - 1;
     if (p.y >= SIM_RES) p.y = SIM_RES - 1;
     feed_pointer(data, &p);
-    (void)drv;
+    (void)indev;
 }
 
 /* ---- screenshot helpers ---- */
@@ -346,6 +337,16 @@ int main(int argc, char **argv)
         fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
         return 1;
     }
+    /* 圆形 UI 的四角不属于任何 obj,v9 只重绘脏区——纹理清成黑色保证
+     * 角落确定(v8 时代经零化 stage 缓冲天然为黑) */
+    for (SDL_Texture *t = s_gauge_tex; t; t = (t == s_panel_tex ? NULL : s_panel_tex)) {
+        void *pix; int pitch;
+        if (SDL_LockTexture(t, NULL, &pix, &pitch) == 0) {
+            int th; SDL_QueryTexture(t, NULL, NULL, NULL, &th);
+            memset(pix, 0, (size_t)pitch * th);
+            SDL_UnlockTexture(t);
+        }
+    }
 
     /* ---- configure the shim layer before anything reads it ---- */
     sim_nvs_mock_configure(&opts);
@@ -355,59 +356,47 @@ int main(int argc, char **argv)
 
     /* ---- LVGL bring-up, mirroring app_main.c ---- */
     lv_init();
+    lv_tick_set_cb(sim_clock_ms);   /* real SDL millis, or the virtual frame-locked clock */
 
-    static lv_disp_draw_buf_t gauge_buf;
-    static lv_color_t gauge_fb[SIM_RES_MAX * SIM_RES_MAX];   /* full-frame buffer; PC RAM is cheap */
-    lv_disp_draw_buf_init(&gauge_buf, gauge_fb, NULL, SIM_RES * SIM_RES);
-
-    static lv_disp_drv_t gauge_drv;
-    lv_disp_drv_init(&gauge_drv);
-    gauge_drv.hor_res = SIM_RES;
-    gauge_drv.ver_res = SIM_RES;
-    gauge_drv.flush_cb = sim_flush_cb;
-    gauge_drv.draw_buf = &gauge_buf;
-    gauge_drv.user_data = s_gauge_tex;
-    lv_disp_t *gauge_disp = lv_disp_drv_register(&gauge_drv);
+    static uint8_t gauge_fb[SIM_RES_MAX * SIM_RES_MAX * 2];  /* full-frame RGB565; PC RAM is cheap */
+    lv_display_t *gauge_disp = lv_display_create(SIM_RES, SIM_RES);
+    lv_display_set_flush_cb(gauge_disp, sim_flush_cb);
+    lv_display_set_color_format(gauge_disp, LV_COLOR_FORMAT_RGB565);
+    lv_display_set_buffers(gauge_disp, gauge_fb, NULL,
+                           sizeof(gauge_fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_user_data(gauge_disp, s_gauge_tex);
 
     /* app_main.c step 7: default theme before any screen exists */
     lv_theme_t *theme = lv_theme_default_init(gauge_disp, lv_palette_main(LV_PALETTE_BLUE),
                                               lv_palette_main(LV_PALETTE_RED),
                                               false, LV_FONT_DEFAULT);
-    lv_disp_set_theme(gauge_disp, theme);
+    lv_display_set_theme(gauge_disp, theme);
 
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.disp = gauge_disp;
-    indev_drv.read_cb = sim_touch_cb;
-    lv_indev_drv_register(&indev_drv);
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, sim_touch_cb);
+    lv_indev_set_display(indev, gauge_disp);
 
     /* ---- panel display (second LVGL display, same window) ---- */
-    static lv_disp_draw_buf_t panel_buf;
-    static lv_color_t panel_fb[PANEL_RES * SIM_RES_MAX];
-    static lv_disp_drv_t panel_drv;
-    static lv_indev_drv_t panel_indev;
-    lv_disp_t *panel_disp = NULL;
+    static uint8_t panel_fb[PANEL_RES * SIM_RES_MAX * 2];
+    lv_display_t *panel_disp = NULL;
     if (s_panel_on) {
-        lv_disp_draw_buf_init(&panel_buf, panel_fb, NULL, PANEL_RES * SIM_RES);
-        lv_disp_drv_init(&panel_drv);
-        panel_drv.hor_res = PANEL_RES;
-        panel_drv.ver_res = SIM_RES;
-        panel_drv.flush_cb = sim_flush_cb;
-        panel_drv.draw_buf = &panel_buf;
-        panel_drv.user_data = s_panel_tex;
-        panel_disp = lv_disp_drv_register(&panel_drv);
+        panel_disp = lv_display_create(PANEL_RES, SIM_RES);
+        lv_display_set_flush_cb(panel_disp, sim_flush_cb);
+        lv_display_set_color_format(panel_disp, LV_COLOR_FORMAT_RGB565);
+        lv_display_set_buffers(panel_disp, panel_fb, NULL,
+                               sizeof(panel_fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_user_data(panel_disp, s_panel_tex);
         /* theme is per-display; dark variant so labels read on the dark panel */
         lv_theme_t *panel_theme = lv_theme_default_init(
             panel_disp, lv_palette_main(LV_PALETTE_ORANGE), lv_palette_main(LV_PALETTE_AMBER),
             true, LV_FONT_DEFAULT);
-        lv_disp_set_theme(panel_disp, panel_theme);
+        lv_display_set_theme(panel_disp, panel_theme);
 
-        lv_indev_drv_init(&panel_indev);
-        panel_indev.type = LV_INDEV_TYPE_POINTER;
-        panel_indev.disp = panel_disp;
-        panel_indev.read_cb = sim_touch_cb_panel;
-        lv_indev_drv_register(&panel_indev);
+        lv_indev_t *panel_indev = lv_indev_create();
+        lv_indev_set_type(panel_indev, LV_INDEV_TYPE_POINTER);
+        lv_indev_set_read_cb(panel_indev, sim_touch_cb_panel);
+        lv_indev_set_display(panel_indev, panel_disp);
     }
 
     vehicle_profile_set_active(nvs_cfg_get()->vehicle_profile_idx);
@@ -429,10 +418,10 @@ int main(int argc, char **argv)
 
     /* build the control panel on its own display */
     if (s_panel_on) {
-        lv_disp_t *def = lv_disp_get_default();
-        lv_disp_set_default(panel_disp);   /* lv_obj_create(NULL) lands on default */
+        lv_display_t *def = lv_display_get_default();
+        lv_display_set_default(panel_disp);   /* lv_obj_create(NULL) lands on default */
         control_panel_build();
-        lv_disp_set_default(def);
+        lv_display_set_default(def);
     }
 
     vMileageDataStatisticTask();   /* real odometer timer (esp_timer shim) */

@@ -92,7 +92,7 @@ lv_obj_t *ui_comp_create(const ui_comp_desc_t *desc, lv_obj_t *parent)
     if ((int)desc->channel < 0 || (int)desc->channel >= (int)DISP_ITEM_COUNT) return NULL;
     if (desc->w <= 0 || desc->h <= 0) return NULL;
 
-    ui_comp_priv_t *p = lv_mem_alloc(sizeof(ui_comp_priv_t));
+    ui_comp_priv_t *p = lv_malloc(sizeof(ui_comp_priv_t));
     if (!p) return NULL;
     memset(p, 0, sizeof(*p));
     p->desc = *desc;
@@ -175,7 +175,7 @@ lv_obj_t *ui_comp_create(const ui_comp_desc_t *desc, lv_obj_t *parent)
     }
     default:
         lv_obj_del(comp);
-        lv_mem_free(p);
+        lv_free(p);
         return NULL;
     }
     return comp;

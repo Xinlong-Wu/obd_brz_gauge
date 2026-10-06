@@ -26,14 +26,14 @@ set(MAIN_DIR   "${REPO_ROOT}/main")
 set(UI_DIR     "${MAIN_DIR}/export_path")
 
 # ---- LVGL: use the exact copy the firmware builds against (managed_components,
-#      version pinned by dependencies.lock); fall back to fetching v8.4.0. ----
+#      version pinned by dependencies.lock); fall back to fetching v9.6.0. ----
 set(LVGL_DIR "${REPO_ROOT}/managed_components/lvgl__lvgl")
 if(NOT EXISTS "${LVGL_DIR}/lvgl.h")
-    message(STATUS "managed_components/lvgl not found; fetching lvgl v8.4.0")
+    message(STATUS "managed_components/lvgl not found; fetching lvgl v9.6.0")
     include(FetchContent)
     FetchContent_Declare(lvgl
         GIT_REPOSITORY https://github.com/lvgl/lvgl
-        GIT_TAG        v8.4.0)
+        GIT_TAG        v9.6.0)
     FetchContent_MakeAvailable(lvgl)
     set(LVGL_DIR "${lvgl_SOURCE_DIR}")
 endif()
@@ -41,13 +41,14 @@ endif()
 file(GLOB_RECURSE LVGL_SOURCES "${LVGL_DIR}/src/*.c")
 add_library(lvgl_sim STATIC ${LVGL_SOURCES})
 target_include_directories(lvgl_sim PUBLIC
-    "${LVGL_DIR}"        # "lvgl.h" and "src/misc/lv_fs.h" (theme_loader.c)
-    "${SIM_DIR}"         # lv_conf.h via LV_CONF_INCLUDE_SIMPLE
-    "${SIM_DIR}/src")    # sim_clock.h (LV_TICK_CUSTOM calls sim_clock_ms())
+    "${LVGL_DIR}"          # lvgl.h shim + lvgl_private.h (in-tree lv_meter widget)
+    "${LVGL_DIR}/include"  # v9 public headers
+    "${SIM_DIR}"           # lv_conf.h via LV_CONF_INCLUDE_SIMPLE
+    "${SIM_DIR}/src")      # sim_clock.h
 target_compile_definitions(lvgl_sim PUBLIC LV_CONF_INCLUDE_SIMPLE)
-# Note: LVGL's tick goes through src/sim_clock.c (in the sim binary), so
-# lvgl_sim itself no longer needs SDL; the executable links SDL directly
-# (see the SDL2 block after add_executable below).
+# Note: LVGL 9 takes its tick source via lv_tick_set_cb() (wired to the sim
+# clock in main.c), so lvgl_sim itself no longer needs SDL; the executable
+# links SDL directly (see the SDL2 block after add_executable below).
 
 # ---- cJSON: theme manifest parser (theme_loader.c) ----
 # cJSON v1.7.18's CMakeLists predates the CMake 4.0 <3.5 removal.
@@ -96,6 +97,7 @@ set(FW_SOURCES
     ${SIM_SCREENS}
     ${SIM_FONTS}
     ${SIM_IMAGES}
+    "${MAIN_DIR}/ui_widgets/lv_meter/lv_meter.c"
     "${MAIN_DIR}/theme_engine/theme_loader.c"
     "${MAIN_DIR}/theme_engine/theme_test.c"
     "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"

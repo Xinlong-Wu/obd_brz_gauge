@@ -192,7 +192,7 @@ static bool prepare_edges(uint16_t **out, uint16_t canvas_size, uint16_t grid_si
 }
 
 static bool prepare_canvas(lv_obj_t *parent, const boot_block_manifest_t *m) {
-    size_t buf_size = LV_CANVAS_BUF_SIZE_TRUE_COLOR(m->canvas_width, m->canvas_height);
+    size_t buf_size = (size_t)m->canvas_width * m->canvas_height * 2;   // RGB565
     s_state.canvas_buf = heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     if (!s_state.canvas_buf) s_state.canvas_buf = heap_caps_malloc(buf_size, MALLOC_CAP_8BIT);
     if (!s_state.canvas_buf) { ESP_LOGW(TAG, "canvas alloc failed: %u bytes", (unsigned)buf_size); return false; }
@@ -202,7 +202,7 @@ static bool prepare_canvas(lv_obj_t *parent, const boot_block_manifest_t *m) {
     if (!s_state.canvas_obj) return false;
 
     lv_canvas_set_buffer(s_state.canvas_obj, s_state.canvas_buf,
-                         m->canvas_width, m->canvas_height, LV_IMG_CF_TRUE_COLOR);
+                         m->canvas_width, m->canvas_height, LV_COLOR_FORMAT_RGB565);
     lv_canvas_fill_bg(s_state.canvas_obj, lv_color_black(), LV_OPA_COVER);
     lv_obj_set_style_border_width(s_state.canvas_obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_all(s_state.canvas_obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);

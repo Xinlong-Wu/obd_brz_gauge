@@ -93,34 +93,27 @@ SemaphoreHandle_t lvgl_mux = NULL; // non-static: used by BLE scan page
 //////////////////// LVGL callbacks /////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* Notify LVGL on DMA transfer complete */
+/* Notify LVGL on DMA transfer complete (user_ctx = lv_display_t*) */
 static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
                                      esp_lcd_panel_io_event_data_t *edata,
                                      void *user_ctx)
 {
-    lv_disp_drv_t *disp_driver = (lv_disp_drv_t *)user_ctx;
-    lv_disp_flush_ready(disp_driver);
+    lv_display_t *disp = (lv_display_t *)user_ctx;
+    lv_display_flush_ready(disp);
     return false;
 }
 
-/* LVGL flush callback */
-static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+/* LVGL flush callback (v9: px_map is uint8_t*, color format RGB565_SWAPPED)。
+ * 面板驱动(CO5300/GC9A01 draw_bitmap)对窗口坐标无对齐要求,脏区原样直推
+ * (v8 时代的 rounder_cb 偶数对齐是上游 demo 惯性,已随 v9 API 移除)。 */
+static void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
 #if CONFIG_OBD_SCREENSHOT
-    screen_capture_on_flush(area, color_map);   // WiFi 取图:脏区并入影子帧缓冲
+    screen_capture_on_flush(area, px_map);   // WiFi 取图:脏区并入影子帧缓冲
 #endif
-    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)drv->user_data;
+    esp_lcd_panel_handle_t panel = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     esp_lcd_panel_draw_bitmap(panel, area->x1, area->y1,
-                              area->x2 + 1, area->y2 + 1, color_map);
-}
-
-/* Coordinate alignment (even boundaries) */
-static void lvgl_rounder_cb(lv_disp_drv_t *disp_drv, lv_area_t *area)
-{
-    area->x1 = (area->x1 >> 1) << 1;
-    area->y1 = (area->y1 >> 1) << 1;
-    area->x2 = ((area->x2 >> 1) << 1) + 1;
-    area->y2 = ((area->y2 >> 1) << 1) + 1;
+                              area->x2 + 1, area->y2 + 1, px_map);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,9 +121,9 @@ static void lvgl_rounder_cb(lv_disp_drv_t *disp_drv, lv_area_t *area)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Touch read callback (polling mode) */
-static void lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+static void lvgl_touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
-    esp_lcd_touch_handle_t touch = (esp_lcd_touch_handle_t)drv->user_data;
+    esp_lcd_touch_handle_t touch = (esp_lcd_touch_handle_t)lv_indev_get_user_data(indev);
     assert(touch);
 
     uint16_t tp_x, tp_y;
@@ -193,8 +186,7 @@ static void lvgl_port_task(void *arg)
 
 void app_main(void)
 {
-    static lv_disp_draw_buf_t disp_buf;
-    static lv_disp_drv_t disp_drv;
+    static lv_display_t *disp;
 
     /* 1. NVS init (must be first) */
     nvs_storage_init();
@@ -220,7 +212,6 @@ void app_main(void)
      * WS185: I2C_Init + EXIO_Init (V1) + LCD_Init (ST77916 QSPI + LEDC backlight + CST816);
      * WS175: CO5300 QSPI panel (CASET/RASET compensation + black-screen-on-first-frame) + CST9217 shared I2C, brightness command 0x51. */
     ESP_ERROR_CHECK(board_init());
-    ESP_ERROR_CHECK(board_register_display_flush_ready_callback(notify_lvgl_flush_ready, &disp_drv));
     board_display_context_t board_disp;
     ESP_ERROR_CHECK(board_display_init(&board_disp));
 
@@ -243,41 +234,41 @@ void app_main(void)
        Only affects LVGL render chunking, not the SPI single-transfer size (still chunked by max_transfer_sz), so no screen corruption.
        Falls back automatically to the original 20 lines when internal DMA RAM is insufficient, avoiding boot-time OOM. */
     size_t buf_px = (size_t)render_res * 40;
-    lv_color_t *buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
-    lv_color_t *buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    size_t buf_bytes = buf_px * 2;   // RGB565
+    uint8_t *buf1 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
+    uint8_t *buf2 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
     if (!buf1 || !buf2) {
         heap_caps_free(buf1); heap_caps_free(buf2);
         buf_px = (size_t)render_res * 20;   // fall back to 20 lines
-        buf1 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
-        buf2 = heap_caps_malloc(buf_px * sizeof(lv_color_t), MALLOC_CAP_DMA);
+        buf_bytes = buf_px * 2;
+        buf1 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
+        buf2 = heap_caps_malloc(buf_bytes, MALLOC_CAP_DMA);
     }
     assert(buf1 && buf2);
-    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, buf_px);
 
-    /* Register display driver */
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = render_res;
-    disp_drv.ver_res = render_res;
-    disp_drv.flush_cb = lvgl_flush_cb;
-    disp_drv.rounder_cb = lvgl_rounder_cb;
-    disp_drv.draw_buf = &disp_buf;
-    disp_drv.user_data = board_disp.panel;  // esp_lcd_panel_handle_t (board agnostic)
+    /* Register display (v9): partial render, big-endian RGB565 so the flush
+       buffer bytes match what the panels and the capture shadow expect
+       (v8 LV_COLOR_16_SWAP semantics). */
+    disp = lv_display_create(render_res, render_res);
+    lv_display_set_flush_cb(disp, lvgl_flush_cb);
+    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+    lv_display_set_buffers(disp, buf1, buf2, buf_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_user_data(disp, board_disp.panel);  // esp_lcd_panel_handle_t (board agnostic)
     if (scaled_output) {
         ESP_ERROR_CHECK(ui_scale_init(board_disp.panel, render_res, board_disp.hor_res));
-        disp_drv.flush_cb = ui_scale_flush_cb;
+        lv_display_set_flush_cb(disp, ui_scale_flush_cb);
     }
     /* 板级按最终输出模式重挂 DMA 完成回调(native=直通 / 缩放=经 ui_scale) */
     ESP_ERROR_CHECK(board_notify_output_mode(scaled_output));
+    ESP_ERROR_CHECK(board_register_display_flush_ready_callback(notify_lvgl_flush_ready, disp));
     ESP_LOGI(TAG, "display: panel %ux%u, render %u (%s)", board_disp.hor_res, board_disp.ver_res,
              render_res, scaled_output
                  ? (render_res < board_disp.hor_res ? "upscale via ui_scale" : "downscale via ui_scale")
                  : "native");
 #if CONFIG_OBD_BOARD_WS_175_AMOLED
     /* WS175 mounting orientation is 180° inverted, LVGL software rotation (coordinates stay in logical orientation) */
-    disp_drv.sw_rotate = 1;
-    disp_drv.rotated = LV_DISP_ROT_180;
+    lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_180);
 #endif
-    lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
 
     /* LVGL tick timer (2ms period) */
     const esp_timer_create_args_t lvgl_tick_timer_args = {
@@ -291,13 +282,11 @@ void app_main(void)
     /* Register touch input device (polling mode, uses the global tp created by Touch_Init).
        Boards without touch (WS128) skip registration: display-only firmware. */
     if (board_disp.has_touch) {
-        static lv_indev_drv_t indev_drv;
-        lv_indev_drv_init(&indev_drv);
-        indev_drv.type = LV_INDEV_TYPE_POINTER;
-        indev_drv.disp = disp;
-        indev_drv.read_cb = lvgl_touch_cb;
-        indev_drv.user_data = board_disp.touch;  // esp_lcd_touch_handle_t (board agnostic)
-        lv_indev_drv_register(&indev_drv);
+        lv_indev_t *touch_indev = lv_indev_create();
+        lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
+        lv_indev_set_read_cb(touch_indev, lvgl_touch_cb);
+        lv_indev_set_display(touch_indev, disp);
+        lv_indev_set_user_data(touch_indev, board_disp.touch);  // esp_lcd_touch_handle_t (board agnostic)
     } else {
         ESP_LOGI(TAG, "Board reports no touch input, running display-only");
     }
@@ -324,14 +313,14 @@ void app_main(void)
     // Step 1: Show logo immediately (before theme loading)
     ESP_LOGI(TAG, "Creating and displaying logo page");
     if (lvgl_lock(-1)) {
-        lv_disp_t * dispp = lv_disp_get_default();
+        lv_display_t *dispp = lv_display_get_default();
         lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
                                                    false, LV_FONT_DEFAULT);
-        lv_disp_set_theme(dispp, theme);
+        lv_display_set_theme(dispp, theme);
         extern void ui_ScreenPageLogo_screen_init(void);
         extern lv_obj_t * ui_ScreenPageLogo;
         ui_ScreenPageLogo_screen_init();
-        lv_disp_load_scr(ui_ScreenPageLogo);
+        lv_screen_load(ui_ScreenPageLogo);
         lvgl_unlock();  // Release lock so logo can be rendered immediately
     }
     ESP_LOGI(TAG, "Logo page displayed, yielding to LVGL task");

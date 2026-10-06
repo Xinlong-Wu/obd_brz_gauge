@@ -12,6 +12,10 @@ extern "C" {
 
 #include "lvgl.h"
 
+// LVGL 9 removed lv_meter (replaced by lv_scale); the needle dial keeps the
+// v8 widget, ported in-tree (main/ui_widgets/lv_meter) — see that header.
+#include "../ui_widgets/lv_meter/lv_meter.h"
+
 #include "ui_helpers.h"
 #include "ui_events.h"
 #include "ui_disp_item.h"

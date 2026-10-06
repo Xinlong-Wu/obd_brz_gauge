@@ -63,12 +63,13 @@ uint16_t screen_capture_res(void)
     return s_res;
 }
 
-void screen_capture_on_flush(const lv_area_t *area, const lv_color_t *color_map)
+void screen_capture_on_flush(const lv_area_t *area, const uint8_t *px_map)
 {
     if (!s_ready) {
         return;
     }
     const int w = area->x2 - area->x1 + 1;
+    const uint16_t *color_map = (const uint16_t *)px_map;   // RGB565_SWAPPED,2 字节/像素
     for (int y = area->y1; y <= area->y2; y++) {
         memcpy(&s_shadow[(uint32_t)y * s_res + area->x1],
                &color_map[(uint32_t)(y - area->y1) * w],

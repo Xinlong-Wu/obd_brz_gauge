@@ -14,7 +14,7 @@
 #include "lvgl.h"
 
 /** 注册虚拟指针 indev(幂等;队列分配失败返回错误)。 */
-esp_err_t remote_touch_register(lv_disp_t *disp);
+esp_err_t remote_touch_register(lv_display_t *disp);
 
 /** 虚拟 indev 是否已注册(/touch 端点据此决定 204 或 503)。 */
 bool remote_touch_ready(void);

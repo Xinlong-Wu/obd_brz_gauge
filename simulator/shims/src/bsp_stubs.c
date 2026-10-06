@@ -55,7 +55,7 @@ const char *elm327_ble_get_connected_name(void)
 static void fake_scan_tick(lv_timer_t *t)
 {
     if (!s_scan_cb) return;
-    int idx = (int)(uintptr_t)t->user_data;
+    int idx = (int)(uintptr_t)lv_timer_get_user_data(t);
     if (idx >= (int)(sizeof(s_fake_adapters) / sizeof(s_fake_adapters[0]))) {
         lv_timer_del(t);
         s_scan_timer = NULL;
@@ -68,7 +68,7 @@ static void fake_scan_tick(lv_timer_t *t)
     dev.rssi = s_fake_adapters[idx].rssi;
     fprintf(stderr, "[sim] scan found: %s (%d dBm)\n", dev.name, dev.rssi);
     s_scan_cb(&dev, idx + 1);
-    t->user_data = (void *)(uintptr_t)(idx + 1);
+    lv_timer_set_user_data(t, (void *)(uintptr_t)(idx + 1));
 }
 
 void elm327_ble_scan_only_start(int duration_s, ble_scan_found_cb_t cb)

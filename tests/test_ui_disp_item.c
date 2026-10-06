@@ -14,17 +14,12 @@
 #include "lvgl.h"
 
 /** 注册最小 display(无 flush 实现),让 lv_label_create 可用。 */
-static lv_disp_t *setup_dummy_display(void)
+static lv_display_t *setup_dummy_display(void)
 {
-    static lv_disp_draw_buf_t buf;
-    static lv_color_t fb[64 * 8];
-    static lv_disp_drv_t drv;
-    lv_disp_draw_buf_init(&buf, fb, NULL, 64 * 8);
-    lv_disp_drv_init(&drv);
-    drv.hor_res = 360;
-    drv.ver_res = 360;
-    drv.draw_buf = &buf;
-    return lv_disp_drv_register(&drv);
+    static uint8_t fb[64 * 8 * 2];   /* RGB565 */
+    lv_display_t *disp = lv_display_create(360, 360);
+    lv_display_set_buffers(disp, fb, NULL, sizeof(fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    return disp;
 }
 
 /** 帮手:全部通道给定有效典型值。 */
@@ -137,18 +132,15 @@ int main(void)
     TEST_ASSERT_EQ_STR("--", lv_label_get_text(label));
 
     // ---- 报警着色:阈值来自 nvs_chart_alarm_get(mock 默认 OIP=8.0bar) ----
-    // 比较用 lv_color_t.full(与被测代码同一 RGB565 编码,避免量化位差)
+    // v9 的 lv_color_t 即 RGB888,直接 lv_color_eq 比较
     lv_obj_set_style_text_color(label, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
     disp_item_set_value_color(label, DISP_ITEM_OILP, 85, true);   // 8.5 ≥ 8.0 → 红
-    TEST_ASSERT(lv_obj_get_style_text_color(label, LV_PART_MAIN).full
-                == lv_color_hex(0xFF4D4D).full);
+    TEST_ASSERT((lv_color_eq(lv_obj_get_style_text_color(label, LV_PART_MAIN), lv_color_hex(0xFF4D4D))));
     disp_item_set_value_color(label, DISP_ITEM_OILP, 79, true);   // 7.9 < 8.0 → 白
-    TEST_ASSERT(lv_obj_get_style_text_color(label, LV_PART_MAIN).full
-                == lv_color_hex(0xFFFFFF).full);
+    TEST_ASSERT((lv_color_eq(lv_obj_get_style_text_color(label, LV_PART_MAIN), lv_color_hex(0xFFFFFF))));
     // 无效值不上色
     disp_item_set_value_color(label, DISP_ITEM_OILP, 999, false);
-    TEST_ASSERT(lv_obj_get_style_text_color(label, LV_PART_MAIN).full
-                == lv_color_hex(0xFFFFFF).full);
+    TEST_ASSERT((lv_color_eq(lv_obj_get_style_text_color(label, LV_PART_MAIN), lv_color_hex(0xFFFFFF))));
 
     // ---- 自适应平滑:小差值 ±1 步进,大差值按 1/3 比例逼近 ----
     // (直接测 *_logic.h 的 static inline,不经过 label)

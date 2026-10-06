@@ -148,6 +148,7 @@ idf_component_register(SRC_DIRS
                     "bsp_obd_dsp/i2c_driver"
                     "bsp_obd_dsp/touch_driver"
                     "theme_engine"
+                    "ui_widgets/lv_meter"
                     INCLUDE_DIRS
                     "."
                     REQUIRES
@@ -161,6 +162,12 @@ idf_component_register(SRC_DIRS
                     esp_lcd
                     driver
                     EMBED_FILES "app_obd_dsp/capture_page.html.gz")
+
+# LVGL 9 keeps lv_obj_class_t/lv_obj_t private; defining a custom widget class
+# (ui_widgets/lv_meter) needs the private umbrella header at the component root.
+# managed_components is gitignored and re-created by the component manager.
+target_include_directories(${COMPONENT_LIB} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../managed_components/lvgl__lvgl")
 
 # Auto-generate the factory bootmedia image in the raw layout the firmware
 # reads (manifest at partition offset 0, frame stream at 0x1000 — see

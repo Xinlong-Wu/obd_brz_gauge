@@ -34,7 +34,7 @@ void ui_scale_set_flush_ready_chain(board_display_flush_ready_cb_t cb, void *use
 esp_err_t ui_scale_init(esp_lcd_panel_handle_t panel, uint16_t src_res, uint16_t dst_res);
 
 /** LVGL flush 回调:影子合并 + 按方向缩放 + 分块发屏。 */
-void ui_scale_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map);
+void ui_scale_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
 
 /** 当前是否已启用(诊断/日志用)。 */
 bool ui_scale_active(void);

@@ -5,6 +5,8 @@
 //  - MASTER/STANDALONE: scan and connect to an OBD ELM327 adapter (original logic unchanged)
 //  - SLAVE: scan and pair with the triple-gauge master ("SkyGauge-XXYY" broadcast), see gauge_pair_ble_client.c
 
+#include <string.h>
+
 #include "../ui.h"
 #include "bsp_obd_dsp/elm327_ble_client.h"
 #include "bsp_obd_dsp/gauge_pair_ble_client.h"
@@ -272,7 +274,8 @@ void ui_ScreenPageBLEScan_screen_init(void)
     lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, UIS(60));
 
     // Scanning spinner (animated)
-    s_spinner = lv_spinner_create(ui_ScreenPageBLEScan, 1000, 60);
+    s_spinner = lv_spinner_create(ui_ScreenPageBLEScan);
+    lv_spinner_set_anim_params(s_spinner, 1000, 60);
     lv_obj_set_size(s_spinner, UIS(48), UIS(48));
     lv_obj_align(s_spinner, LV_ALIGN_TOP_MID, UIS(144), UIS(40));
     lv_obj_set_style_arc_color(s_spinner, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR);
