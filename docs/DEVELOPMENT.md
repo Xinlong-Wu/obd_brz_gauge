@@ -199,7 +199,7 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 ```
 
 - ESP-IDF 依赖由 `simulator/shims/`（include 路径遮蔽 + 桩实现）补齐，固件源码不动；
-  LVGL 直接用 `managed_components/` 里与固件同版本的那份（8.4.0）
+  LVGL 直接用 `managed_components/` 里与固件同版本的那份（9.6.0）
 - 支持编译期/运行时主题切换（`--theme-slot` / `--theme theme.bin`）、模拟未连接
   （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）、
   渲染分辨率（`--ui-res 240|466`，验证非 360 布局/字体/素材，等价于改

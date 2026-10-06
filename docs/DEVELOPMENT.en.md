@@ -230,7 +230,7 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 
 - ESP-IDF dependencies are satisfied by `simulator/shims/` (include-path
   shadowing + stubs); no firmware file changes. LVGL is taken straight from
-  `managed_components/` — the exact copy the firmware builds against (8.4.0)
+  `managed_components/` — the exact copy the firmware builds against (9.6.0)
 - Compile-time / runtime theme switching (`--theme-slot` / `--theme
   theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
   (`--no-boot`), fake-data scenarios (`--scenario`), render resolution
