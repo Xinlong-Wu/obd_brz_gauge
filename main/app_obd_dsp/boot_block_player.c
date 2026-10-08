@@ -34,7 +34,7 @@ typedef struct {
     size_t stream_size;
     size_t stream_offset;
     lv_obj_t *canvas_obj;
-    lv_color_t *canvas_buf;
+    uint8_t *canvas_buf;   /* RGB565 native,2B/px(v9 的 lv_color_t 是 3B RGB888,不能直接当像素写) */
     uint16_t *x_edges;
     uint16_t *y_edges;
     boot_block_manifest_t manifest;
@@ -241,13 +241,19 @@ static bool apply_change(uint32_t idx, uint32_t packed) {
     uint16_t gy = (uint16_t)(idx / s_state.manifest.grid_width);
     uint16_t x0 = s_state.x_edges[gx], x1 = s_state.x_edges[gx + 1];
     uint16_t y0 = s_state.y_edges[gy], y1 = s_state.y_edges[gy + 1];
-    lv_color_t color = (packed == 0) ? lv_color_black()
-        : lv_color_make((packed >> 16) & 0xFF, (packed >> 8) & 0xFF, packed & 0xFF);
+    /* 解码流是 RGB565,直接打包写 2B/px(canvas cf=RGB565,native 字节序);
+     * v9 的 lv_color_t 是 3 字节 RGB888,经它写会越界 1.5 倍缓冲 */
+    const uint16_t rgb565 = (packed == 0) ? 0
+        : (uint16_t)((((packed >> 16) & 0xFF) >> 3) << 11 |
+                     (((packed >> 8) & 0xFF) >> 2) << 5 |
+                     ((packed & 0xFF) >> 3));
 
     for (uint16_t y = y0; y < y1; y++) {
-        uint32_t row = (uint32_t)y * s_state.manifest.canvas_width;
-        for (uint16_t x = x0; x < x1; x++)
-            s_state.canvas_buf[row + x] = color;
+        uint32_t px = (uint32_t)y * s_state.manifest.canvas_width;
+        for (uint16_t x = x0; x < x1; x++) {
+            s_state.canvas_buf[(px + x) * 2] = (uint8_t)(rgb565 & 0xFF);
+            s_state.canvas_buf[(px + x) * 2 + 1] = (uint8_t)(rgb565 >> 8);
+        }
     }
     return true;
 }

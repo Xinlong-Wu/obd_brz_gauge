@@ -11,6 +11,12 @@ CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_COMPILER_ORPHAN_SECTIONS_PLACE=y
 CONFIG_BT_ENABLED=y
+# LVGL 9 defaults to a 64KB builtin lv_malloc pool in internal .bss, which
+# starves the WiFi driver's static rx buffers on every board (v8 used libc
+# malloc from the shared heap). Route stdlib/string/sprintf back to libc.
+CONFIG_LV_USE_CLIB_MALLOC=y
+CONFIG_LV_USE_CLIB_STRING=y
+CONFIG_LV_USE_CLIB_SPRINTF=y
 CONFIG_BT_BTC_TASK_STACK_SIZE=8192
 CONFIG_BT_BTU_TASK_STACK_SIZE=4096
 CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST=y
