@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const dir=path.resolve(__dirname,'..');
 function load(){
   const context=vm.createContext({});
-  for(const file of ['foundations.js','art.js','components.js','nc-gauges.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
+  for(const file of ['foundations.js','art.js','components.js','scenarios.js','nc-gauges.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
   return context;
 }
 test('shared foundations exports stay synchronized with source tokens',()=>{

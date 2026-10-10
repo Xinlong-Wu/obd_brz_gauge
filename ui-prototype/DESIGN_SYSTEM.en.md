@@ -9,6 +9,7 @@ This specification uses the current repository prototype as its source of truth.
 - `foundations.js`: color roles, type roles, sizes, circular geometry, spacing, strokes, and hit sizes.
 - `foundations.css` / `foundations.json`: generated browser variables and readable data; do not edit manually.
 - `components.js` / `components.css`: shared SVG components, properties, states, and feedback.
+- `scenarios.js`: per-screen state scenarios, sample readings, warning reasons and priority, independent heart-rate data state, and optional reminder limits.
 - `nc-gauges.js`: composition and interactions for 16 screens; coordinates define each layout.
 - `art.js`: base vector artwork with semantic color and label-font bindings to the foundations.
 - `components.html` / `catalog.js`: an interactive specification using the actual shared components to inspect sizes and states.
@@ -26,7 +27,24 @@ Edit shared foundations and controls in their corresponding layers. Specific gra
 - `night`: nighttime reading color; day / night brightness is a separate interaction state.
 - `face` / `panel` / `line`: dial background, control surface, and structure lines; the outer page panel has a separate viewer role.
 
-Do not communicate state through color alone. Warnings need readings or reason text. Selections need a marker, and unavailable data uses `—` and status information.
+Do not communicate state through color alone. Warnings need readings or reason text and an abnormal-state marker. Selections need a marker, and unavailable data uses `—` and status information.
+
+### Warning and reminder coverage
+
+Warnings are part of screen design. Acceptance checks both state visuals and applicable scenario coverage. The following scenarios are implemented in the prototype. Thresholds and readings use demonstration settings; vehicle-data integration is handled separately.
+
+- 01: shift advice, excessive RPM, high auxiliary oil temperature, and low oil pressure. Use amber for shift advice to distinguish it from red fault warnings.
+- 02 / 12: excessive pressure; 03 / 04: high temperature; 05: low oil pressure. Equivalent pressure warnings on 02 and 12 use consistent state semantics.
+- 06: independent boost, oil-temperature, and oil-pressure warnings. 07: independent oil-pressure, oil-temperature, coolant-temperature, high / low voltage, and boost warnings. TPS / B.P represents control input; a high value alone does not establish a fault.
+- 08: low / high pressure or high temperature at any wheel, identifying the affected wheel through its position, reading, and reason.
+- 09: an optional user-configured speed-limit reminder. 10: optional G-limit advisories, with movement data shown by default. 11: high / low heart-rate reminders outside a user-configured range, with an independent unavailable-data state and no health-diagnosis wording.
+- 13 / 15 / 16: system states such as unavailable media, lost connection, and failed pairing. Brightness settings on 14 need no numeric-threshold warning.
+
+Emphasize the abnormal reading together with its corresponding needle / active arc / partition, and provide a short reason. Composite screens identify the affected metric and retain the normal hierarchy elsewhere. Order simultaneous warnings by severity while keeping an identifiable marker for each. Critical states use two thin red arcs at radius 330 while preserving the main reading. Ordinary warnings use local emphasis; advisories use amber. No full-screen flashing is used.
+
+Unavailable data takes precedence over live-value limit warnings; do not show `—` together with a live warning reason. The preview scenario selector supports individual scenes and retains a separate choice for each screen. Screens 06 / 07 / 08 include simultaneous-warning samples. Their summary shows the highest-priority reason and remaining count; every abnormal partition retains a marker. Wheel selection supports FL / FR / RL / RR. Limit inputs on 09 / 10 / 11 adjust demonstration settings.
+
+System states have separate recovery paths: unavailable media disables the three transport controls; connection loss retains stored pairing; failed pairing offers retry and an expired code offers a new code. Heart-rate disconnection shows `NO SENSOR` and `—`, independently of the vehicle-data toggle.
 
 ### Type and size
 
@@ -71,6 +89,12 @@ U.readout({
 
 Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and text properties. The `metric(...)` adapter accepts a final `state` argument; unavailable data takes precedence over warnings.
 
+### Alerts and dynamic graphics
+
+`alertField` identifies the abnormal metric and semantic state; `alertMessage` supplies a reason summary; `alertRim` draws thin red arcs for critical scenes only. Type sizes, rim radius, and strokes use foundations.
+
+`needle`, `liveArc`, and `tachometer` generate current live indicators. Fixed graduations and danger ranges remain in `art.js`. The temperature column and composite progress bar are generated from the current sample values. Unavailable data hides live indicators; fixed danger graduations do not indicate a current warning.
+
 ### Action and auxiliary controls
 
 Action properties include position, width, label, action name, `variant`, and `disabled`.
@@ -97,6 +121,7 @@ U.actionButton({
 
 Screen composition keeps distinct presentations: centered main gauges on 01 / 02 / 04 / 12, the eccentric split on 05, multi-channel partitions on 06 / 07, and the concentric coordinate plot on 10. Shared components keep type, readings, and controls consistent while composition suits each data type.
 
+Screen 10 displays the current point and both axis readings. Triggered reminders add a dashed threshold circle and LIMIT message. Unavailable data hides the active point, threshold circle, and readings.
 
 ## Editing and verification
 
@@ -109,7 +134,7 @@ npm test
 npm run export
 ```
 
-Component tests cover foundation synchronization, 44px hit areas, circular boundaries, disabled state, Readout warning / disconnected semantics, artwork color bindings, and whether every screen renders under the main settings. Browser checks are still required for screen graphics and actual layout.
+Component tests cover foundation synchronization, 44px hit areas, circular boundaries, disabled state, Readout warning / disconnected semantics, artwork color bindings, and whether every screen renders under the main settings. New scenario tests cover disconnected precedence and graphic suppression, simultaneous-warning ordering, four-wheel selection, optional limits, independent heart rate, and system-disabled states. Browser checks are still required for actual layout.
 
 
 In the browser, check state switching and controls in the component catalog, then inspect affected screens at 360 actual size for labels, digits, units, circular boundaries, and interactions. Intentional visual changes require updated SVGs, PNGs, overview, and both language specifications.

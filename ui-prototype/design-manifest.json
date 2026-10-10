@@ -24,7 +24,7 @@
       "group": "车辆仪表",
       "title": "冷却液温度",
       "english": "COOLANT",
-      "desc": "纵向温度柱、数字和状态文字，替代横向尺标。"
+      "desc": "纵向温度柱、数字和状态文字；替代横向尺标。"
     },
     {
       "id": "oiltemp",
@@ -135,6 +135,60 @@
     "display",
     "bluetooth",
     "pair",
+    "gear-shift",
+    "gear-rpm-high",
+    "gear-oil-hot",
+    "gear-oil-low",
+    "boost-pressure-high",
+    "coolant-coolant-hot",
+    "oiltemp-oil-hot",
+    "oilpress-oil-low",
+    "triple-pressure-high",
+    "triple-oil-hot",
+    "triple-oil-low",
+    "triple-multiple",
+    "multi-oil-low",
+    "multi-oil-hot",
+    "multi-coolant-hot",
+    "multi-voltage-low",
+    "multi-voltage-high",
+    "multi-pressure-high",
+    "multi-multiple",
+    "tyres-tyre-low-fl",
+    "tyres-tyre-low-fr",
+    "tyres-tyre-low-rl",
+    "tyres-tyre-low-rr",
+    "tyres-tyre-high-fl",
+    "tyres-tyre-high-fr",
+    "tyres-tyre-high-rl",
+    "tyres-tyre-high-rr",
+    "tyres-tyre-hot-fl",
+    "tyres-tyre-hot-fr",
+    "tyres-tyre-hot-rl",
+    "tyres-tyre-hot-rr",
+    "tyres-multiple",
+    "speed-speed-limit",
+    "gforce-g-limit",
+    "heart-heart-high",
+    "heart-heart-low",
+    "heart-no-data",
+    "analog-pressure-high",
+    "music-media-unavailable",
+    "bluetooth-connection-lost",
+    "bluetooth-no-device",
+    "pair-pair-failed",
+    "pair-pair-expired",
+    "gear-no-data",
+    "boost-no-data",
+    "coolant-no-data",
+    "oiltemp-no-data",
+    "oilpress-no-data",
+    "triple-no-data",
+    "multi-no-data",
+    "tyres-no-data",
+    "speed-no-data",
+    "gforce-no-data",
+    "analog-no-data",
     "oil-temp-alert",
     "tyre-pressure-alert",
     "clear-devices-confirmation",
@@ -143,6 +197,1078 @@
     "gear-night",
     "no-signal",
     "bluetooth-disconnected"
+  ],
+  "scenarios": {
+    "gear": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "shift",
+        "label": "换挡提示",
+        "values": {
+          "rpm": 7200
+        },
+        "alerts": [
+          {
+            "field": "rpm",
+            "reason": "SHIFT / 7,200",
+            "severity": "advisory"
+          }
+        ]
+      },
+      {
+        "id": "rpm-high",
+        "label": "转速过高",
+        "values": {
+          "rpm": 7900
+        },
+        "alerts": [
+          {
+            "field": "rpm",
+            "reason": "RPM LIMIT",
+            "severity": "critical"
+          }
+        ]
+      },
+      {
+        "id": "oil-hot",
+        "label": "油温过高",
+        "values": {
+          "oiltemp": 130
+        },
+        "alerts": [
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "oil-low",
+        "label": "油压过低",
+        "values": {
+          "oilpress": 0.5
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          }
+        ]
+      }
+    ],
+    "boost": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "pressure-high",
+        "label": "压力超限",
+        "values": {
+          "boost": 2.6
+        },
+        "alerts": [
+          {
+            "field": "boost",
+            "reason": "BOOST HIGH",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "analog": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "pressure-high",
+        "label": "压力超限",
+        "values": {
+          "boost": 2.6
+        },
+        "alerts": [
+          {
+            "field": "boost",
+            "reason": "BOOST HIGH",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "coolant": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "coolant-hot",
+        "label": "水温过高",
+        "values": {
+          "coolant": 112
+        },
+        "alerts": [
+          {
+            "field": "coolant",
+            "reason": "COOLANT HIGH",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "oiltemp": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "oil-hot",
+        "label": "油温过高",
+        "values": {
+          "oiltemp": 130
+        },
+        "alerts": [
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "oilpress": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "oil-low",
+        "label": "油压过低",
+        "values": {
+          "oilpress": 0.5
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          }
+        ]
+      }
+    ],
+    "triple": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "pressure-high",
+        "label": "压力超限",
+        "values": {
+          "boost": 2.6
+        },
+        "alerts": [
+          {
+            "field": "boost",
+            "reason": "BOOST HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "oil-hot",
+        "label": "油温过高",
+        "values": {
+          "oiltemp": 130
+        },
+        "alerts": [
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "oil-low",
+        "label": "油压过低",
+        "values": {
+          "oilpress": 0.5
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          }
+        ]
+      },
+      {
+        "id": "multiple",
+        "label": "多项异常",
+        "values": {
+          "boost": 2.6,
+          "oiltemp": 130,
+          "oilpress": 0.5
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          },
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          },
+          {
+            "field": "boost",
+            "reason": "BOOST HIGH",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "multi": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "oil-low",
+        "label": "油压过低",
+        "values": {
+          "oilpress": 0.5
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          }
+        ]
+      },
+      {
+        "id": "oil-hot",
+        "label": "油温过高",
+        "values": {
+          "oiltemp": 130
+        },
+        "alerts": [
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "coolant-hot",
+        "label": "水温过高",
+        "values": {
+          "coolant": 112
+        },
+        "alerts": [
+          {
+            "field": "coolant",
+            "reason": "COOLANT HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "voltage-low",
+        "label": "电压过低",
+        "values": {
+          "battery": 10.8
+        },
+        "alerts": [
+          {
+            "field": "battery",
+            "reason": "VOLTAGE LOW",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "voltage-high",
+        "label": "电压过高",
+        "values": {
+          "battery": 16.4
+        },
+        "alerts": [
+          {
+            "field": "battery",
+            "reason": "VOLTAGE HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "pressure-high",
+        "label": "压力超限",
+        "values": {
+          "boost": 2.6
+        },
+        "alerts": [
+          {
+            "field": "boost",
+            "reason": "BOOST HIGH",
+            "severity": "warning"
+          }
+        ]
+      },
+      {
+        "id": "multiple",
+        "label": "多项异常",
+        "values": {
+          "oilpress": 0.5,
+          "oiltemp": 130,
+          "battery": 10.8
+        },
+        "alerts": [
+          {
+            "field": "oilpress",
+            "reason": "OIL PRESS LOW",
+            "severity": "critical"
+          },
+          {
+            "field": "oiltemp",
+            "reason": "OIL TEMP HIGH",
+            "severity": "warning"
+          },
+          {
+            "field": "battery",
+            "reason": "VOLTAGE LOW",
+            "severity": "warning"
+          }
+        ]
+      }
+    ],
+    "tyres": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "tyre-low",
+        "label": "胎压过低",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "tyre-high",
+        "label": "胎压过高",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "tyre-hot",
+        "label": "胎温过高",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "multiple",
+        "label": "多轮异常",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "speed": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "speed-limit",
+        "label": "超速提醒（启用）",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "gforce": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "g-limit",
+        "label": "G 值提醒（启用）",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "heart": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "heart-high",
+        "label": "心率偏高提醒",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "heart-low",
+        "label": "心率偏低提醒",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "no-data",
+        "label": "心率无数据",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "music": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "media-unavailable",
+        "label": "媒体不可用",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "display": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "bluetooth": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "connection-lost",
+        "label": "连接丢失",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "no-device",
+        "label": "未配对设备",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "pair": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "pair-failed",
+        "label": "配对失败",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "pair-expired",
+        "label": "配对码过期",
+        "values": {},
+        "alerts": []
+      }
+    ]
+  },
+  "limits": {
+    "speed": 110,
+    "gforce": 1,
+    "heartLow": 50,
+    "heartHigh": 150
+  },
+  "artboards": [
+    {
+      "name": "gear",
+      "page": "gear",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "boost",
+      "page": "boost",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "coolant",
+      "page": "coolant",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oiltemp",
+      "page": "oiltemp",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oilpress",
+      "page": "oilpress",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple",
+      "page": "triple",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi",
+      "page": "multi",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres",
+      "page": "tyres",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "speed",
+      "page": "speed",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gforce",
+      "page": "gforce",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "heart",
+      "page": "heart",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "analog",
+      "page": "analog",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "music",
+      "page": "music",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "display",
+      "page": "display",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "bluetooth",
+      "page": "bluetooth",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "pair",
+      "page": "pair",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-shift",
+      "page": "gear",
+      "scenario": "shift",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-rpm-high",
+      "page": "gear",
+      "scenario": "rpm-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-oil-hot",
+      "page": "gear",
+      "scenario": "oil-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-oil-low",
+      "page": "gear",
+      "scenario": "oil-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "boost-pressure-high",
+      "page": "boost",
+      "scenario": "pressure-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "coolant-coolant-hot",
+      "page": "coolant",
+      "scenario": "coolant-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oiltemp-oil-hot",
+      "page": "oiltemp",
+      "scenario": "oil-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oilpress-oil-low",
+      "page": "oilpress",
+      "scenario": "oil-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple-pressure-high",
+      "page": "triple",
+      "scenario": "pressure-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple-oil-hot",
+      "page": "triple",
+      "scenario": "oil-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple-oil-low",
+      "page": "triple",
+      "scenario": "oil-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple-multiple",
+      "page": "triple",
+      "scenario": "multiple",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-oil-low",
+      "page": "multi",
+      "scenario": "oil-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-oil-hot",
+      "page": "multi",
+      "scenario": "oil-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-coolant-hot",
+      "page": "multi",
+      "scenario": "coolant-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-voltage-low",
+      "page": "multi",
+      "scenario": "voltage-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-voltage-high",
+      "page": "multi",
+      "scenario": "voltage-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-pressure-high",
+      "page": "multi",
+      "scenario": "pressure-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-multiple",
+      "page": "multi",
+      "scenario": "multiple",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres-tyre-low-fl",
+      "page": "tyres",
+      "scenario": "tyre-low",
+      "connected": true,
+      "tyreWheel": "FL"
+    },
+    {
+      "name": "tyres-tyre-low-fr",
+      "page": "tyres",
+      "scenario": "tyre-low",
+      "connected": true,
+      "tyreWheel": "FR"
+    },
+    {
+      "name": "tyres-tyre-low-rl",
+      "page": "tyres",
+      "scenario": "tyre-low",
+      "connected": true,
+      "tyreWheel": "RL"
+    },
+    {
+      "name": "tyres-tyre-low-rr",
+      "page": "tyres",
+      "scenario": "tyre-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres-tyre-high-fl",
+      "page": "tyres",
+      "scenario": "tyre-high",
+      "connected": true,
+      "tyreWheel": "FL"
+    },
+    {
+      "name": "tyres-tyre-high-fr",
+      "page": "tyres",
+      "scenario": "tyre-high",
+      "connected": true,
+      "tyreWheel": "FR"
+    },
+    {
+      "name": "tyres-tyre-high-rl",
+      "page": "tyres",
+      "scenario": "tyre-high",
+      "connected": true,
+      "tyreWheel": "RL"
+    },
+    {
+      "name": "tyres-tyre-high-rr",
+      "page": "tyres",
+      "scenario": "tyre-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres-tyre-hot-fl",
+      "page": "tyres",
+      "scenario": "tyre-hot",
+      "connected": true,
+      "tyreWheel": "FL"
+    },
+    {
+      "name": "tyres-tyre-hot-fr",
+      "page": "tyres",
+      "scenario": "tyre-hot",
+      "connected": true,
+      "tyreWheel": "FR"
+    },
+    {
+      "name": "tyres-tyre-hot-rl",
+      "page": "tyres",
+      "scenario": "tyre-hot",
+      "connected": true,
+      "tyreWheel": "RL"
+    },
+    {
+      "name": "tyres-tyre-hot-rr",
+      "page": "tyres",
+      "scenario": "tyre-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres-multiple",
+      "page": "tyres",
+      "scenario": "multiple",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "speed-speed-limit",
+      "page": "speed",
+      "scenario": "speed-limit",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gforce-g-limit",
+      "page": "gforce",
+      "scenario": "g-limit",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "heart-heart-high",
+      "page": "heart",
+      "scenario": "heart-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "heart-heart-low",
+      "page": "heart",
+      "scenario": "heart-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "heart-no-data",
+      "page": "heart",
+      "scenario": "no-data",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "analog-pressure-high",
+      "page": "analog",
+      "scenario": "pressure-high",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "music-media-unavailable",
+      "page": "music",
+      "scenario": "media-unavailable",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "bluetooth-connection-lost",
+      "page": "bluetooth",
+      "scenario": "connection-lost",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "bluetooth-no-device",
+      "page": "bluetooth",
+      "scenario": "no-device",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "pair-pair-failed",
+      "page": "pair",
+      "scenario": "pair-failed",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "pair-pair-expired",
+      "page": "pair",
+      "scenario": "pair-expired",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-no-data",
+      "page": "gear",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "boost-no-data",
+      "page": "boost",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "coolant-no-data",
+      "page": "coolant",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oiltemp-no-data",
+      "page": "oiltemp",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oilpress-no-data",
+      "page": "oilpress",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "triple-no-data",
+      "page": "triple",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-no-data",
+      "page": "multi",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyres-no-data",
+      "page": "tyres",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "speed-no-data",
+      "page": "speed",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gforce-no-data",
+      "page": "gforce",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "analog-no-data",
+      "page": "analog",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "oil-temp-alert",
+      "page": "oiltemp",
+      "scenario": "oil-hot",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "tyre-pressure-alert",
+      "page": "tyres",
+      "scenario": "tyre-low",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "clear-devices-confirmation",
+      "page": "bluetooth",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "music-paused",
+      "page": "music",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "multi-bp",
+      "page": "multi",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "gear-night",
+      "page": "gear",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "no-signal",
+      "page": "gear",
+      "scenario": "normal",
+      "connected": false,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "bluetooth-disconnected",
+      "page": "bluetooth",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    }
   ],
   "colors": {
     "canvas": "#141718",

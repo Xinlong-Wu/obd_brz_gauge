@@ -63,4 +63,14 @@ app.addEventListener('keydown',event=>{
   }
 });
 readouts();controls();
+const alertDemos=[
+ {name:'ADVISORY / 提醒',label:'RPM',value:'7,200',unit:'rpm',field:'rpm',reason:'SHIFT / 7,200',severity:'advisory'},
+ {name:'WARNING / 异常',label:'OIL TEMP',value:'130',unit:'°C',field:'oiltemp',reason:'OIL TEMP HIGH',severity:'warning'},
+ {name:'CRITICAL / 危急',label:'OIL PRESS',value:'0.5',unit:'bar',field:'oilpress',reason:'OIL PRESS LOW',severity:'critical'}
+];
+document.getElementById('alert-demos').innerHTML=alertDemos.map(d=>{
+ const a={field:d.field,reason:d.reason,severity:d.severity};
+ const svg=U.shell()+U.header('ALERT / '+d.severity.toUpperCase())+U.alertField(d.field,U.readout({x:200,y:220,label:d.label,value:d.value,unit:d.unit,state:d.severity==='advisory'?'normal':'warning',color:'amber'}),a)+U.alertMessage([a])+U.alertRim([a]);
+ return '<article class="component-card"><p class="component-name">'+d.name+'</p><div class="alert-preview">'+frame(svg,0,0,720,720,d.name)+'</div><p class="component-detail">'+d.reason+'</p></article>';
+}).join('');
 })(window);

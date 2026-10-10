@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MX-5 NC · Circuit Instruments</title>
-<link rel="stylesheet" href="foundations.css?v=11">
-<link rel="stylesheet" href="prototype.css?v=11">
-<link rel="stylesheet" href="components.css?v=11">
+<link rel="stylesheet" href="foundations.css?v=12">
+<link rel="stylesheet" href="prototype.css?v=12">
+<link rel="stylesheet" href="components.css?v=12">
 </head>
 <body>
 <main id="nc-app">
@@ -19,9 +19,20 @@
 <div id="active-dial" class="dial"></div>
 <div class="preview-tools">
 <button id="mode-switch" data-act="mode" type="button">日间预览</button>
-<button id="alarm-switch" data-act="alarm" type="button" aria-pressed="false">模拟报警</button>
+<button id="alarm-switch" data-act="alarm" type="button" aria-pressed="false">模拟异常</button>
 <button id="signal-switch" data-act="signal" type="button">数据正常</button>
 <button data-act="actual-size" type="button">360 原尺寸</button>
+</div>
+<div class="scenario-panel" aria-label="异常场景预览">
+<label for="scenario-select">状态场景<select id="scenario-select"></select></label>
+<label id="wheel-options" for="wheel-select" hidden>异常轮位<select id="wheel-select"><option value="FL">FL / 左前</option><option value="FR">FR / 右前</option><option value="RL">RL / 左后</option><option value="RR">RR / 右后</option></select></label>
+<div id="limit-options" class="limit-options" hidden>
+<label data-limit-page="speed" for="speed-limit">提醒限速 / km/h<input id="speed-limit" type="number" min="30" max="200" step="5" data-limit="speed" value="110"></label>
+<label data-limit-page="gforce" for="g-limit">提醒限值 / g<input id="g-limit" type="number" min="0.3" max="1.6" step="0.1" data-limit="gforce" value="1.0"></label>
+<label data-limit-page="heart" for="heart-low">心率下限 / bpm<input id="heart-low" type="number" min="30" max="90" step="5" data-limit="heartLow" value="50"></label>
+<label data-limit-page="heart" for="heart-high">心率上限 / bpm<input id="heart-high" type="number" min="100" max="200" step="5" data-limit="heartHigh" value="150"></label>
+</div>
+<p id="scenario-description" aria-live="polite"></p>
 </div>
 </div>
 <aside class="design-detail">
@@ -41,6 +52,6 @@
 </section>
 <footer><span>NC-01 / JINBA ITTAI</span><span>原创敞篷跑车示意 · 原型演示 · 2026</span></footer>
 </main>
-<script src="foundations.js?v=11"></script><script src="art.js?v=11"></script><script src="components.js?v=11"></script><script src="nc-gauges.js?v=11"></script>
+<script src="foundations.js?v=12"></script><script src="art.js?v=12"></script><script src="components.js?v=12"></script><script src="scenarios.js?v=12"></script><script src="nc-gauges.js?v=12"></script>
 </body>
 </html>

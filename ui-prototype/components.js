@@ -28,7 +28,7 @@ function alertField(field,content,alert){
 function alertMessage(alerts,y=F.alerts.footerY){
  if(!alerts.length)return '';
  const first=alerts[0],label=first.reason+(alerts.length>1?' +'+(alerts.length-1):'');
- return '<g class="dial-alert-message" data-alert-count="'+alerts.length+'" aria-label="'+esc(alerts.map(a=>a.reason).join('; '))+'">'+t(360,y,label,F.typography.sizes.small,alertInk(first))+'</g>';
+ return '<g class="dial-alert-message" data-alert-count="'+alerts.length+'" aria-label="'+esc(alerts.map(a=>a.reason).join('; '))+'">'+t(360,y,'! '+label,F.typography.sizes.small,alertInk(first))+'</g>';
 }
 function alertRim(alerts){
  if(!alerts.some(a=>a.severity==='critical'))return '';

@@ -59,7 +59,8 @@ textdir=ROOT/"vectors-text";textdir.mkdir(exist_ok=True)
 for f in (ROOT/"vectors").glob("*.svg"):
  if b"<text" in f.read_bytes():
   shutil.copyfile(f,textdir/f.name);outline(f)
-poster=ROOT/"overview.svg"
-if b"<text" in poster.read_bytes():
- shutil.copyfile(poster,ROOT/"overview-text.svg");outline(poster)
+for name in ["overview", "overview-alerts"]:
+ poster=ROOT/(name+".svg")
+ if b"<text" in poster.read_bytes():
+  shutil.copyfile(poster,ROOT/(name+"-text.svg"));outline(poster)
 print("Outlined the original typefaces for portable vector rendering.")

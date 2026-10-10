@@ -31,3 +31,10 @@ footer{display:flex;justify-content:space-between;border-top:1px solid var(--lin
 @media(max-width:760px){#nc-app{padding:26px 22px}h1{font-size:58px}.edition{display:none}.masthead{padding-bottom:24px}.preview{display:flex;flex-direction:column;align-items:stretch;gap:26px}.pages{width:100%}#page-nav{display:flex;flex-wrap:wrap;gap:5px}#page-nav button{border-left:0;border-bottom:2px solid transparent;padding:9px 10px;font-size:12px}#page-nav button[aria-pressed=true]{border-bottom-color:var(--amber)}.pages>.eyebrow{display:none}.design-detail{display:block}.test-controls{display:none}.design-detail h2{font-size:23px}.interaction-note{display:none}.dial{width:min(100%,400px)}.actual-size .dial{width:min(360px,100%)}#gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 20px}.gallery-label{font-size:11px}.gallery-label>span{margin-right:5px}.gallery-caption{font-size:8px}.section-heading{display:block}.section-heading h2{font-size:24px}.section-heading>p{font-size:12px;line-height:1.6}.intro{font-size:13px}footer{font-size:9px;flex-direction:column}}
 
 .system-link{display:inline-block;margin-top:12px;color:var(--amber);text-decoration:none;letter-spacing:0}.system-link:hover{text-decoration:underline}
+[hidden]{display:none!important}
+.scenario-panel{width:min(100%,480px);border-top:1px solid var(--line);padding-top:18px;display:grid;gap:12px}
+.scenario-panel label{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.scenario-panel select,.scenario-panel input{width:100%;min-width:0;background:var(--dial-panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:9px;font:inherit}
+.scenario-panel select:focus-visible,.scenario-panel input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.scenario-panel p{font-size:12px;line-height:1.7;margin:0;color:var(--muted);min-height:40px}
+.limit-options{display:grid;gap:10px}.preview-tools button:disabled,.scenario-panel select:disabled{opacity:.4;cursor:default}
