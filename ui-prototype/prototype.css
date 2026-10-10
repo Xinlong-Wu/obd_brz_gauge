@@ -38,3 +38,4 @@ footer{display:flex;justify-content:space-between;border-top:1px solid var(--lin
 .scenario-panel select:focus-visible,.scenario-panel input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .scenario-panel p{font-size:12px;line-height:1.7;margin:0;color:var(--muted);min-height:40px}
 .limit-options{display:grid;gap:10px}.preview-tools button:disabled,.scenario-panel select:disabled{opacity:.4;cursor:default}
+.speed-preview-input{display:grid;grid-template-columns:minmax(0,1fr) 75px;gap:10px;align-items:center}.speed-preview-input output{font-family:var(--font-label);font-size:11px;color:var(--ink);text-align:right}.scenario-panel input[type=range]{padding:0;border:0;background:transparent}

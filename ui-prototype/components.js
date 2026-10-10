@@ -48,6 +48,31 @@ function tachometer(rpm,connected=true,color='text'){
  }
  return output;
 }
+function roadMotion(speed,connected=true){
+ const velocity=connected&&Number.isFinite(speed)?Math.min(F.road.maximumPreviewSpeed,Math.max(0,speed)):0;
+ const metersPerSecond=velocity/3.6;
+ return {speed:velocity,moving:velocity>0,metersPerSecond,frequency:metersPerSecond/F.road.spacingMeters};
+}
+function roadProjection(side,phase){
+ const p=((phase%1)+1)%1,depth=p*p,g=F.road;
+ const left=g.farX+(g.nearX-g.farX)*depth,x=side<0?left:F.geometry.master-left;
+ const y=g.farY+(g.nearY-g.farY)*depth,scale=g.farScale+(g.nearScale-g.farScale)*depth;
+ const opacity=Math.min(1,p/.12,(1-p)/.12)*(.4+.6*depth);
+ return {x,y,scale,opacity,transform:'translate('+x.toFixed(2)+' '+y.toFixed(2)+') scale('+scale.toFixed(4)+')'};
+}
+function roadScene(speed,connected=true,distance=0){
+ const motion=roadMotion(speed,connected),g=F.road,travel=Number.isFinite(distance)?distance:0;
+ let content='<g class="roadside-scene" data-road-speed="'+motion.speed+'" data-road-frequency="'+motion.frequency.toFixed(3)+'" data-road-state="'+(motion.moving?'moving':'stopped')+'" aria-hidden="true" pointer-events="none">';
+ content+='<defs><clipPath id="roadside-clip"><circle cx="360" cy="360" r="'+g.clipRadius+'"/></clipPath></defs><g clip-path="url(#roadside-clip)">';
+ for(const side of [-1,1])for(let slot=0;slot<g.objectsPerSide;slot++){
+  const phase=slot/g.objectsPerSide+(side>0?.11:0)+travel/(g.spacingMeters*g.objectsPerSide),p=roadProjection(side,phase);
+  const building=(slot+(side>0?1:0))%3===1;
+  const silhouette=building?'M-20 0V-70H-7V-84H20V0Z':'M0 0V-12M-18-12H18L8-30H13L0-59L-13-30H-8Z';
+  const detail=building?'M-11-58H-5M5-58H11M-11-43H-5M5-43H11M-11-28H-5M5-28H11M-4 0V-12H5V0':'M-7 0H7';
+  content+='<g class="roadside-object" data-road-side="'+side+'" data-road-slot="'+slot+'" data-road-kind="'+(building?'building':'tree')+'" transform="'+p.transform+'" opacity="'+p.opacity.toFixed(3)+'"><path d="'+silhouette+'" fill="'+C.panel+'" stroke="'+C.muted+'" stroke-width="'+g.strokeWidth+'" stroke-linejoin="round"/><path d="'+detail+'" fill="none" stroke="'+C.line+'" stroke-width="2" stroke-linecap="round"/></g>';
+ }
+ return content+'</g></g>';
+}
 function statusText(x,y,label,state='normal'){
 return t(x,y,label,F.typography.sizes.support,state==='warning'?'red':state==='disconnected'?'muted':'green');
 }
@@ -99,5 +124,5 @@ const symbol='<path class="music-symbol" d="'+d+'" fill="'+(kind==='play'?C.text
 return '<g class="dial-control music-key '+(primary?'music-primary':'music-secondary')+'" role="button" tabindex="'+(disabled?-1:0)+'" aria-label="'+esc(label)+'"'+(disabled?' aria-disabled="true" opacity="'+F.controls.disabledOpacity+'"':'')+' data-act="'+act+'">'+hitbox+surface+symbol+'</g>';
 }
 function trend(vals,x,y,w,h,color='amber'){const lo=Math.min(...vals),hi=Math.max(...vals);return path(vals.map((v,i)=>(i?'L':'M')+(x+i*w/(vals.length-1)).toFixed(1)+' '+(y+h-(v-lo)/(hi-lo||1)*h).toFixed(1)).join(' '),color,3,'stroke-linecap="round" stroke-linejoin="round"');}
-root.NC_COMPONENTS={esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,actionButton,statusText,validateHitRegion,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer};
+root.NC_COMPONENTS={esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,actionButton,statusText,validateHitRegion,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene};
 })(typeof window!=='undefined'?window:globalThis);

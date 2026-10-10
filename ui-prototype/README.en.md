@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current warning-scenario version is v14.
+An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v15.
 
 ## Editing and previewing
 
@@ -16,7 +16,7 @@ python3 ui-prototype/start-preview.py
 
 Open <http://127.0.0.1:8769/prototype.html>. To open screen 05 directly, use <http://127.0.0.1:8769/prototype.html?page=oilpress>. Select “360 原尺寸” to check circular boundaries, spacing, and text overlap.
 
-The scenario selector below the dial chooses individual or simultaneous warnings, with a separate retained choice for each screen. Screen 08 provides wheel selection; 09 / 10 / 11 have editable limits. The data toggle simulates vehicle disconnection on vehicle screens and independent heart-sensor disconnection on 11. Media and pairing have their own system scenes. Unavailable data takes precedence; restoring data resumes the selected warning scene. Open <http://127.0.0.1:8769/prototype.html?page=multi&scenario=multiple> for composite warnings.
+The scenario selector below the dial chooses individual or simultaneous warnings, with a separate retained choice for each screen. Screen 08 provides wheel selection; 09 / 10 / 11 have editable limits. The preview speed slider on 09 adjusts 0–220 km/h to compare motion rates; scenery stops at zero speed or on disconnection. The data toggle simulates vehicle disconnection on vehicle screens and independent heart-sensor disconnection on 11. Media and pairing have their own system scenes. Unavailable data takes precedence; restoring data resumes the selected warning scene. Open <http://127.0.0.1:8769/prototype.html?page=multi&scenario=multiple> for composite warnings.
 
 The interactive component and foundation catalog is <http://127.0.0.1:8769/components.html>. See [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md) for properties, states, circular constraints, and the editing workflow.
 
@@ -39,7 +39,7 @@ python3 ui-prototype/start-preview.py --port 8770
 6. Three-channel monitor: main boost reading, oil temperature, and oil pressure.
 7. Multi-channel monitor: oil pressure, oil temperature, voltage, coolant, boost, and TPS / B.P switching.
 8. Tyre pressure and temperature: roadster illustration, four-wheel positioning, and low-pressure status.
-9. Speed and cruise: current speed, cruise status, and set speed.
+9. Speed and cruise: current speed, cruise status, and set speed, with roadside trees / buildings moving faster as speed increases.
 10. G-force: concentric circles, crosshairs, and the current point; optional reminders use a dashed threshold circle and an emphasized current point to indicate exceedance.
 11. Heart rate: current reading, low, peak, one-minute statistic, and waveform.
 12. Mechanical pressure gauge: centered needle, 270° graduations, and independent pressure reading.
@@ -90,7 +90,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 Check JS syntax, then inspect circular boundaries, digits, labels, and hit areas at 360 actual size. When editing interactions, verify the affected actions and normal / warning / disconnected states.
 
-The 13 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, and system-disabled states. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
+The 16 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, system-disabled states, motion frequency, and perspective boundaries. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
 
 ## Figma reference
 

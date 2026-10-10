@@ -2,7 +2,7 @@
 
 English | [简体中文](DESIGN_AUDIT.md)
 
-Audit date: 2026-10-10. The target is the current v14 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
+Audit date: 2026-10-10. The target is the current v15 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
 
 ## Conclusion
 
@@ -15,7 +15,7 @@ Warnings combine readings with reasons. Shift advice, custom limits, and heart-r
 - Inspect all scene options at 360×360 in the browser, plus all four wheel positions for each single-wheel scenario on 08. Check messages, units, hit areas, and circular boundaries; empty font layout-box space is not treated as painted-glyph obstruction.
 - Disconnect each of the 11 vehicle screens while in warning state: active graphics and warning messages disappear; restoring data retains the selected scene. Heart rate on 11 has an independent unavailable-data state and is unaffected by vehicle disconnection.
 - Verify limit inputs on 09 / 10 / 11, and control states and recovery paths for unavailable media, connection loss, failed pairing, and expired codes. The combined toggle on 07 and normal play / track switching on 13 retain existing interactions.
-- All 13 `npm test` checks pass, covering foundation synchronization, component geometry, state semantics, all-scene rendering, disconnected precedence, simultaneous-warning ordering, four-wheel selection, optional limits, and system-disabled states.
+- All 16 `npm test` checks pass, covering foundation synchronization, component geometry, state semantics, all-scene rendering, disconnected precedence, simultaneous-warning ordering, four-wheel selection, optional limits, system-disabled states, motion frequency, and perspective boundaries.
 - Regenerate SVGs, outlined type, PNGs, normal / warning overviews, and manifest. Browser preview reads the repository directory.
 
 ## Results by screen
@@ -51,11 +51,15 @@ The `tyre-low` / `tyre-high` / `tyre-hot` scenes on 08 support all four independ
 - **I07**: Screen 11 gains high / low heart-rate reminders and independent unavailable data, with an editable range. Messages refer to custom ranges, not health diagnoses.
 - **I02**: The needle sweeping over printed names on 02 is accepted mechanical-dial layering and is retained. Warning needle position is calculated from the sample pressure.
 
-## v14 visual revisions
+## v15 visual revisions
 
 - Remove exclamation marks from all warning text and wheel labels, retaining reasons, colors, and fine-line markers.
 - On 03, remove the separate red column segment, mark 110–120°C graduations and the 120 label red, and keep the column and marker driven by the sample temperature.
 - On 10, remove bottom LAT / LON and repeated numeric rows. Normal state shows the point and coordinate plot; only a dashed threshold circle and emphasized current point convey a triggered reminder, without bottom reminder text or threshold numbers.
+
+## Road-scene motion checks on 09
+
+The speed screen adds trees and buildings on both sides while retaining a clear primary reading. Browser checks show approximately a 1:3 motion-frequency ratio at 40 / 120 km/h, and frozen perspective graphics at zero speed or disconnection. The preview slider adjusts speed; speed-limit reminders trigger only when enabled and above the configured threshold. Speed changes retain accumulated displacement. Static exports use a representative frame; the interactive webpage retains motion.
 
 ## Scope of guarantees
 

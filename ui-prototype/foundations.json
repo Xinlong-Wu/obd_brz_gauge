@@ -67,6 +67,19 @@
     "footerY": 638,
     "fieldGap": 8
   },
+  "road": {
+    "spacingMeters": 30,
+    "objectsPerSide": 5,
+    "maximumPreviewSpeed": 220,
+    "farX": 226,
+    "nearX": 110,
+    "farY": 372,
+    "nearY": 575,
+    "farScale": 0.14,
+    "nearScale": 1,
+    "clipRadius": 330,
+    "strokeWidth": 2.6
+  },
   "controls": {
     "minimumHit": 88,
     "actionHeight": 88,

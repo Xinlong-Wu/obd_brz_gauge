@@ -49,8 +49,9 @@ function resolve(id,s){
   if(entry.id==='tyre-hot')add(wheel,'hot');
   if(entry.id==='multiple'){add('FL','low');add('RR','high');add('RL','hot');}
  }
- if(id==='speed'&&entry.id==='speed-limit'){
-  values.speed=limit.speed+15;alerts.push(alert('speed','SPEED LIMIT','advisory'));
+ if(id==='speed'){
+  values.speed=Number.isFinite(s.previewSpeed)?Math.min(root.NC_FOUNDATIONS.road.maximumPreviewSpeed,Math.max(0,s.previewSpeed)):entry.id==='speed-limit'?limit.speed+15:baseline.speed;
+  if(entry.id==='speed-limit'&&values.speed>limit.speed)alerts.push(alert('speed','SPEED LIMIT','advisory'));
  }
  if(id==='gforce'&&entry.id==='g-limit'){
   values.lat=Math.min(1.9,limit.gforce+0.2);values.lon=0.18;alerts.push(alert('gforce','G LIMIT','advisory'));

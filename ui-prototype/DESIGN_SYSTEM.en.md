@@ -89,6 +89,16 @@ U.readout({
 
 Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and text properties. The `metric(...)` adapter accepts a final `state` argument; unavailable data takes precedence over warnings.
 
+### Road scene and motion
+
+Screen 09 uses `roadScene` for low-contrast trees and buildings, `roadProjection` for perspective position, scaling, and fading, and `roadMotion` to convert speed into displacement and appearance frequency. Parameters come from `road` in `foundations.js`; master coordinates and circular content rules remain unchanged.
+
+Illustrative object spacing is 30m, with five objects on each side. Appearance frequency is proportional to speed: approximately 0.37 objects per second per side at 40 km/h and 1.11 at 120 km/h. Objects appear small and faint in the distance, grow toward the foreground, and fade at the circular boundary. They remain beside the primary reading and cruise state.
+
+The browser animates continuously accumulated displacement. Speed adjustments and redraws preserve progress. Zero speed, vehicle disconnection, leaving 09, document invisibility, or reduced-motion preference stops movement. Resuming continues from the previous position without replaying hidden time. Gallery and SVG / PNG exports use a fixed static frame; motion is shown in the interactive webpage.
+
+The preview speed slider supplies samples from 0–220 km/h. Enabled speed reminders emphasize only speeds above the configured limit; switching scenarios restores the corresponding sample speed.
+
 ### Alerts and dynamic graphics
 
 `alertField` identifies the abnormal metric and semantic state; `alertMessage` supplies a reason summary; `alertRim` draws thin red arcs for critical scenes only. Type sizes, rim radius, and strokes use foundations.
@@ -136,6 +146,6 @@ npm run export
 
 Component tests cover foundation synchronization, 44px hit areas, circular boundaries, disabled state, Readout warning / disconnected semantics, artwork color bindings, and whether every screen renders under the main settings. New scenario tests cover disconnected precedence and graphic suppression, simultaneous-warning ordering, four-wheel selection, optional limits, independent heart rate, and system-disabled states. Browser checks are still required for actual layout.
 
-Results and required fixes from the 16-screen reverse audit are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md). Passing shared component tests does not replace screen-by-screen acceptance checks.
+Results and required fixes from the 16-screen reverse audit are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md). Passing shared component tests does not replace screen-by-screen acceptance checks. Road tests also cover speed / frequency proportionality, stationary and disconnected states, perspective bounds, and speed-limit behavior. Motion still requires inspection in the actual webpage.
 
 In the browser, check state switching and controls in the component catalog, then inspect affected screens at 360 actual size for labels, digits, units, circular boundaries, and interactions. Intentional visual changes require updated SVGs, PNGs, overview, and both language specifications.

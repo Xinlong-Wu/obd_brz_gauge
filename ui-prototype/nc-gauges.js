@@ -10,7 +10,7 @@ const PAGES=[
 {id:'triple',group:'车辆仪表',title:'三项综合监测',english:'POWERTRAIN',desc:'主增压读数与下方油温、油压双分区。'},
 {id:'multi',group:'车辆仪表',title:'多项综合监测',english:'ENGINE VITALS',desc:'中间右侧以 TPS / B.P 标签和大读数组成整体切换区；点击标签、数字或留白均切换指标，琥珀色和下划线标明当前项。'},
 {id:'tyres',group:'车辆仪表',title:'四轮胎压 / 胎温',english:'TYRE MONITOR',desc:'原创敞篷跑车俯视线稿，四轮定位；文字与颜色共同提示异常。'},
-{id:'speed',group:'动态与健康',title:'车速 / 巡航',english:'SPEED',desc:'路面透视构图，当前车速为主、巡航设定为辅。'},
+{id:'speed',group:'动态与健康',title:'车速 / 巡航',english:'SPEED',desc:'路边树木与建筑沿道路透视掠过，车速越高，移动与出现频率越快；停车和断连时停止。车速读数为主，巡航设定为辅。'},
 {id:'gforce',group:'动态与健康',title:'G 力 / 当前点',english:'G-FORCE',desc:'同心圆与十字刻度：内圈 1g、外圈 2g，以当前点直接表达方向；提醒触发时保留虚线阈值圈与当前点强调，表盘底部不显示文字。'},
 {id:'heart',group:'动态与健康',title:'心率 / 趋势',english:'DRIVER PULSE',desc:'实时心率、低值、峰值、1分钟统计与脉搏波形。'},
 {id:'analog',group:'车辆仪表',title:'机械压力表',english:'PRESSURE / ANALOG',desc:'参考 01／02／04 的表盘构图：居中的 270°针式刻度，BOOST 小标识融入表盘内部，下方直接显示压力读数与单位。'},
@@ -19,10 +19,10 @@ const PAGES=[
 {id:'bluetooth',group:'媒体与系统',title:'蓝牙 / 遥控',english:'CONNECTIONS',desc:'拨片式开关配轻量返回与配对操作，保留设备状态和配对管理。'},
 {id:'pair',group:'媒体与系统',title:'配对码',english:'PAIR DEVICE',desc:'分组配对码、配对确认和返回导航。'}
 ];
-const defaults={page:'gear',night:false,day:85,dark:35,alarm:false,signal:true,visible:true,keyboard:true,paired:true,playing:true,track:0,progress:69,dialog:false,channel:'TPS',scenarios:{},tyreWheel:'RR',heartSignal:true,pairCode:'1234 5678',limits:{...root.NC_SCENARIOS.limits}};
+const defaults={page:'gear',night:false,day:85,dark:35,alarm:false,signal:true,visible:true,keyboard:true,paired:true,playing:true,track:0,progress:69,dialog:false,channel:'TPS',scenarios:{},tyreWheel:'RR',heartSignal:true,pairCode:'1234 5678',previewSpeed:null,limits:{...root.NC_SCENARIOS.limits}};
 const songs=[{title:'Night Drive',artist:'ROADSTER RADIO',lyric:'沿着夜色，驶向下一个弯道',previous:'把城市留在身后',next:'让风穿过自由的方向',duration:189},{title:'Open Sky',artist:'ROADSTER RADIO',lyric:'抬头是星光，前方是远方',previous:'驶过漫长的街灯',next:'把时间交给这条路',duration:205}];
 let state={...defaults,scenarios:{},limits:{...defaults.limits}};
-const {esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer}=root.NC_COMPONENTS;
+const {esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene}=root.NC_COMPONENTS;
 const S=root.NC_SCENARIOS;
 function render(id,s=state){
 const m=S.resolve(id,s),v=m.connected,n=m.values,dash='—';
@@ -86,8 +86,8 @@ case 'tyres':{
  a+=alertMessage(m.alerts,610);break;}
 case 'speed':{
  const alert=find('speed');
- a+=header('SPEED','ROADSTER / TOURING')+path('M158 575L292 380M562 575L428 380','line',3)+path('M360 550V524M360 490V474','amber',5)+reading('speed',200,204,'VELOCITY',n.speed,'km/h');
- a+=chip(224,490,272,!v?'CRUISE UNAVAILABLE':alert?'SPEED LIMIT':'CRUISE ACTIVE',alert?'amber':'panel')+t(360,551,!v?'SET — km/h':alert?'LIMIT '+m.limits.speed+' km/h':'SET 100 km/h',F.typography.sizes.title,!v?'muted':alert?'amber':'green');break;}
+ a+=header('SPEED','ROADSTER / TOURING')+roadScene(n.speed,v,s.roadDistance)+path('M158 575L292 380M562 575L428 380','line',3)+path('M360 550V524M360 490V474','amber',5)+reading('speed',200,204,'VELOCITY',n.speed,'km/h');
+ a+=chip(224,490,272,!v?'CRUISE UNAVAILABLE':alert?'SPEED LIMIT':n.speed===0?'CRUISE STANDBY':'CRUISE ACTIVE',alert?'amber':'panel')+t(360,551,!v?'SET — km/h':alert?'LIMIT '+m.limits.speed+' km/h':'SET 100 km/h',F.typography.sizes.title,!v||n.speed===0?'muted':alert?'amber':'green');break;}
 case 'gforce':{
  const radius=238,lat=n.lat,lon=n.lon,alert=find('gforce');
  a+=header('G-FORCE');
@@ -164,9 +164,34 @@ const requestedPage=new URLSearchParams(window.location.search).get('page');
 if(PAGES.some(p=>p.id===requestedPage))state.page=requestedPage;
 const requestedScenario=new URLSearchParams(window.location.search).get('scenario');
 if(S.pages[state.page].some(entry=>entry.id===requestedScenario))state.scenarios[state.page]=requestedScenario;
+document.getElementById('speed-preview-slider').max=F.road.maximumPreviewSpeed;
+let roadDistance=0,roadFrame=0,roadTime=null,roadItems=[],roadDrive=roadMotion(0,false);
+const reducedRoadMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+function animateRoad(time){
+ roadFrame=0;
+ const motion=roadDrive;
+ if(state.page!=='speed'||!motion.moving||document.hidden||reducedRoadMotion.matches){roadTime=null;return;}
+ if(roadTime!==null)roadDistance=(roadDistance+motion.metersPerSecond*Math.min(100,time-roadTime)/1000)%(F.road.spacingMeters*F.road.objectsPerSide);
+ roadTime=time;
+ for(const item of roadItems){
+  const phase=item.slot/F.road.objectsPerSide+(item.side>0?.11:0)+roadDistance/(F.road.spacingMeters*F.road.objectsPerSide),p=roadProjection(item.side,phase);
+  item.node.setAttribute('transform',p.transform);item.node.setAttribute('opacity',p.opacity.toFixed(3));
+ }
+ roadFrame=window.requestAnimationFrame(animateRoad);
+}
+function syncRoadMotion(){
+ roadItems=Array.from(face.querySelectorAll('.roadside-object')).map(node=>({node,side:Number(node.dataset.roadSide),slot:Number(node.dataset.roadSlot)}));
+ const motion=roadDrive=roadMotion(S.resolve('speed',state).values.speed,state.signal);
+ const active=state.page==='speed'&&motion.moving&&!document.hidden&&!reducedRoadMotion.matches;
+ if(!active){window.cancelAnimationFrame(roadFrame);roadFrame=0;roadTime=null;return;}
+ if(!roadFrame){roadTime=null;roadFrame=window.requestAnimationFrame(animateRoad);}
+}
+document.addEventListener('visibilitychange',syncRoadMotion);
+reducedRoadMotion.addEventListener('change',syncRoadMotion);
 function persist(){try{localStorage.setItem('nc-prototype-state',JSON.stringify(state));}catch{}}
 function show(){
-face.innerHTML=render(state.page);
+face.innerHTML=render(state.page,{...state,roadDistance});
+syncRoadMotion();
 face.style.filter=state.night?'brightness('+(0.48+state.dark*.0052)+')':'brightness('+(0.6+state.day*.004)+')';
 const p=PAGES.find(p=>p.id===state.page);document.getElementById('active-title').textContent=p.title;document.getElementById('active-desc').textContent=p.desc;
 document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.page===state.page)));
@@ -182,6 +207,10 @@ select.innerHTML=entries.map(entry=>'<option value="'+entry.id+'">'+esc(entry.la
 document.getElementById('scenario-description').textContent=!model.connected?'无数据：已隐藏有效指示，越限提醒暂不显示。':state.page==='gforce'?(model.alerts.length?'当前 G 值超过所设提醒阈值；虚线圈表示阈值。':'正常显示当前点；G 值提醒默认关闭。'):model.alerts.length?model.alerts.map(alert=>alert.reason).join(' · '):scene.id!=='normal'?({music:'媒体不可用：保留页面，播放控件禁用。',bluetooth:'连接与配对状态独立于车辆数据。',pair:'保留返回操作，并提供重试。'})[state.page]||scene.label:'正常状态；限值提醒默认关闭，场景数值仅用于设计演示。';
 document.getElementById('wheel-options').hidden=state.page!=='tyres'||['normal','multiple'].includes(scene.id);
 document.getElementById('wheel-select').value=state.tyreWheel;
+document.getElementById('speed-preview').hidden=state.page!=='speed';
+document.getElementById('speed-preview-slider').value=model.values.speed;
+document.getElementById('speed-preview-slider').disabled=state.page==='speed'&&!model.connected;
+document.getElementById('speed-preview-value').textContent=model.values.speed+' km/h';
 document.getElementById('limit-options').hidden=!['speed','gforce','heart'].includes(state.page);
 document.querySelectorAll('[data-limit-page]').forEach(el=>{el.hidden=el.dataset.limitPage!==state.page;});
 document.querySelectorAll('[data-limit]').forEach(el=>{el.value=state.limits[el.dataset.limit];});
@@ -198,7 +227,7 @@ app.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.m
 function action(act){
 switch(act){
 case 'mode':state.night=!state.night;break;
-case 'alarm':state.scenarios[state.page]=S.selected(state.page,state).id==='normal'?(S.pages[state.page][1]?.id||'normal'):'normal';break;
+case 'alarm':state.scenarios[state.page]=S.selected(state.page,state).id==='normal'?(S.pages[state.page][1]?.id||'normal'):'normal';if(state.page==='speed')state.previewSpeed=null;break;
 case 'signal':
  if(state.page==='heart'){
   state.heartSignal=!S.resolve('heart',state).connected;
@@ -232,8 +261,9 @@ show();
 document.getElementById('seek').addEventListener('input',e=>{state.progress=Number(e.target.value)*songs[state.track].duration/100;show();});
 document.getElementById('day-slider').addEventListener('input',e=>{state.day=Number(e.target.value);show();});
 document.getElementById('night-slider').addEventListener('input',e=>{state.dark=Number(e.target.value);show();});
-document.getElementById('scenario-select').addEventListener('change',e=>{state.scenarios[state.page]=e.target.value;show();});
+document.getElementById('scenario-select').addEventListener('change',e=>{state.scenarios[state.page]=e.target.value;if(state.page==='speed')state.previewSpeed=null;show();});
 document.getElementById('wheel-select').addEventListener('change',e=>{state.tyreWheel=e.target.value;show();});
+document.getElementById('speed-preview-slider').addEventListener('input',e=>{state.previewSpeed=Number(e.target.value);show();});
 document.querySelectorAll('[data-limit]').forEach(input=>{
  input.addEventListener('input',e=>{
   if(e.target.value===''||!e.target.checkValidity())return;
