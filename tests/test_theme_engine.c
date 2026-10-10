@@ -12,6 +12,7 @@
 #include "test_util.h"
 #include "theme_engine/theme_interface.h"
 #include "export_path/ui_theme.h"
+#include "ui_fonts/ui_fonts.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "sim_platform.h"
 
@@ -103,6 +104,7 @@ static void setup_dummy_display(void)
 int main(void)
 {
     lv_init();
+    ui_fonts_init(360);   /* 组件取字体走 &ui_font_X,先填好 TinyTTF 字体 */
     setup_dummy_display();
     theme_info_t info;
 

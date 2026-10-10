@@ -32,6 +32,9 @@
 #define LV_FONT_DEFAULT &lv_font_montserrat_16
 #define LV_FONT_FMT_TXT_LARGE 1
 
+/* Extra libs: FontTypoder 八档由 TinyTTF 运行时渲染(main/ui_fonts)。 */
+#define LV_USE_TINY_TTF 1
+
 /* Widgets used by main/export_path. */
 #define LV_USE_ARC 1
 #define LV_USE_BAR 1

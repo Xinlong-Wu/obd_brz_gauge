@@ -272,32 +272,17 @@ bool ui_showroom_is_active(void);
 void ui_showroom_set_active(bool en);
 void ui_showroom_set_page_from_sync(int sweep_step);
 LV_IMG_DECLARE(ui_img_pngblackear_png);    // assets/pngBlackEar.png
-// FONTS
-LV_FONT_DECLARE(ui_font_FontBabyGearNumSize48);
-LV_FONT_DECLARE(ui_font_FontBabySize108);
-LV_FONT_DECLARE(ui_font_FontBabySize156);
-LV_FONT_DECLARE(ui_font_FontBabySize180);
-LV_FONT_DECLARE(ui_font_FontBabySize200);
-LV_FONT_DECLARE(ui_font_FontBabySize56);
-LV_FONT_DECLARE(ui_font_FontTaikongSize108);
-LV_FONT_DECLARE(ui_font_FontTaikongSize128);
-LV_FONT_DECLARE(ui_font_FontTaikongSize32);
-LV_FONT_DECLARE(ui_font_FontTaikongSize40);
-LV_FONT_DECLARE(ui_font_FontTaikongSize48);
-LV_FONT_DECLARE(ui_font_FontTaikongSize56);
-LV_FONT_DECLARE(ui_font_FontTaikongSize64);
-LV_FONT_DECLARE(ui_font_FontTaikongSize72);
-LV_FONT_DECLARE(ui_font_FontTypoderSize16);
-LV_FONT_DECLARE(ui_font_FontTypoderSize20);
-LV_FONT_DECLARE(ui_font_FontTypoderSize24);
-LV_FONT_DECLARE(ui_font_FontTypoderSize28);
-LV_FONT_DECLARE(ui_font_FontTypoderSize32);
-LV_FONT_DECLARE(ui_font_FontTypoderSize36);
-LV_FONT_DECLARE(ui_font_FontTypoderSize40);
-LV_FONT_DECLARE(ui_font_FontTypoderSize44);
-LV_FONT_DECLARE(ui_font_FontTypoderSize56);
-LV_FONT_DECLARE(ui_font_FontTypoderSize100);
-LV_FONT_DECLARE(ui_font_FontTypoderSize140);
+// FONTS — 八档 FontTypoder 现为 TinyTTF 运行时字体(main/ui_fonts/ui_fonts.c),
+// 在 ui_fonts_init() 里填充;非 const,因为字形回调/缓存指针运行时才就绪。
+// 符号名沿用 SquareLine 时代的 Typoder 命名,调用点(&ui_font_X)不动。
+extern lv_font_t ui_font_FontTypoderSize16;
+extern lv_font_t ui_font_FontTypoderSize20;
+extern lv_font_t ui_font_FontTypoderSize24;
+extern lv_font_t ui_font_FontTypoderSize36;
+extern lv_font_t ui_font_FontTypoderSize40;
+extern lv_font_t ui_font_FontTypoderSize44;
+extern lv_font_t ui_font_FontTypoderSize56;
+extern lv_font_t ui_font_FontTypoderSize140;
 
 
 // UI INIT

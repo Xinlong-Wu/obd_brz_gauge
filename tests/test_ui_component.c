@@ -7,6 +7,7 @@
 
 #include "test_util.h"
 #include "ui_component.h"
+#include "ui_fonts/ui_fonts.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "lvgl.h"
 
@@ -37,6 +38,7 @@ static lv_obj_t *find_value_label(lv_obj_t *comp)
 int main(void)
 {
     lv_init();
+    ui_fonts_init(360);   /* 组件取字体走 &ui_font_X,先填好 TinyTTF 字体 */
     TEST_ASSERT(setup_dummy_display() != NULL);
     lv_obj_t *scr = lv_scr_act();
     TEST_ASSERT(scr != NULL);

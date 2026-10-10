@@ -153,7 +153,7 @@ INCLUDE_BLOCK = """#ifdef __has_include
 
 
 def check():
-    """--check:零第三方依赖(与 gen_fonts --check 同模式)——校验每个目标
+    """--check:零第三方依赖(与 gen_font_blob --check 同模式)——校验每个目标
     文件存在且头部记录的母版 SHA / 模板版本与当前一致。生成内容已入库,
     母版或模板一变头部即失配;完整重渲染(需 Pillow)只在真正 apply 时跑。"""
     problems = []

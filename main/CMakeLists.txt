@@ -130,9 +130,7 @@ set(OBD_GAUGE_BUILD_TAG "${OBD_GAUGE_GIT_BRANCH_SAFE}-${OBD_GAUGE_GIT_COUNT}-${O
 idf_component_register(SRC_DIRS
                     "."
                     "export_path/components"
-                    "export_path/fonts"
-                    "export_path/fonts_r240"
-                    "export_path/fonts_r466"
+                    "ui_fonts"
                     "export_path/images"
                     "export_path/images_r240"
                     "export_path/images_r466"

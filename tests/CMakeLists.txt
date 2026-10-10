@@ -116,18 +116,21 @@ add_gauge_test(test_nvs_poll_mode
             ${TEST_SHIMS})
 
 # ---- 内置仪表组件(M3.2):类型映射 / 防御式 / 格式化 / 进度换算 ----
+# (组件用 &ui_font_X 取字体,一并编入 TinyTTF 运行时字体并在 main 里 init)
 add_gauge_test(test_ui_component
     SOURCES test_ui_component.c
             stub_ui_theme.c
             "${MAIN_DIR}/export_path/ui_component.c"
             "${MAIN_DIR}/export_path/ui_disp_item.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize16.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize24.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize44.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize56.c"
+            "${MAIN_DIR}/ui_fonts/ui_fonts.c"
+            "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
             "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
+
+# ---- 运行时字体字号表:8 档 × 3 分辨率与旧 lv_font_conv 产物逐值一致 ----
+add_gauge_test(test_ui_fonts
+    SOURCES test_ui_fonts.c)
 
 # ---- 用户自定义仪表页数据模型(M4):清洗 / 迁移 / 平铺数 ----
 add_gauge_test(test_ui_dashboard
@@ -164,10 +167,8 @@ add_gauge_test(test_theme_engine
             "${MAIN_DIR}/theme_engine/theme_test.c"
             "${MAIN_DIR}/export_path/ui_component.c"
             "${MAIN_DIR}/export_path/ui_disp_item.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize16.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize24.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize44.c"
-            "${MAIN_DIR}/export_path/fonts/ui_font_FontTypoderSize56.c"
+            "${MAIN_DIR}/ui_fonts/ui_fonts.c"
+            "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
             "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             "${SHIM_DIR}/src/esp_partition_file.c"

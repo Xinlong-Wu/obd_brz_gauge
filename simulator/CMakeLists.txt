@@ -79,7 +79,6 @@ endif()
 
 # ---- Firmware UI sources (compiled unmodified) ----
 file(GLOB SIM_SCREENS "${UI_DIR}/screens/*.c")
-file(GLOB SIM_FONTS   "${UI_DIR}/fonts/*.c")
 file(GLOB SIM_IMAGES  "${UI_DIR}/images/*.c")
 # NOTE: do NOT copy the file list from export_path/filelist.txt / its
 # CMakeLists — those reference assets that no longer exist; the actual
@@ -95,8 +94,9 @@ set(FW_SOURCES
     "${UI_DIR}/ui_helpers.c"
     "${UI_DIR}/ui_theme_generated.c"
     ${SIM_SCREENS}
-    ${SIM_FONTS}
     ${SIM_IMAGES}
+    "${MAIN_DIR}/ui_fonts/ui_fonts.c"
+    "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
     "${MAIN_DIR}/ui_widgets/lv_meter/lv_meter.c"
     "${MAIN_DIR}/theme_engine/theme_loader.c"
     "${MAIN_DIR}/theme_engine/theme_test.c"

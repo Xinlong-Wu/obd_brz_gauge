@@ -23,6 +23,7 @@
 #include "control_panel.h"
 #include "sim_platform.h"
 #include "sim_clock.h"
+#include "ui_fonts/ui_fonts.h"             /* TinyTTF 运行时字体(镜像 app_main.c) */
 #include "esp_timer.h"                     /* sim_esp_timer_poll() */
 #include "esp_random.h"                    /* sim_esp_random_seed() */
 
@@ -366,7 +367,12 @@ int main(int argc, char **argv)
                            sizeof(gauge_fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_user_data(gauge_disp, s_gauge_tex);
 
-    /* app_main.c step 7: default theme before any screen exists */
+    /* app_main.c step 7: default theme before any screen exists.
+     * 字体先于主题:传运行时 s_ui_res,--ui-res 240/466 时字号随之落档
+     * (旧位图方案在 sim 里恒为 360 档,这里顺带修正)。host CPU 快,
+     * 大字预热同步做,与截图输出无关。 */
+    ui_fonts_init(s_ui_res);
+    ui_fonts_prewarm_size140();
     lv_theme_t *theme = lv_theme_default_init(gauge_disp, lv_palette_main(LV_PALETTE_BLUE),
                                               lv_palette_main(LV_PALETTE_RED),
                                               false, LV_FONT_DEFAULT);

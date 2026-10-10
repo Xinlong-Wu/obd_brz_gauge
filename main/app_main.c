@@ -30,6 +30,7 @@
 #include "bsp_obd_dsp/boards/board_display_compat.h"  // Set_Backlight/LCD_H_RES compat facade
 #include "bsp_obd_dsp/boards/ui_scale.h"         // render-res != panel-res flush scaler
 #include "export_path/ui_res.h"                  // UI_RENDER_RES (720-master UIS() folding)
+#include "ui_fonts/ui_fonts.h"                   // TinyTTF 运行时字体(替代位图 FontTypoder)
 
 /* Application layer */
 #include "bsp_obd_dsp/bsp_board.h"
@@ -161,6 +162,14 @@ static void lvgl_unlock(void)
 {
     assert(lvgl_mux && "lvgl_mux not created");
     xSemaphoreGive(lvgl_mux);
+}
+
+/* 一次性:Logo 停留期间把仪表大字 0-9NR 预栅格化进 tiny_ttf 缓存 */
+static void ui_fonts_prewarm_once_cb(lv_timer_t *timer)
+{
+    LV_UNUSED(timer);
+    ui_fonts_prewarm_size140();
+    ESP_LOGI(TAG, "ui_fonts size140 prewarmed");
 }
 
 static void lvgl_port_task(void *arg)
@@ -313,6 +322,7 @@ void app_main(void)
     // Step 1: Show logo immediately (before theme loading)
     ESP_LOGI(TAG, "Creating and displaying logo page");
     if (lvgl_lock(-1)) {
+        ui_fonts_init(CONFIG_OBD_UI_RENDER_RES);   // 任何 UI(含 Logo)之前填好八档字体
         lv_display_t *dispp = lv_display_get_default();
         lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
                                                    false, LV_FONT_DEFAULT);
@@ -321,6 +331,10 @@ void app_main(void)
         extern lv_obj_t * ui_ScreenPageLogo;
         ui_ScreenPageLogo_screen_init();
         lv_screen_load(ui_ScreenPageLogo);
+        // 大字预栅格化延迟到 Logo 上屏后:一次性 12 字形,几帧内完成,
+        // 避免吃掉 Logo 首帧;之后齿轮页首切大字就是纯 blit
+        lv_timer_t *prewarm = lv_timer_create(ui_fonts_prewarm_once_cb, 800, NULL);
+        lv_timer_set_repeat_count(prewarm, 1);
         lvgl_unlock();  // Release lock so logo can be rendered immediately
     }
     ESP_LOGI(TAG, "Logo page displayed, yielding to LVGL task");
