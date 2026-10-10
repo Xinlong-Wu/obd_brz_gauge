@@ -7,20 +7,16 @@
 
 #include "test_util.h"
 #include "ui_component.h"
+#include "ui_fonts/ui_fonts.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "lvgl.h"
 
-static lv_disp_t *setup_dummy_display(void)
+static lv_display_t *setup_dummy_display(void)
 {
-    static lv_disp_draw_buf_t buf;
-    static lv_color_t fb[64 * 8];
-    static lv_disp_drv_t drv;
-    lv_disp_draw_buf_init(&buf, fb, NULL, 64 * 8);
-    lv_disp_drv_init(&drv);
-    drv.hor_res = 360;
-    drv.ver_res = 360;
-    drv.draw_buf = &buf;
-    return lv_disp_drv_register(&drv);
+    static uint8_t fb[64 * 8 * 2];   /* RGB565 */
+    lv_display_t *disp = lv_display_create(360, 360);
+    lv_display_set_buffers(disp, fb, NULL, sizeof(fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    return disp;
 }
 
 static lv_obj_t *find_value_label(lv_obj_t *comp)
@@ -42,6 +38,7 @@ static lv_obj_t *find_value_label(lv_obj_t *comp)
 int main(void)
 {
     lv_init();
+    ui_fonts_init(360);   /* 组件取字体走 &ui_font_X,先填好 TinyTTF 字体 */
     TEST_ASSERT(setup_dummy_display() != NULL);
     lv_obj_t *scr = lv_scr_act();
     TEST_ASSERT(scr != NULL);

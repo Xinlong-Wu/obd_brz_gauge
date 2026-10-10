@@ -77,7 +77,7 @@ typedef struct {
     size_t size;
 } theme_named_font_t;
 
-// A font actually loaded via lv_font_load(), cached by asset name so pages
+// A font actually loaded via lv_binfont_create(), cached by asset name so pages
 // with multiple labels sharing one custom font don't reload it per-label.
 typedef struct {
     char name[40];
@@ -113,12 +113,12 @@ typedef struct {
 
     // Compiled LVGL binary fonts (format == "lv_font_bin" in the manifest's
     // "assets" object), mmap'd the same way as named_assets above but kept
-    // in a separate table since lv_font_load() reads them through the "F:"
+    // in a separate table since lv_binfont_create() reads them through the "F:"
     // lv_fs_drv_t (theme_font_fs_*) instead of being handed a raw pointer.
     theme_named_font_t named_fonts[THEME_MAX_NAMED_FONTS];
     uint8_t named_font_count;
 
-    // Fonts actually lv_font_load()'ed so far (lazy, keyed by asset name) --
+    // Fonts actually lv_binfont_create()'ed so far (lazy, keyed by asset name) --
     // avoids reloading the same .bin once per label when several labels on
     // a page share one custom font. Freed in theme_unload().
     theme_loaded_font_t loaded_fonts[THEME_MAX_NAMED_FONTS];
@@ -164,10 +164,10 @@ static const theme_named_font_t* theme_find_named_font(const char *name);
 static const lv_font_t* theme_load_custom_font(const char *font_asset);
 
 // ============================================================
-//  Memory-backed lv_fs_drv_t for lv_font_load()
+//  Memory-backed lv_fs_drv_t for lv_binfont_create()
 // ============================================================
 //
-// lv_font_load() reads its .bin through LVGL's virtual filesystem, not a
+// lv_binfont_create() reads its .bin through LVGL's virtual filesystem, not a
 // raw pointer -- unlike images, which theme_find_named_asset() hands to
 // LVGL directly as an lv_img_dsc_t. The bytes are already mmap'd flash
 // (same as image assets), so this driver is a thin adapter: open_cb looks
@@ -193,7 +193,7 @@ static void* theme_font_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t
         ESP_LOGW(TAG, "Font fs: unknown font asset '%s'", path);
         return NULL;
     }
-    theme_font_fs_file_t *file = lv_mem_alloc(sizeof(theme_font_fs_file_t));
+    theme_font_fs_file_t *file = lv_malloc(sizeof(theme_font_fs_file_t));
     if (!file) {
         return NULL;
     }
@@ -205,7 +205,7 @@ static void* theme_font_fs_open(lv_fs_drv_t *drv, const char *path, lv_fs_mode_t
 
 static lv_fs_res_t theme_font_fs_close(lv_fs_drv_t *drv, void *file_p) {
     (void)drv;
-    lv_mem_free(file_p);
+    lv_free(file_p);
     return LV_FS_RES_OK;
 }
 
@@ -539,7 +539,7 @@ static const lv_img_dsc_t* theme_find_named_asset(const char *name) {
 }
 
 // Looks up a compiled font asset ("lv_font_bin") by its packer-assigned
-// name. Used by theme_font_fs_open() (via lv_font_load()'s "F:<name>" path)
+// name. Used by theme_font_fs_open() (via lv_binfont_create()'s "F:<name>" path)
 // and theme_load_custom_font() below.
 static const theme_named_font_t* theme_find_named_font(const char *name) {
     for (int i = 0; i < s_ctx.named_font_count; i++) {
@@ -552,7 +552,7 @@ static const theme_named_font_t* theme_find_named_font(const char *name) {
 
 // Loads (or returns the cached) lv_font_t for a custom font asset name, so
 // a page with several labels sharing one custom font only pays
-// lv_font_load()'s cost once. Returns NULL if the asset doesn't exist or
+// lv_binfont_create()'s cost once. Returns NULL if the asset doesn't exist or
 // fails to parse -- callers fall back to a built-in Montserrat size rather
 // than failing the whole label.
 static const lv_font_t* theme_load_custom_font(const char *font_asset) {
@@ -569,7 +569,7 @@ static const lv_font_t* theme_load_custom_font(const char *font_asset) {
 
     char path[48];
     snprintf(path, sizeof(path), "%c:%s", THEME_FONT_FS_LETTER, font_asset);
-    lv_font_t *font = lv_font_load(path);
+    lv_font_t *font = lv_binfont_create(path);   // v9:lv_font_load 更名
     if (!font) {
         ESP_LOGW(TAG, "Custom font: failed to load '%s'", font_asset);
         return NULL;
@@ -630,11 +630,11 @@ void theme_unload(void) {
     s_ctx.ring_handle = 0;
     s_ctx.ring_data = NULL;
 
-    // Free every lv_font_load()'ed custom font, then unmap its backing
+    // Free every lv_binfont_create()'ed custom font, then unmap its backing
     // memory -- same handle-per-slot lifecycle as named_assets above.
     for (int i = 0; i < s_ctx.loaded_font_count; i++) {
         if (s_ctx.loaded_fonts[i].font) {
-            lv_font_free(s_ctx.loaded_fonts[i].font);
+            lv_binfont_destroy(s_ctx.loaded_fonts[i].font);
         }
     }
     for (int i = 0; i < s_ctx.named_font_count; i++) {
@@ -770,18 +770,18 @@ static esp_err_t theme_parse_manifest(void) {
 // Maps a packer-assigned "format" string to the matching LVGL color format.
 // Defaults to true-color (no alpha) for anything unrecognized, matching the
 // original dial_background behavior.
-static lv_img_cf_t theme_asset_color_format(const char *format) {
+static lv_color_format_t theme_asset_color_format(const char *format) {
     if (format && strcmp(format, "rgba8888") == 0) {
-        return LV_IMG_CF_TRUE_COLOR_ALPHA;
+        return LV_COLOR_FORMAT_ARGB8888;
     }
-    return LV_IMG_CF_TRUE_COLOR;
+    return LV_COLOR_FORMAT_RGB565_SWAPPED;   // 主题分区里的 RGB565 是大端(v9 无 v8 全局 SWAP)
 }
 
 /**
  * 渲染分辨率 ≠ 360 时把 mmap 的主题图片资产盒式重采样到目标尺寸(P5)。
  * 成功后 slot->img 指向新缓冲(slot->scaled_data),unload 时统一释放;
  * 失败仅告警并继续用原 360 资产(居中显示,不致命)。
- * 资产格式:RGB565(2B/px,大端)或 RGBA8888(4B/px)。
+ * 资产格式:RGB565(2B/px,大端)或 RGBA8888(4B/px,装载期已转 v9 ARGB8888 序)。
  */
 static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
     const int target = (int)UI_RENDER_RES;
@@ -790,11 +790,11 @@ static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
     if (target == src_w && target == src_h) {
         return;
     }
-    if (slot->img.header.cf != LV_IMG_CF_TRUE_COLOR &&
-        slot->img.header.cf != LV_IMG_CF_TRUE_COLOR_ALPHA) {
+    if (slot->img.header.cf != LV_COLOR_FORMAT_RGB565_SWAPPED &&
+        slot->img.header.cf != LV_COLOR_FORMAT_ARGB8888) {
         return;   // 未知/索引格式不动
     }
-    const bool rgba = (slot->img.header.cf == LV_IMG_CF_TRUE_COLOR_ALPHA);
+    const bool rgba = (slot->img.header.cf == LV_COLOR_FORMAT_ARGB8888);
     const int bpp = rgba ? 4 : 2;
 
     uint8_t *dst = heap_caps_malloc((size_t)target * target * bpp, MALLOC_CAP_SPIRAM);
@@ -821,7 +821,8 @@ static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
                 for (int sx = sx0; sx < sx1; sx++) {
                     const uint8_t *p = row + (size_t)sx * bpp;
                     if (rgba) {
-                        r += p[0]; g += p[1]; b += p[2]; a += p[3];
+                        // v9 ARGB8888 内存序为 B,G,R,A
+                        b += p[0]; g += p[1]; r += p[2]; a += p[3];
                     } else {
                         uint16_t v = (uint16_t)((p[0] << 8) | p[1]);
                         r += (v >> 11) & 0x1f;
@@ -833,8 +834,8 @@ static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
             const int n = (sx1 - sx0) * (sy1 - sy0);
             uint8_t *q = dst + ((size_t)y * target + x) * bpp;
             if (rgba) {
-                q[0] = (uint8_t)(r / n); q[1] = (uint8_t)(g / n);
-                q[2] = (uint8_t)(b / n); q[3] = (uint8_t)(a / n);
+                q[0] = (uint8_t)(b / n); q[1] = (uint8_t)(g / n);
+                q[2] = (uint8_t)(r / n); q[3] = (uint8_t)(a / n);
             } else {
                 uint16_t v = (uint16_t)(((r / n) << 11) | ((g / n) << 5) | (b / n));
                 q[0] = (uint8_t)(v >> 8);
@@ -846,6 +847,7 @@ static void theme_asset_rescale(theme_named_asset_t *slot, const char *name) {
     slot->scaled_data = dst;
     slot->img.header.w = target;
     slot->img.header.h = target;
+    slot->img.header.stride = (uint32_t)target * bpp;
     slot->img.data = dst;
     slot->img.data_size = (uint32_t)target * target * bpp;
     ESP_LOGI(TAG, "Asset '%s' rescaled %dx%d -> %dx%d for render res %d",
@@ -934,6 +936,30 @@ static esp_err_t theme_load_assets(void) {
         slot->img.data = (const uint8_t *)slot->data;
         slot->img.data_size = size;
         slot->scaled_data = NULL;
+
+        const uint8_t bpp = (slot->img.header.cf == LV_COLOR_FORMAT_ARGB8888) ? 4 : 2;
+        slot->img.header.stride = (uint32_t)slot->img.header.w * bpp;
+        slot->img.header.magic = LV_IMAGE_HEADER_MAGIC;
+
+        if (slot->img.header.cf == LV_COLOR_FORMAT_ARGB8888) {
+            // 分区里是 RGBA 字节序(R 第一),v9 ARGB8888 要求 B,G,R,A —— 装载期
+            // 转序到 PSRAM 副本(unload 统一释放),mmap 原数据保持只读
+            size_t px_count = size / 4;
+            uint8_t *cvt = heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
+            if (cvt) {
+                const uint8_t *src8 = (const uint8_t *)slot->data;
+                for (size_t i = 0; i < px_count; i++) {
+                    cvt[i * 4 + 0] = src8[i * 4 + 2];
+                    cvt[i * 4 + 1] = src8[i * 4 + 1];
+                    cvt[i * 4 + 2] = src8[i * 4 + 0];
+                    cvt[i * 4 + 3] = src8[i * 4 + 3];
+                }
+                slot->scaled_data = cvt;
+                slot->img.data = cvt;
+            } else {
+                ESP_LOGW(TAG, "Asset '%s': no PSRAM for RGBA->BGRA, colors will swap", name);
+            }
+        }
         // 渲染分辨率 ≠ 资产尺寸(默认 360)时重采样;360 构建零开销直通
         theme_asset_rescale(slot, name);
         s_ctx.named_asset_count++;

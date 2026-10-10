@@ -118,9 +118,11 @@ WS185=360 / WS175=466 / WS128=240），**所有板以面板原生分辨率渲染
   负责历史字面量迁移（角度/透明度/延时永远不裹 UIS）
 - **图片**：`assets_src/images/*.png` 母版 → `tools/gen_assets.py`
   按分辨率生成 C 数组（LANCZOS；@360 与历史数据逐字节一致）
-- **字体**：`fonts/Conthrax-SemiBold.otf` 母版（720 号 = 360 时代值 ×2）
-  → `tools/gen_fonts.py` 经 `npx lv_font_conv` 每分辨率真光栅化；
-  需要 node（仅生成时），`--check` 免 node 供 CI
+- **字体**：`fonts/Conthrax-SemiBold.otf` 原文嵌入固件
+  （`tools/gen_font_blob.py` 生成 `main/ui_fonts/conthrax_otf.c`），
+  LVGL TinyTTF 运行时按需栅格化（`main/ui_fonts/ui_fonts.c`）；字号
+  `px = max(8, round(2×名义×res/720))` 运行时计算，与旧位图管线逐档一致，
+  三个分辨率一套文件，无需 node/npx；大字 0-9NR 在 Logo 阶段预热进缓存
 - **主题**：`gen_themes.py` / `theme_packer` 接受 ≥360 方形母版
   （360 的整数倍，如 720），构建/打包期 LANCZOS 到 360 契约；运行时
   主题包里的资产在加载时若与渲染分辨率不符则盒式重采样（PSRAM，
@@ -199,11 +201,11 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 ```
 
 - ESP-IDF 依赖由 `simulator/shims/`（include 路径遮蔽 + 桩实现）补齐，固件源码不动；
-  LVGL 直接用 `managed_components/` 里与固件同版本的那份（8.4.0）
+  LVGL 直接用 `managed_components/` 里与固件同版本的那份（9.6.0）
 - 支持编译期/运行时主题切换（`--theme-slot` / `--theme theme.bin`）、模拟未连接
   （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）、
   渲染分辨率（`--ui-res 240|466`，验证非 360 布局/字体/素材，等价于改
-  `CONFIG_OBD_UI_RENDER_RES`）
+  `CONFIG_OBD_UI_RENDER_RES`；字体为运行时栅格化，随 `--ui-res` 同步落档）
 - 无头截图验收：`SDL_VIDEODRIVER=dummy ... --frames 500 --screenshot x.bmp`，
   或 `--tour N` 自动巡览一圈逐页截图
 - 里程统计、开机动画解码、主题 manifest 解析路径与固件完全一致；BLE/OTA/三连表

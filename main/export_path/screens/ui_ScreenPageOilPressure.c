@@ -68,21 +68,18 @@ void ui_ScreenPageOilPressure_screen_init(void)
     lv_obj_set_style_border_width(ui_ChartOilPressure, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_line_width(ui_ChartOilPressure, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_all(ui_ChartOilPressure, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_size(ui_ChartOilPressure, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_width(ui_ChartOilPressure, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_height(ui_ChartOilPressure, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_line_width(ui_ChartOilPressure, UIS(6), LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_line_rounded(ui_ChartOilPressure, true, LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(ui_ChartOilPressure, 0, LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ChartOilPressure, 0, LV_PART_ITEMS | LV_STATE_DEFAULT);
     lv_obj_set_style_line_color(ui_ChartOilPressure, lv_color_hex(0xFFD166), LV_PART_ITEMS | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_width(ui_ChartOilPressure, UIS(2), LV_PART_TICKS | LV_STATE_DEFAULT);
-    lv_obj_set_style_line_color(ui_ChartOilPressure, lv_color_hex(0x242424), LV_PART_TICKS | LV_STATE_DEFAULT);
     lv_chart_set_type(ui_ChartOilPressure, LV_CHART_TYPE_LINE);
     lv_chart_set_point_count(ui_ChartOilPressure, 30);
     lv_chart_set_range(ui_ChartOilPressure, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
     lv_chart_set_update_mode(ui_ChartOilPressure, LV_CHART_UPDATE_MODE_SHIFT);
     lv_chart_set_div_line_count(ui_ChartOilPressure, 4, 5);
-    lv_chart_set_axis_tick(ui_ChartOilPressure, LV_CHART_AXIS_PRIMARY_X, 0, 0, 0, 0, true, 0);
-    lv_chart_set_axis_tick(ui_ChartOilPressure, LV_CHART_AXIS_PRIMARY_Y, 0, 0, 0, 0, true, 0);
     ui_OilPressureChartSeries = lv_chart_add_series(ui_ChartOilPressure, lv_color_hex(0xFFD166), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_all_value(ui_ChartOilPressure, ui_OilPressureChartSeries, 0);
 

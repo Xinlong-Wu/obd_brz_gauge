@@ -117,11 +117,12 @@ static inline uint16_t ui_scale_avg(const uint16_t *px, int count)
     return __builtin_bswap16(v);
 }
 
-void ui_scale_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
+void ui_scale_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
-    (void)drv;
+    (void)disp;
     const int S = s_src_res;
     const int D = s_dst_res;
+    const uint16_t *color_map = (const uint16_t *)px_map;   // RGB565_SWAPPED,2 字节/像素
 
     /* 1. LVGL 渲染缓冲行按脏区宽度紧排,先并入全帧影子 */
     const int w = area->x2 - area->x1 + 1;

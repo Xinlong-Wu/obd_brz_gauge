@@ -50429,12 +50429,12 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_GIFSNAKE4
     0x5d, 0xfc, 0xc5, 0x61, 0x3c, 0xc6, 0xad, 0x24, 0x20, 0x00, 0x00, 0x3b
 };
 
-const lv_img_dsc_t gifSnake400 = {
-  .header.cf = LV_IMG_CF_RAW_CHROMA_KEYED,
-  .header.always_zero = 0,
-  .header.reserved = 0,
+const lv_image_dsc_t gifSnake400 = {
+  .header.magic = LV_IMAGE_HEADER_MAGIC,
+  .header.cf = LV_COLOR_FORMAT_RAW,   /* v9 移除 RAW_CHROMA_KEYED;GIF 解码器读原始流 */
   .header.w = 400,
   .header.h = 400,
+  .header.stride = 0,
   .data_size = 655264,
   .data = gifSnake400_map,
 };

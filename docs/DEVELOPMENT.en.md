@@ -130,10 +130,13 @@ native UI with zero layout changes.
 - **Images**: `assets_src/images/*.png` masters → `tools/gen_assets.py`
   emits C arrays per resolution (LANCZOS; the 360 data is byte-identical
   to the historical arrays)
-- **Fonts**: `fonts/Conthrax-SemiBold.otf` master (720 sizes = the 360-era
-  values x2) → `tools/gen_fonts.py` rasterizes truly per resolution via
-  `npx lv_font_conv`; node is needed only when generating, `--check` is
-  node-free for CI
+- **Fonts**: `fonts/Conthrax-SemiBold.otf` is embedded verbatim into the
+  firmware (`tools/gen_font_blob.py` emits `main/ui_fonts/conthrax_otf.c`);
+  LVGL TinyTTF rasterizes glyphs on demand at runtime
+  (`main/ui_fonts/ui_fonts.c`). Size = `max(8, round(2×nominal×res/720))`
+  computed at runtime, matching the old bitmap pipeline per size — one set
+  of files for all three resolutions, no node/npx; the big digits 0-9NR are
+  prewarmed into the glyph cache during the logo screen
 - **Themes**: `gen_themes.py` / `theme_packer` accept square masters
   >=360 (integer multiples of 360, e.g. 720) and LANCZOS down to the 360
   contract at build/pack time; runtime theme assets are box-rescaled at
@@ -230,12 +233,13 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 
 - ESP-IDF dependencies are satisfied by `simulator/shims/` (include-path
   shadowing + stubs); no firmware file changes. LVGL is taken straight from
-  `managed_components/` — the exact copy the firmware builds against (8.4.0)
+  `managed_components/` — the exact copy the firmware builds against (9.6.0)
 - Compile-time / runtime theme switching (`--theme-slot` / `--theme
   theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
   (`--no-boot`), fake-data scenarios (`--scenario`), render resolution
   (`--ui-res 240|466`, verifies non-360 layout/fonts/assets — equivalent to
-  changing `CONFIG_OBD_UI_RENDER_RES`)
+  changing `CONFIG_OBD_UI_RENDER_RES`; fonts are rasterized at runtime and
+  follow `--ui-res`)
 - Headless screenshot acceptance: `SDL_VIDEODRIVER=dummy ... --frames 500
   --screenshot x.bmp`, or `--tour N` to walk the whole carousel with a
   screenshot per page

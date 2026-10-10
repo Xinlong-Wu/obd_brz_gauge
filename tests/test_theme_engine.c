@@ -12,6 +12,7 @@
 #include "test_util.h"
 #include "theme_engine/theme_interface.h"
 #include "export_path/ui_theme.h"
+#include "ui_fonts/ui_fonts.h"
 #include "app_obd_dsp/obd_data_cache.h"
 #include "sim_platform.h"
 
@@ -94,20 +95,16 @@ static bool find_label_text(lv_obj_t *obj, const char *text)
 /** 注册最小 display(无渲染输出),让 theme_create_page 可创建对象。 */
 static void setup_dummy_display(void)
 {
-    static lv_disp_draw_buf_t buf;
-    static lv_color_t fb[64 * 8];
-    static lv_disp_drv_t drv;
-    lv_disp_draw_buf_init(&buf, fb, NULL, 64 * 8);
-    lv_disp_drv_init(&drv);
-    drv.hor_res = 360;
-    drv.ver_res = 360;
-    drv.draw_buf = &buf;
-    (void)lv_disp_drv_register(&drv);
+    static uint8_t fb[64 * 8 * 2];   /* RGB565 */
+    lv_display_t *disp = lv_display_create(360, 360);
+    lv_display_set_buffers(disp, fb, NULL, sizeof(fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    (void)disp;
 }
 
 int main(void)
 {
     lv_init();
+    ui_fonts_init(360);   /* 组件取字体走 &ui_font_X,先填好 TinyTTF 字体 */
     setup_dummy_display();
     theme_info_t info;
 
@@ -118,8 +115,8 @@ int main(void)
     TEST_ASSERT_EQ_STR("default", info.id);
     TEST_ASSERT_EQ_STR("DEFAULT", info.name);
     // 回退调色板来自编译期 default 主题(stub 与 theme.toml 一致)
-    TEST_ASSERT_EQ_INT(0x000000, lv_color_to32(theme_get_color(UI_COLOR_BG)) & 0xFFFFFF);
-    TEST_ASSERT_EQ_INT(0xFFFFFF, lv_color_to32(theme_get_color(UI_COLOR_RING)) & 0xFFFFFF);
+    TEST_ASSERT((lv_color_eq(theme_get_color(UI_COLOR_BG), lv_color_hex(0x000000))));
+    TEST_ASSERT((lv_color_eq(theme_get_color(UI_COLOR_RING), lv_color_hex(0xFFFFFF))));
     TEST_ASSERT_EQ_INT(0, theme_page_list_count());
     TEST_ASSERT(!theme_has_page("main_gauge"));
     TEST_ASSERT(!theme_has_page("logo"));       // 受保护页永不主题化
@@ -134,10 +131,10 @@ int main(void)
     TEST_ASSERT_EQ_STR("TURBO PRO", info.name);
     TEST_ASSERT_EQ_STR("1.0.0", info.version);
     // manifest colors: ring=0xFF6B00, arc_indicator=0xFFFF00, bg=0x0A0A0A
-    // (比较 lv_color_t.full —— 与解析侧同一 RGB565 编码,避免量化位差)
-    TEST_ASSERT(theme_get_color(UI_COLOR_RING).full == lv_color_hex(0xFF6B00).full);
-    TEST_ASSERT(theme_get_color(UI_COLOR_ARC_INDICATOR).full == lv_color_hex(0xFFFF00).full);
-    TEST_ASSERT(theme_get_color(UI_COLOR_BG).full == lv_color_hex(0x0A0A0A).full);
+    // (v9 lv_color_t 即 RGB888,直接 lv_color_eq 比较)
+    TEST_ASSERT((lv_color_eq(theme_get_color(UI_COLOR_RING), lv_color_hex(0xFF6B00))));
+    TEST_ASSERT((lv_color_eq(theme_get_color(UI_COLOR_ARC_INDICATOR), lv_color_hex(0xFFFF00))));
+    TEST_ASSERT((lv_color_eq(theme_get_color(UI_COLOR_BG), lv_color_hex(0x0A0A0A))));
     // 页面清单:packer 注入了一个 main_gauge 自定义布局页
     TEST_ASSERT_EQ_INT(1, theme_page_list_count());
     TEST_ASSERT_EQ_STR("main_gauge", theme_page_list_at(0));

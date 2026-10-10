@@ -35,7 +35,7 @@ bool theme_engine_test(void) {
     ESP_LOGI(TAG, "  Colors:");
     for (int i = 0; i < UI_COLOR__COUNT; i++) {
         lv_color_t color = theme_get_color(i);
-        ESP_LOGI(TAG, "    Role %d: 0x%06X", i, lv_color_to32(color) & 0xFFFFFF);
+        ESP_LOGI(TAG, "    Role %d: 0x%02X%02X%02X", i, color.red, color.green, color.blue);
     }
 
     // Test asset access

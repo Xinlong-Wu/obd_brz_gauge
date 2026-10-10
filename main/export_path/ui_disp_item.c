@@ -175,13 +175,22 @@ void disp_item_set_text(lv_obj_t *label, disp_item_t item, int32_t value, bool v
     }
 }
 
+static inline bool ui_disp_color32_eq(lv_color32_t a, lv_color32_t b)
+{
+    return a.red == b.red && a.green == b.green && a.blue == b.blue;
+}
+static inline bool ui_disp_color32_neq(lv_color32_t a, lv_color32_t b)
+{
+    return !ui_disp_color32_eq(a, b);
+}
+
 void disp_item_set_value_color(lv_obj_t *label, disp_item_t item, int32_t value, bool valid)
 {
     if (!label) return;
 
     int16_t thr = nvs_chart_alarm_get((uint8_t)item);   // raw-value units; 32767=disabled
     lv_color_t color = (valid && value >= (int32_t)thr) ? lv_color_hex(0xFF4D4D) : lv_color_hex(0xFFFFFF);
-    if (lv_color_to32(lv_obj_get_style_text_color(label, LV_PART_MAIN)) != lv_color_to32(color)) {
+    if (ui_disp_color32_neq(lv_color_to_32(lv_obj_get_style_text_color(label, LV_PART_MAIN), LV_OPA_COVER), lv_color_to_32(color, LV_OPA_COVER))) {
         lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
     }
 }
@@ -202,7 +211,7 @@ static void disp_item_set_value_color_throttled(lv_obj_t *label, disp_item_t ite
         if (use_cooldown) {
             uint32_t now_ms = lv_tick_get();
             lv_color_t current_color = lv_obj_get_style_text_color(label, LV_PART_MAIN);
-            bool already_red = lv_color_to32(current_color) == lv_color_to32(lv_color_hex(0xFF4D4D));
+            bool already_red = ui_disp_color32_eq(lv_color_to_32(current_color, LV_OPA_COVER), lv_color_to_32(lv_color_hex(0xFF4D4D), LV_OPA_COVER));
 
             if (already_red) {
                 if (s_last_alarm_ms[item] == 0) s_last_alarm_ms[item] = now_ms;
@@ -217,7 +226,7 @@ static void disp_item_set_value_color_throttled(lv_obj_t *label, disp_item_t ite
         }
     }
 
-    if (lv_color_to32(lv_obj_get_style_text_color(label, LV_PART_MAIN)) != lv_color_to32(color)) {
+    if (ui_disp_color32_neq(lv_color_to_32(lv_obj_get_style_text_color(label, LV_PART_MAIN), LV_OPA_COVER), lv_color_to_32(color, LV_OPA_COVER))) {
         lv_obj_set_style_text_color(label, color, LV_PART_MAIN);
     }
 }

@@ -49,7 +49,8 @@ void ui_ScreenPageOTAMode_screen_init(void)
     lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, UIS(80));
 
     // Pulse icon (animated) to show the device is discoverable
-    lv_obj_t *pulse = lv_spinner_create(ui_ScreenPageOTAMode, 1000, 90);
+    lv_obj_t *pulse = lv_spinner_create(ui_ScreenPageOTAMode);
+    lv_spinner_set_anim_params(pulse, 1000, 90);
     lv_obj_set_size(pulse, UIS(64), UIS(64));
     lv_obj_align(pulse, LV_ALIGN_TOP_MID, 0, UIS(152));
     lv_obj_set_style_arc_color(pulse, lv_color_hex(0x00CC66), LV_PART_INDICATOR);

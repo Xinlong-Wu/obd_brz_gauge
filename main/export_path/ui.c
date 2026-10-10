@@ -387,7 +387,7 @@ void ui_chart_apply_source(void)
     if (ui_ChartOilPressure) {
         lv_obj_set_style_line_color(ui_ChartOilPressure, lv_color_hex(m->color), LV_PART_ITEMS);
         // the line actually uses the series' own color (overrides the ITEMS style); the series color must be changed directly for it to take effect
-        if (ui_OilPressureChartSeries) ui_OilPressureChartSeries->color = lv_color_hex(m->color);
+        if (ui_OilPressureChartSeries) lv_chart_set_series_color(ui_ChartOilPressure, ui_OilPressureChartSeries, lv_color_hex(m->color));
         lv_chart_set_range(ui_ChartOilPressure, LV_CHART_AXIS_PRIMARY_Y, s_chart_ymin, s_chart_ymax);
         lv_chart_refresh(ui_ChartOilPressure);
     }

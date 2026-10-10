@@ -6,6 +6,24 @@
 
 ---
 
+## 字体改 TinyTTF 运行时渲染：删位图管线，一套 OTF 服务全部板型
+
+八档 FontTypoder 不再由 `lv_font_conv` 离线转成位图 C 数组（三套分辨率
+目录、`gen_fonts.py`、node/npx 依赖全部移除），改为 `fonts/Conthrax-SemiBold.otf`
+原文嵌入固件（`tools/gen_font_blob.py` 生成数据文件，`main/ui_fonts/` 持有
+八档全局字体），由 LVGL TinyTTF 按需栅格化、LRU 缓存；字号换算
+`px = max(8, round(2×名义×res/720))` 运行时计算，各档视觉大小与位图版一致。
+
+- **视觉**：栅格化器换成了 tiny_ttf/stb_truetype（无 hinting），字形抗锯齿
+  边缘有细微差异（截图金图已全部重录）；小字号（16–24px）观感以实机为准
+- **性能**：每个字形首次绘制时现场栅格化（140px 大字一次几十 ms）；
+  仪表大字 0-9NR 在 Logo 停留期间预热进缓存，齿轮页首切即纯 blit
+- **体积**：固件每板省约 200–400KB flash（分辨率越高省越多）；删掉约 5MB
+  生成 C 源码
+- **模拟器**：字体改随 `--ui-res` 运行时落档——旧位图方案在模拟器里恒为
+  360 档，`--ui-res 240/466` 的截图回归从此验证真实字号
+- montserrat 内置字（页面提示小字、主题引擎字体回退、`LV_FONT_DEFAULT`）不变
+
 ## 修复：非 360 板型使用 360 字体/图片（生成文件守卫失效）
 
 `gen_fonts.py` / `gen_assets.py` 生成的多分辨率 C 文件依赖

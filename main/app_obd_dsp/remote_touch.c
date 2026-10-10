@@ -27,7 +27,7 @@ static const char *TAG = "remote_touch";
 #define REMOTE_TOUCH_NORM_MAX    10000
 #define REMOTE_TOUCH_STALE_US    2000000   // 按下态 2s 无事件 → 合成抬起
 
-static void remote_touch_read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data);
+static void remote_touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data);
 
 typedef struct {
     int x, y;            // 归一化 0-10000
@@ -40,7 +40,7 @@ static lv_point_t s_point;
 static int64_t s_last_event_us;
 static bool s_ready;
 
-esp_err_t remote_touch_register(lv_disp_t *disp)
+esp_err_t remote_touch_register(lv_display_t *disp)
 {
     if (s_ready) {
         return ESP_OK;
@@ -50,12 +50,11 @@ esp_err_t remote_touch_register(lv_disp_t *disp)
     s_queue = xQueueCreate(REMOTE_TOUCH_QUEUE_LEN, sizeof(remote_touch_ev_t));
     ESP_RETURN_ON_FALSE(s_queue != NULL, ESP_ERR_NO_MEM, TAG, "queue alloc failed");
 
-    static lv_indev_drv_t drv;   // 静态:LVGL 保存指针
-    lv_indev_drv_init(&drv);
-    drv.type = LV_INDEV_TYPE_POINTER;
-    drv.disp = disp;
-    drv.read_cb = remote_touch_read_cb;
-    lv_indev_drv_register(&drv);
+    lv_indev_t *indev = lv_indev_create();   // v9:不再有静态 drv 结构
+    ESP_RETURN_ON_FALSE(indev != NULL, ESP_ERR_NO_MEM, TAG, "indev create failed");
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, remote_touch_read_cb);
+    lv_indev_set_display(indev, disp);
 
     s_ready = true;
     ESP_LOGI(TAG, "virtual pointer indev registered (remote touch via /touch)");
@@ -81,8 +80,9 @@ void remote_touch_feed(int x_norm, int y_norm, bool pressed)
 }
 
 /** LVGL indev 轮询(LVGL 锁内):回放一个事件;空队列保持上一状态。 */
-void remote_touch_read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+void remote_touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
+    LV_UNUSED(indev);
     remote_touch_ev_t ev;
     if (xQueueReceive(s_queue, &ev, 0) == pdTRUE) {
         s_point.x = (int16_t)((int32_t)ev.x * screen_capture_res() / REMOTE_TOUCH_NORM_MAX);

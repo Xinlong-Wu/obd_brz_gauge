@@ -32,7 +32,7 @@
 |---|---|
 | 硬件 | Waveshare ESP32-S3-Touch-LCD-1.85（360×360 圆屏 ST77916，16 MB Flash，8 MB PSRAM）|
 | 兼容板 | WS175 1.75" AMOLED（466×466）、WS128 1.28" 无触摸版（240×240 GC9A01，2 MB Quad PSRAM，纯显示模式）、WS128T 1.28" 触摸版（同面板 + CST816 触摸，构建见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#适配新开发板)）|
-| 软件栈 | ESP-IDF 5.5.3，LVGL 8 |
+| 软件栈 | ESP-IDF 5.5.3，LVGL 9 |
 | 通信 | BLE 连接 ELM327 兼容 OBD 适配器（标准 PID + 各厂商私有 Mode 21/22）|
 | 三连表 | 一块主表读 OBD，其余从表通过 ESP-NOW 零负载同步显示 |
 | 传感器 | RS485 刹车温度（Modbus RTU）、ADS1115 油压 ADC（V1 板，部分车型可用 OBD 直读油压替代）|

@@ -26,7 +26,7 @@ bool screen_capture_ready(void);
 uint16_t screen_capture_res(void);
 
 /** flush 钩子:并入脏区(lvgl_flush_cb 调用,须在 LVGL 锁内)。 */
-void screen_capture_on_flush(const lv_area_t *area, const lv_color_t *color_map);
+void screen_capture_on_flush(const lv_area_t *area, const uint8_t *px_map);   // LVGL9:px_map 为 RGB565_SWAPPED 字节流,内存布局与 v8 LV_COLOR_16_SWAP 一致
 
 /** 编码当前帧为 JPEG(out 需 ≥ res²×2 容量;内部短持 lvgl 锁快照)。 */
 esp_err_t screen_capture_jpeg(uint8_t *out, size_t cap, int *out_size);
