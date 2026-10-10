@@ -1,0 +1,19 @@
+{
+  "name": "mx5-nc-ui-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MX-5 NC/JDM circular instrument UI prototype",
+  "scripts": {
+    "preview": "python3 start-preview.py",
+    "export:svg": "node export-vectors.cjs",
+    "export:outline": "python3 outline-type.py",
+    "export:png": "node rasterize.cjs",
+    "export": "npm run export:svg && npm run export:outline && npm run export:png"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "devDependencies": {
+    "sharp": "0.35.5"
+  }
+}

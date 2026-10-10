@@ -1,0 +1,6 @@
+.preview/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+*.log

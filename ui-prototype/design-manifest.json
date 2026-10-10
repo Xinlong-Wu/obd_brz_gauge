@@ -1,0 +1,165 @@
+{
+  "title": "MX-5 NC / Circuit Instruments",
+  "resolution": {
+    "master": 720,
+    "display": 360
+  },
+  "pages": [
+    {
+      "id": "gear",
+      "group": "车辆仪表",
+      "title": "挡位 / 转速",
+      "english": "GEAR & RPM",
+      "desc": "大挡位与分段转速弧；温度和油压位于下方。"
+    },
+    {
+      "id": "boost",
+      "group": "车辆仪表",
+      "title": "增压 / 真空",
+      "english": "MANIFOLD",
+      "desc": "270°压力弧、细指针与偏下方读数，替代斜坡面积图。"
+    },
+    {
+      "id": "coolant",
+      "group": "车辆仪表",
+      "title": "冷却液温度",
+      "english": "COOLANT",
+      "desc": "纵向温度柱、数字和状态文字，替代横向尺标。"
+    },
+    {
+      "id": "oiltemp",
+      "group": "车辆仪表",
+      "title": "发动机油温",
+      "english": "OIL TEMPERATURE",
+      "desc": "温度弧与主读数居中对齐，保留暖机与报警状态。"
+    },
+    {
+      "id": "oilpress",
+      "group": "车辆仪表",
+      "title": "发动机油压",
+      "english": "OIL PRESSURE",
+      "desc": "左侧偏心机械表与右侧读数区各自留出空间；压力、单位和状态共用右侧对齐轴，圆弧与数字保持间距。"
+    },
+    {
+      "id": "triple",
+      "group": "车辆仪表",
+      "title": "三项综合监测",
+      "english": "POWERTRAIN",
+      "desc": "主增压读数与下方油温、油压双分区。"
+    },
+    {
+      "id": "multi",
+      "group": "车辆仪表",
+      "title": "多项综合监测",
+      "english": "ENGINE VITALS",
+      "desc": "中间右侧以 TPS / B.P 标签和大读数组成整体切换区；点击标签、数字或留白均切换指标，琥珀色和下划线标明当前项。"
+    },
+    {
+      "id": "tyres",
+      "group": "车辆仪表",
+      "title": "四轮胎压 / 胎温",
+      "english": "TYRE MONITOR",
+      "desc": "原创敞篷跑车俯视线稿，四轮定位；文字与颜色共同提示异常。"
+    },
+    {
+      "id": "speed",
+      "group": "动态与健康",
+      "title": "车速 / 巡航",
+      "english": "SPEED",
+      "desc": "路面透视构图，当前车速为主、巡航设定为辅。"
+    },
+    {
+      "id": "gforce",
+      "group": "动态与健康",
+      "title": "G 力 / 当前点",
+      "english": "G-FORCE",
+      "desc": "同心圆与十字刻度：内圈 1g、外圈 2g，只显示当前坐标点和双轴读数。"
+    },
+    {
+      "id": "heart",
+      "group": "动态与健康",
+      "title": "心率 / 趋势",
+      "english": "DRIVER PULSE",
+      "desc": "实时心率、低值、峰值、1分钟统计与脉搏波形。"
+    },
+    {
+      "id": "analog",
+      "group": "车辆仪表",
+      "title": "机械压力表",
+      "english": "PRESSURE / ANALOG",
+      "desc": "参考 01／02／04 的表盘构图：居中的 270°针式刻度，BOOST 小标识融入表盘内部，下方直接显示压力读数与单位。"
+    },
+    {
+      "id": "music",
+      "group": "媒体与系统",
+      "title": "音乐 / 歌词",
+      "english": "NOW PLAYING",
+      "desc": "圆形主播放键配轻量切歌图标，保留唱片、歌词与进度信息。"
+    },
+    {
+      "id": "display",
+      "group": "媒体与系统",
+      "title": "日间 / 夜间亮度",
+      "english": "ILLUMINATION",
+      "desc": "圆形加减键与精密模式键，分别调节日间和夜间亮度。"
+    },
+    {
+      "id": "bluetooth",
+      "group": "媒体与系统",
+      "title": "蓝牙 / 遥控",
+      "english": "CONNECTIONS",
+      "desc": "拨片式开关配轻量返回与配对操作，保留设备状态和配对管理。"
+    },
+    {
+      "id": "pair",
+      "group": "媒体与系统",
+      "title": "配对码",
+      "english": "PAIR DEVICE",
+      "desc": "分组配对码、配对确认和返回导航。"
+    }
+  ],
+  "states": [
+    "gear",
+    "boost",
+    "coolant",
+    "oiltemp",
+    "oilpress",
+    "triple",
+    "multi",
+    "tyres",
+    "speed",
+    "gforce",
+    "heart",
+    "analog",
+    "music",
+    "display",
+    "bluetooth",
+    "pair",
+    "oil-temp-alert",
+    "tyre-pressure-alert",
+    "clear-devices-confirmation",
+    "music-paused",
+    "multi-bp",
+    "gear-night",
+    "no-signal",
+    "bluetooth-disconnected"
+  ],
+  "colors": {
+    "canvas": "#141718",
+    "face": "#090D0F",
+    "panel": "#151C1F",
+    "line": "#334046",
+    "text": "#F3F0E7",
+    "muted": "#A6B0AD",
+    "amber": "#FFB35B",
+    "red": "#FF4D4D",
+    "green": "#06D6A0",
+    "blue": "#91C6DB",
+    "night": "#E8B27A"
+  },
+  "fonts": [
+    "Barlow Condensed",
+    "IBM Plex Mono"
+  ],
+  "figma": "https://www.figma.com/design/4Ah7vldYa2qIrVheZ0Xzc8"
+}

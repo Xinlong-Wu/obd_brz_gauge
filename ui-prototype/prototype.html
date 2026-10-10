@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MX-5 NC · Circuit Instruments</title>
+<link rel="stylesheet" href="prototype.css?v=10">
+</head>
+<body>
+<main id="nc-app">
+<header class="masthead">
+<div><p class="eyebrow">ROADSTER INSTRUMENTS / NC-01</p><h1>MX-5 <span>/ CIRCUIT</span></h1><p class="intro">给敞篷跑车的一套 JDM 仪表。功能保留，表现形式重新设计。</p></div>
+<div class="edition">DESIGN PROTOTYPE<br>720 MASTER / 360 DISPLAY<br><span>示例数据 · 全部操作为原型演示</span></div>
+</header>
+<section class="preview" id="live-preview" aria-label="交互表盘预览">
+<aside class="pages"><p class="eyebrow">EXPLORE THE COLLECTION</p><nav id="page-nav" aria-label="选择表盘"></nav></aside>
+<div class="instrument-stage">
+<div id="active-dial" class="dial"></div>
+<div class="preview-tools">
+<button id="mode-switch" data-act="mode" type="button">日间预览</button>
+<button id="alarm-switch" data-act="alarm" type="button" aria-pressed="false">模拟报警</button>
+<button id="signal-switch" data-act="signal" type="button">数据正常</button>
+<button data-act="actual-size" type="button">360 原尺寸</button>
+</div>
+</div>
+<aside class="design-detail">
+<p class="eyebrow">THE ACTIVE INSTRUMENT</p><h2 id="active-title"></h2><p id="active-desc"></p>
+<div class="interaction-note"><span>交互预览</span><p>点击表盘内的按钮，体验音乐播放、日夜亮度、蓝牙配对和清除设备。</p></div>
+<div class="test-controls">
+<label for="seek">音乐进度<input id="seek" type="range" min="0" max="100" value="36"></label>
+<label for="day-slider">日间亮度<input id="day-slider" type="range" min="10" max="100" value="85"></label>
+<label for="night-slider">夜间亮度<input id="night-slider" type="range" min="10" max="100" value="35"></label>
+</div>
+<div class="key"><i></i><span>暖白读数</span><i></i><span>琥珀强调</span><i></i><span>红色报警</span></div>
+</aside>
+</section>
+<section class="collection">
+<div class="section-heading"><div><p class="eyebrow">THE COMPLETE SET</p><h2>一套视觉，十六个界面。</h2></div><p>单项仪表 · 综合数据 · 动态监测 · 音乐与系统</p></div>
+<div id="gallery"></div>
+</section>
+<footer><span>NC-01 / JINBA ITTAI</span><span>原创敞篷跑车示意 · 原型演示 · 2026</span></footer>
+</main>
+<script src="art.js?v=10"></script><script src="nc-gauges.js?v=10"></script>
+</body>
+</html>
