@@ -190,6 +190,24 @@ WS175 提供同名宏/兼容壳),不要再直接 include ST77916.h。
    [分辨率策略](#分辨率策略720-母版)），布局/字体/素材自动适配
 4. 与车相关的都不用动 —— 车型逻辑全在 `app_obd_dsp/`
 
+## 浏览器 UI 原型
+
+`ui-prototype/` 保存 MX-5 NC/JDM 的完整 16 页视觉与交互原型、字体、24 张 SVG/PNG
+及总览。后续原型修改和预览以这个仓库目录为准；数据与连接操作均为示例。
+
+在仓库根目录启动后台预览服务：
+
+```bash
+python3 ui-prototype/start-preview.py
+```
+
+打开 <http://127.0.0.1:8769/prototype.html>，修改 `nc-gauges.js`、`prototype.css`
+或 `art.js` 后刷新页面；按“360 原尺寸”检查布局。服务通过 `/__preview__`
+报告实际源目录，并禁用静态资源缓存。预览只依赖 Python 标准库。
+
+停止服务、导出依赖和当前设计约束见 [ui-prototype/README.md](../ui-prototype/README.md)。
+这是浏览器设计原型；固件 LVGL UI 的实际运行预览使用下方 PC 模拟器。
+
 ## PC 模拟器（UI 预览）
 
 UI 源码**零改动**跑在电脑上（SDL2 窗口，鼠标当触摸，假数据当车），改 UI 不用烧板：

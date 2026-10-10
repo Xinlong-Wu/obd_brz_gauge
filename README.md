@@ -26,6 +26,9 @@
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | **开发指南** —— 代码架构、编译配置、工具脚本 |
 | [CHANGELOG.md](CHANGELOG.md) | 更新日志 |
 
+MX-5 NC/JDM 的 16 页浏览器 UI 原型及预览、导出说明见
+[ui-prototype/README.md](ui-prototype/README.md)。后续原型修改使用仓库内文件。
+
 ## 硬件与软件栈
 
 | | |
@@ -96,6 +99,7 @@ themes/                 # 编译期主题源文件（TOML 清单 + 素材）
 theme_store/            # 打包好的主题二进制与目录索引（分发用）
 bootmedia/              # 开机动画源文件
 simulator/              # PC 端 UI 模拟器（SDL2，固件 UI 源码零改动上电脑）
+ui-prototype/           # MX-5 NC/JDM browser UI prototype (HTML/CSS/SVG)
 tools/                  # 工具脚本（主题生成、打包、PID 挖掘）
 model/                  # 3D 打印模型（外壳、表座、支架）
 docs/                   # 文档（见上方索引）

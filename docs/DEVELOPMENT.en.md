@@ -220,6 +220,27 @@ of including ST77916.h directly.
 4. Nothing vehicle-related needs to change — all car logic lives in
    `app_obd_dsp/`
 
+## Browser UI prototype
+
+`ui-prototype/` contains the complete 16-screen MX-5 NC/JDM visual and interactive
+prototype, fonts, 24 SVG/PNG exports, and overview. Use this repository directory
+for future prototype editing and previewing; data and connection actions are examples.
+
+Start the background preview service from the repository root:
+
+```bash
+python3 ui-prototype/start-preview.py
+```
+
+Open <http://127.0.0.1:8769/prototype.html>, edit `nc-gauges.js`, `prototype.css`,
+or `art.js`, and refresh. Select “360 原尺寸” to inspect layout. The service reports
+its actual source directory through `/__preview__` and disables static-asset caching.
+Preview requires only the Python standard library.
+
+See [ui-prototype/README.en.md](../ui-prototype/README.en.md) for stopping the service,
+export dependencies, and current design constraints. This is a browser design prototype;
+use the PC simulator below to preview the actual firmware LVGL UI.
+
 ## PC simulator (UI preview)
 
 Run the UI sources **unmodified** on your computer (SDL2 window, mouse as

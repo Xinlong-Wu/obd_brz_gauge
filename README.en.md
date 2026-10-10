@@ -27,6 +27,10 @@ reads vehicle data, and renders a touch UI with LVGL.
 | [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md) | **Development** — architecture, build config, tool scripts |
 | [CHANGELOG.en.md](CHANGELOG.en.md) | Changelog |
 
+The 16-screen MX-5 NC/JDM browser UI prototype, with preview and export instructions,
+is documented in [ui-prototype/README.en.md](ui-prototype/README.en.md).
+Use the repository files for future prototype changes.
+
 ## Hardware & stack
 
 | | |
@@ -118,6 +122,7 @@ themes/                 # Compiled-theme sources (TOML manifests + artwork)
 theme_store/            # Packed theme binaries and catalog (distribution)
 bootmedia/              # Boot animation sources
 simulator/              # PC UI simulator (SDL2; runs the firmware UI sources unmodified)
+ui-prototype/           # MX-5 NC/JDM browser UI prototype (HTML/CSS/SVG)
 tools/                  # Helper scripts (theme codegen, packing, PID hunting)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)
