@@ -78,7 +78,12 @@
     "farScale": 0.14,
     "nearScale": 1,
     "clipRadius": 330,
-    "strokeWidth": 2.6
+    "strokeWidth": 2.6,
+    "colors": {
+      "treeOutline": "#779D7B",
+      "treeFill": "#2A4532",
+      "window": "#B19668"
+    }
   },
   "controls": {
     "minimumHit": 88,

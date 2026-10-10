@@ -17,7 +17,7 @@ root.NC_FOUNDATIONS=freeze({
   spacing:{xs:8,sm:16,md:24,lg:32},
   stroke:{hairline:2,needle:5},
   alerts:{rimRadius:330,rimWidth:4,footerY:638,fieldGap:8},
-  road:{spacingMeters:30,objectsPerSide:5,maximumPreviewSpeed:220,farX:226,nearX:110,farY:372,nearY:575,farScale:0.14,nearScale:1,clipRadius:330,strokeWidth:2.6},
+  road:{spacingMeters:30,objectsPerSide:5,maximumPreviewSpeed:220,farX:226,nearX:110,farY:372,nearY:575,farScale:0.14,nearScale:1,clipRadius:330,strokeWidth:2.6,colors:{treeOutline:'#779D7B',treeFill:'#2A4532',window:'#B19668'}},
   controls:{minimumHit:88,actionHeight:88,musicHit:104,musicRadius:51,roundRadius:43,auxiliaryFocusRadius:40,disabledOpacity:0.4,feedbackMs:120},
   readout:{
     primary:{width:320,labelSize:typography.sizes.label,valueSize:typography.sizes.hero,valueOffset:34,unitOffset:232,unitSize:typography.sizes.support},

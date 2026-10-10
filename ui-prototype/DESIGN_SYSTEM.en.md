@@ -91,7 +91,7 @@ Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and 
 
 ### Road scene and motion
 
-Screen 09 uses `roadScene` for low-contrast trees and buildings, `roadProjection` for perspective position, scaling, and fading, and `roadMotion` to convert speed into displacement and appearance frequency. Parameters come from `road` in `foundations.js`; master coordinates and circular content rules remain unchanged.
+Screen 09 uses `roadScene` for low-contrast trees and buildings, `roadProjection` for perspective position, scaling, and fading, and `roadMotion` to convert speed into displacement and appearance frequency. Parameters come from `road` in `foundations.js`; master coordinates and circular content rules remain unchanged. Scenery uses `road.colors`: muted gray-green outlines and dark green fills for trees, gray building outlines, and dim warm accents on a few windows. Perspective opacity fades these colors while speed and warnings retain the primary visual hierarchy.
 
 Illustrative object spacing is 30m, with five objects on each side. Appearance frequency is proportional to speed: approximately 0.37 objects per second per side at 40 km/h and 1.11 at 120 km/h. Objects appear small and faint in the distance, grow toward the foreground, and fade at the circular boundary. They remain beside the primary reading and cruise state.
 

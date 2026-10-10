@@ -2,7 +2,7 @@
 
 English | [简体中文](DESIGN_AUDIT.md)
 
-Audit date: 2026-10-10. The target is the current v15 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
+Audit date: 2026-10-10. The target is the current v16 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
 
 ## Conclusion
 
@@ -51,7 +51,7 @@ The `tyre-low` / `tyre-high` / `tyre-hot` scenes on 08 support all four independ
 - **I07**: Screen 11 gains high / low heart-rate reminders and independent unavailable data, with an editable range. Messages refer to custom ranges, not health diagnoses.
 - **I02**: The needle sweeping over printed names on 02 is accepted mechanical-dial layering and is retained. Warning needle position is calculated from the sample pressure.
 
-## v15 visual revisions
+## v16 visual revisions
 
 - Remove exclamation marks from all warning text and wheel labels, retaining reasons, colors, and fine-line markers.
 - On 03, remove the separate red column segment, mark 110–120°C graduations and the 120 label red, and keep the column and marker driven by the sample temperature.
@@ -59,7 +59,7 @@ The `tyre-low` / `tyre-high` / `tyre-hot` scenes on 08 support all four independ
 
 ## Road-scene motion checks on 09
 
-The speed screen adds trees and buildings on both sides while retaining a clear primary reading. Browser checks show approximately a 1:3 motion-frequency ratio at 40 / 120 km/h, and frozen perspective graphics at zero speed or disconnection. The preview slider adjusts speed; speed-limit reminders trigger only when enabled and above the configured threshold. Speed changes retain accumulated displacement. Static exports use a representative frame; the interactive webpage retains motion.
+The speed screen adds trees and buildings on both sides while retaining a clear primary reading. Trees use muted gray-green color; buildings use gray outlines and a few dim warm windows. Browser checks show approximately a 1:3 motion-frequency ratio at 40 / 120 km/h, and frozen perspective graphics at zero speed or disconnection. The preview slider adjusts speed; speed-limit reminders trigger only when enabled and above the configured threshold. Speed changes retain accumulated displacement. Static exports use a representative frame; the interactive webpage retains motion.
 
 ## Scope of guarantees
 

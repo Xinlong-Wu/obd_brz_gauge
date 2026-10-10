@@ -69,7 +69,9 @@ function roadScene(speed,connected=true,distance=0){
   const building=(slot+(side>0?1:0))%3===1;
   const silhouette=building?'M-20 0V-70H-7V-84H20V0Z':'M0 0V-12M-18-12H18L8-30H13L0-59L-13-30H-8Z';
   const detail=building?'M-11-58H-5M5-58H11M-11-43H-5M5-43H11M-11-28H-5M5-28H11M-4 0V-12H5V0':'M-7 0H7';
-  content+='<g class="roadside-object" data-road-side="'+side+'" data-road-slot="'+slot+'" data-road-kind="'+(building?'building':'tree')+'" transform="'+p.transform+'" opacity="'+p.opacity.toFixed(3)+'"><path d="'+silhouette+'" fill="'+C.panel+'" stroke="'+C.muted+'" stroke-width="'+g.strokeWidth+'" stroke-linejoin="round"/><path d="'+detail+'" fill="none" stroke="'+C.line+'" stroke-width="2" stroke-linecap="round"/></g>';
+  const fill=building?C.panel:g.colors.treeFill,outline=building?C.muted:g.colors.treeOutline;
+  const windows=building?'<path data-road-lit-windows="subtle" d="M-11-58H-5M5-43H11" fill="none" stroke="'+g.colors.window+'" stroke-width="3" stroke-linecap="square"/>':'';
+  content+='<g class="roadside-object" data-road-side="'+side+'" data-road-slot="'+slot+'" data-road-kind="'+(building?'building':'tree')+'" transform="'+p.transform+'" opacity="'+p.opacity.toFixed(3)+'"><path d="'+silhouette+'" fill="'+fill+'" stroke="'+outline+'" stroke-width="'+g.strokeWidth+'" stroke-linejoin="round"/><path d="'+detail+'" fill="none" stroke="'+C.line+'" stroke-width="2" stroke-linecap="round"/>'+windows+'</g>';
  }
  return content+'</g></g>';
 }

@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v15.
+An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v16.
 
 ## Editing and previewing
 
@@ -39,7 +39,7 @@ python3 ui-prototype/start-preview.py --port 8770
 6. Three-channel monitor: main boost reading, oil temperature, and oil pressure.
 7. Multi-channel monitor: oil pressure, oil temperature, voltage, coolant, boost, and TPS / B.P switching.
 8. Tyre pressure and temperature: roadster illustration, four-wheel positioning, and low-pressure status.
-9. Speed and cruise: current speed, cruise status, and set speed, with roadside trees / buildings moving faster as speed increases.
+9. Speed and cruise: current speed, cruise status, and set speed, with roadside trees / buildings moving faster as speed increases. Trees use gray-green color; buildings retain gray outlines with a few dim warm windows.
 10. G-force: concentric circles, crosshairs, and the current point; optional reminders use a dashed threshold circle and an emphasized current point to indicate exceedance.
 11. Heart rate: current reading, low, peak, one-minute statistic, and waveform.
 12. Mechanical pressure gauge: centered needle, 270° graduations, and independent pressure reading.
