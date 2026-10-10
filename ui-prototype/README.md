@@ -90,6 +90,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 验证 JS 语法后，按 360 原尺寸检查圆边、数字、文字及点击区域；修改交互时验证对应操作与正常 / 报警 / 断连状态。
 
+`npm test` 的 13 项检查覆盖组件尺寸、圆边、场景渲染、断连优先级、多项异常、四轮定位、可选限值和系统禁用状态。逐页规范检查结果与当前待修项目见 [DESIGN_AUDIT.md](DESIGN_AUDIT.md)。
 
 ## Figma 参考
 

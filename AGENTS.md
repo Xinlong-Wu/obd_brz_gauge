@@ -12,6 +12,8 @@ BLE 连 ELM327 兼容适配器读车况，ESP-NOW 三连表联动，双主题系
 
 MX-5 NC/JDM 视觉原型位于 `ui-prototype/`；后续原型修改与预览使用仓库内文件，
 不要回写会话临时副本（入口与导出方式见 `ui-prototype/README.md`）。
+原型基础与共用控件分别改 `foundations.js` 和 `components.js`；规则见
+`ui-prototype/DESIGN_SYSTEM.md`，生成的 `foundations.css` / `.json` 不手改。
 
 ## 改代码必须同步更新文档
 

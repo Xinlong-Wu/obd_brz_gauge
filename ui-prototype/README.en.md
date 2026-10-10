@@ -90,6 +90,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 Check JS syntax, then inspect circular boundaries, digits, labels, and hit areas at 360 actual size. When editing interactions, verify the affected actions and normal / warning / disconnected states.
 
+The 13 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, and system-disabled states. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
 
 ## Figma reference
 

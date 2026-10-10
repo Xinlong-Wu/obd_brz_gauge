@@ -136,5 +136,6 @@ npm run export
 
 Component tests cover foundation synchronization, 44px hit areas, circular boundaries, disabled state, Readout warning / disconnected semantics, artwork color bindings, and whether every screen renders under the main settings. New scenario tests cover disconnected precedence and graphic suppression, simultaneous-warning ordering, four-wheel selection, optional limits, independent heart rate, and system-disabled states. Browser checks are still required for actual layout.
 
+Results and required fixes from the 16-screen reverse audit are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md). Passing shared component tests does not replace screen-by-screen acceptance checks.
 
 In the browser, check state switching and controls in the component catalog, then inspect affected screens at 360 actual size for labels, digits, units, circular boundaries, and interactions. Intentional visual changes require updated SVGs, PNGs, overview, and both language specifications.

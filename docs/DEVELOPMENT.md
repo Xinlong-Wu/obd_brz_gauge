@@ -192,8 +192,8 @@ WS175 提供同名宏/兼容壳),不要再直接 include ST77916.h。
 
 ## 浏览器 UI 原型
 
-`ui-prototype/` 保存 MX-5 NC/JDM 的完整 16 页视觉与交互原型、字体、24 张 SVG/PNG
-及总览。后续原型修改和预览以这个仓库目录为准；数据与连接操作均为示例。
+`ui-prototype/` 保存 MX-5 NC/JDM 的完整 16 页视觉与交互原型、字体、78 张 SVG/PNG
+及正常 / 报警总览。后续原型修改和预览以这个仓库目录为准；数据与连接操作均为示例。
 
 在仓库根目录启动后台预览服务：
 
@@ -206,6 +206,9 @@ python3 ui-prototype/start-preview.py
 报告实际源目录，并禁用静态资源缓存。预览只依赖 Python 标准库。
 
 停止服务、导出依赖和当前设计约束见 [ui-prototype/README.md](../ui-prototype/README.md)。
+共用基础和组件分别位于 `foundations.js`、`components.js` / `components.css`；
+交互规范页为 <http://127.0.0.1:8769/components.html>，属性与圆屏规则见
+[DESIGN_SYSTEM.md](../ui-prototype/DESIGN_SYSTEM.md)。`scenarios.js` 管理逐项报警、多项异常和无数据示例；表盘下方的场景选择器可逐一预览。`npm test` 检查组件尺寸、状态约束和报警场景。
 这是浏览器设计原型；固件 LVGL UI 的实际运行预览使用下方 PC 模拟器。
 
 ## PC 模拟器（UI 预览）

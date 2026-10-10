@@ -223,7 +223,7 @@ of including ST77916.h directly.
 ## Browser UI prototype
 
 `ui-prototype/` contains the complete 16-screen MX-5 NC/JDM visual and interactive
-prototype, fonts, 24 SVG/PNG exports, and overview. Use this repository directory
+prototype, fonts, 78 SVG/PNG exports, and normal / warning overviews. Use this repository directory
 for future prototype editing and previewing; data and connection actions are examples.
 
 Start the background preview service from the repository root:
@@ -238,7 +238,11 @@ its actual source directory through `/__preview__` and disables static-asset cac
 Preview requires only the Python standard library.
 
 See [ui-prototype/README.en.md](../ui-prototype/README.en.md) for stopping the service,
-export dependencies, and current design constraints. This is a browser design prototype;
+export dependencies, and current design constraints.
+Shared foundations and components live in `foundations.js` and `components.js` / `components.css`.
+The interactive catalog is <http://127.0.0.1:8769/components.html>; see
+[DESIGN_SYSTEM.en.md](../ui-prototype/DESIGN_SYSTEM.en.md) for properties and circular-screen rules.
+`scenarios.js` manages individual warnings, simultaneous warnings, and unavailable-data samples; use the scenario selector below the dial to inspect each. `npm test` checks component sizing, state contracts, and warning scenarios. This is a browser design prototype;
 use the PC simulator below to preview the actual firmware LVGL UI.
 
 ## PC simulator (UI preview)
