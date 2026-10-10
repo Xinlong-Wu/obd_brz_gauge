@@ -1,0 +1,20 @@
+.dial-control{cursor:pointer}.dial-control:hover{filter:brightness(1.22)}.dial-control:focus{outline:none}.night-colors text[fill="#F3F0E7"]{fill:#e8b27a}
+.music-key:hover{filter:none}.music-key:focus rect.music-hit{stroke:none}.music-hit{pointer-events:all}
+.music-key .music-surface,.music-key .music-symbol,.music-key .music-focus{transition:fill var(--motion-fast) ease,stroke var(--motion-fast) ease,opacity var(--motion-fast) ease}
+.music-primary:hover .music-surface{fill:var(--control-hover)}.music-primary:active .music-surface,.music-primary:focus-visible .music-surface{fill:var(--control-pressed);stroke:var(--ink)}
+.music-secondary:hover .music-symbol,.music-secondary:active .music-symbol{stroke:var(--amber)}
+.music-secondary:focus-visible .music-focus{opacity:1}.music-secondary:focus-visible .music-symbol{stroke:var(--amber)}
+.precision-key:hover{filter:none}.precision-key:focus rect.control-hit{stroke:none}.control-hit{pointer-events:all}
+.precision-key .control-surface,.precision-key .control-symbol,.precision-key .control-label,.precision-key .control-focus,.precision-key .control-thumb{transition:fill var(--motion-fast) ease,stroke var(--motion-fast) ease,opacity var(--motion-fast) ease}
+.precision-key:not(.precision-danger):hover .control-surface,.precision-key:not(.precision-danger):focus-visible .control-surface{stroke:var(--amber)}
+.precision-key:active .control-surface{fill:var(--control-pressed)}.precision-primary:hover .control-surface,.precision-primary:focus-visible .control-surface{fill:var(--control-hover);stroke:var(--ink)}
+.precision-key:not(.precision-danger):hover .control-symbol,.precision-key:not(.precision-danger):focus-visible .control-symbol{stroke:var(--amber)}
+.precision-ghost:hover .control-label,.precision-ghost:focus-visible .control-label{fill:var(--amber)}
+.readout-key:hover .control-focus{opacity:.65}
+.precision-key:focus-visible .control-focus,.precision-key:active .control-focus{opacity:1}
+.precision-danger:hover .control-surface,.precision-danger:focus-visible .control-surface{fill:var(--control-danger);stroke:var(--red)}
+.precision-key[aria-disabled="true"]{pointer-events:none;cursor:default}
+.precision-key[aria-disabled="true"] .control-hit{pointer-events:none}
+.music-key[aria-disabled="true"],.music-key[aria-disabled="true"] .music-hit{pointer-events:none;cursor:default}
+@media(prefers-reduced-motion:reduce){.music-key .music-surface,.music-key .music-symbol,.music-key .music-focus{transition:none}}
+@media(prefers-reduced-motion:reduce){.precision-key .control-surface,.precision-key .control-symbol,.precision-key .control-label,.precision-key .control-focus,.precision-key .control-thumb{transition:none}}

@@ -1,5 +1,5 @@
 from pathlib import Path
-import argparse, os, shutil, xml.etree.ElementTree as ET
+import argparse, json, os, shutil, xml.etree.ElementTree as ET
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
@@ -17,10 +17,9 @@ if cjk_font is None:
  parser.error("A CJK font is required; pass --cjk-font PATH or set UI_CJK_FONT.")
 NS="http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
-FONT={
- "Barlow Condensed": TTFont(ROOT/"fonts/barlow-medium.ttf"),
- "IBM Plex Mono": TTFont(ROOT/"fonts/plex-medium.ttf"),
- "sans-serif":TTFont(cjk_font,fontNumber=0)}
+foundations=json.loads((ROOT/"foundations.json").read_text(encoding="utf-8"))
+FONT={f["family"]:TTFont(ROOT/f["file"]) for f in foundations["fonts"] if f["weight"]==500}
+FONT[foundations["typography"]["body"]]=TTFont(cjk_font,fontNumber=0)
 DATA={k:(f.getGlyphSet(),f.getBestCmap(),f["head"].unitsPerEm,f["hmtx"].metrics) for k,f in FONT.items()}
 def outline(file):
  tree=ET.parse(file)

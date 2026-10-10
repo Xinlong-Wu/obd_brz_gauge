@@ -6,7 +6,7 @@ MX-5 NC / JDM 圆形车载仪表的视觉与交互原型，包含 16 个界面�
 
 ## 修改与预览
 
-后续修改以本目录为准，直接编辑 `nc-gauges.js`、`prototype.css`、`art.js` 和 `prototype.html`。预览服务固定读取当前仓库中的本目录；保存后刷新网页即可看到修改。
+后续修改以本目录为准。基础与共用控件分别改 `foundations.js`、`components.js` / `components.css`，页面组合改 `nc-gauges.js`，外页布局改 `prototype.css`。保存并生成必要资源后刷新原型。
 
 在仓库根目录运行，只需要 Python 3.9 或更高版本：
 
@@ -24,6 +24,8 @@ python3 ui-prototype/start-preview.py --port 8770
 ```
 
 `/__preview__` 返回实际服务目录和进程信息，方便确认预览来源。日志和 PID 位于 `.preview/`，不入库。服务为静态文件设置 `Cache-Control: no-store`，避免缓存旧界面。也可以直接在浏览器中打开本目录的 `prototype.html`，资源均为本地多文件。
+
+组件与基础规则的交互页：<http://127.0.0.1:8769/components.html>。属性、状态与圆屏规则见 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)。
 
 ## 页面
 
@@ -86,3 +88,5 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 ## Figma 参考
 
 <https://www.figma.com/design/4Ah7vldYa2qIrVheZ0Xzc8> 为早期 6 个核心表盘的参考文件。完整的当前版本以仓库中的原型和 SVG 为准。
+
+基础 CSS / JSON 由 `foundations.js` 生成；`npm run export` 先导出基础，再生成界面资源。`npm test` 检查共享组件契约，不能替代逐页视觉检查。

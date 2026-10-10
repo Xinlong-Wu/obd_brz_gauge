@@ -5,10 +5,12 @@
   "description": "MX-5 NC/JDM circular instrument UI prototype",
   "scripts": {
     "preview": "python3 start-preview.py",
+    "test": "node --test tests/*.test.cjs",
+    "export:foundations": "node export-foundations.cjs",
     "export:svg": "node export-vectors.cjs",
     "export:outline": "python3 outline-type.py",
     "export:png": "node rasterize.cjs",
-    "export": "npm run export:svg && npm run export:outline && npm run export:png"
+    "export": "npm run export:foundations && npm run export:svg && npm run export:outline && npm run export:png"
   },
   "engines": {
     "node": ">=20.9.0"

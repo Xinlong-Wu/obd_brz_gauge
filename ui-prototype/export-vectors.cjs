@@ -1,11 +1,12 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
 const dir=__dirname;
 fs.mkdirSync(path.join(dir,'vectors'),{recursive:true});
-vm.runInThisContext(fs.readFileSync(path.join(dir,'art.js'),'utf8'));
-vm.runInThisContext(fs.readFileSync(path.join(dir,'nc-gauges.js'),'utf8'));
-const font=fs.readFileSync(path.join(dir,'fonts','barlow-medium.ttf')).toString('base64');
-const mono=fs.readFileSync(path.join(dir,'fonts','plex-medium.ttf')).toString('base64');
-const styles='<style>@font-face{font-family:Barlow Condensed;src:url(data:font/ttf;base64,'+font+')}@font-face{font-family:IBM Plex Mono;src:url(data:font/ttf;base64,'+mono+')} .night-colors text[fill="#F3F0E7"]{fill:#E8B27A}</style>';
+for(const file of ['foundations.js','art.js','components.js','nc-gauges.js'])
+  vm.runInThisContext(fs.readFileSync(path.join(dir,file),'utf8'));
+const F=NC_FOUNDATIONS;
+const font=fs.readFileSync(path.join(dir,F.fonts.find(f=>f.family===F.typography.number&&f.weight===500).file)).toString('base64');
+const mono=fs.readFileSync(path.join(dir,F.fonts.find(f=>f.family===F.typography.label&&f.weight===500).file)).toString('base64');
+const styles='<style>@font-face{font-family:'+F.typography.number+';src:url(data:font/ttf;base64,'+font+')}@font-face{font-family:'+F.typography.label+';src:url(data:font/ttf;base64,'+mono+')} .night-colors text[fill="'+F.colors.text+'"]{fill:'+F.colors.night+'}</style>';
 const named=[...NC.pages.map(p=>({name:p.id,id:p.id,state:NC.defaults})),
 {name:'oil-temp-alert',id:'oiltemp',state:{...NC.defaults,alarm:true}},
 {name:'tyre-pressure-alert',id:'tyres',state:{...NC.defaults,alarm:true}},

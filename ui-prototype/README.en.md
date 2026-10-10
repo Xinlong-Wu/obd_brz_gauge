@@ -6,7 +6,7 @@ An MX-5 NC / JDM visual and interactive prototype for circular vehicle instrumen
 
 ## Editing and previewing
 
-Use this directory for future changes. Edit `nc-gauges.js`, `prototype.css`, `art.js`, and `prototype.html` directly. The preview server always reads this directory in the current checkout; save and refresh the page to see changes.
+Use this directory for future changes. Edit `foundations.js` for foundations, `components.js` / `components.css` for shared controls, `nc-gauges.js` for composition, and `prototype.css` for the outer page. Save, generate necessary assets, and refresh the prototype.
 
 Run from the repository root. Only Python 3.9 or newer is required:
 
@@ -24,6 +24,8 @@ python3 ui-prototype/start-preview.py --port 8770
 ```
 
 `/__preview__` returns the actual served directory and process information to verify the preview source. Logs and PIDs are stored in `.preview/` and excluded from Git. Static files use `Cache-Control: no-store` to avoid stale screens. You can also open this directory's `prototype.html` directly in a browser; its resources are local, separate files.
+
+The interactive component catalog is <http://127.0.0.1:8769/components.html>. Properties, states, and circular rules are in [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md).
 
 ## Screens
 
@@ -86,3 +88,5 @@ Check JS syntax, then inspect circular boundaries, digits, labels, and hit areas
 ## Figma reference
 
 <https://www.figma.com/design/4Ah7vldYa2qIrVheZ0Xzc8> is the early reference file with 6 core gauges. The complete current version is the prototype and SVGs in this repository.
+
+Foundation CSS / JSON are generated from `foundations.js`. `npm run export` exports foundations before screen assets. `npm test` checks shared component contracts and does not replace screen-by-screen visual checks.
