@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current warning-scenario version is v12.
+An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current warning-scenario version is v14.
 
 ## Editing and previewing
 
@@ -33,14 +33,14 @@ python3 ui-prototype/start-preview.py --port 8770
 
 1. Gear / RPM: segmented RPM arc, central gear, auxiliary oil temperature and pressure.
 2. Boost / vacuum: pressure arc, fine needle, large reading.
-3. Coolant temperature: vertical column, large reading, and status.
+3. Coolant temperature: vertical column, large reading, and status, with red graduations for the hot range.
 4. Engine oil temperature: arc and reading share a center, with illustrative 40–140°C graduations.
 5. Engine oil pressure: eccentric mechanical gauge on the left, independent reading and status on the right.
 6. Three-channel monitor: main boost reading, oil temperature, and oil pressure.
 7. Multi-channel monitor: oil pressure, oil temperature, voltage, coolant, boost, and TPS / B.P switching.
 8. Tyre pressure and temperature: roadster illustration, four-wheel positioning, and low-pressure status.
 9. Speed and cruise: current speed, cruise status, and set speed.
-10. G-force: concentric circles, crosshairs, the current point, and both axis readings; optional reminders use a dashed threshold circle and LIMIT message.
+10. G-force: concentric circles, crosshairs, and the current point; optional reminders use a dashed threshold circle and an emphasized current point to indicate exceedance.
 11. Heart rate: current reading, low, peak, one-minute statistic, and waveform.
 12. Mechanical pressure gauge: centered needle, 270° graduations, and independent pressure reading.
 13. Music: track, artist, lyrics, progress, previous, play / pause, and next.
@@ -55,7 +55,8 @@ python3 ui-prototype/start-preview.py --port 8770
 - Screen 07 uses compact `TPS / B.P` labels and one combined hit area. Clicking labels, numbers, or whitespace switches the channel; amber and an underline mark the current channel.
 - Screen 05 separates the eccentric gauge and digits, with pressure, unit, and status sharing the right alignment axis. Normal and warning readings have approximately 22px clearance from the gauge at 360 display size.
 - Screen 12 places its title inside the scale ring, leaving only a small `BOOST` label. Needle and graduations are centered, with unboxed numbers.
-- Screen 10 has a 1g inner circle and 2g outer circle, with the current point, both axis readings, and no trail. Triggered reminders show a threshold circle and LIMIT.
+- Screen 10 has a 1g inner circle and 2g outer circle, with the current point and no trail or bottom LAT / LON readings. Triggered reminders retain the dashed threshold circle and emphasized point, without bottom text.
+- Warning text has no exclamation marks. Screen 03 has no separate red column segment; its hot-range graduations are red.
 - Gauges omit the decorative `NC-01 / ROADSTER` signature; disconnected states retain `NO SIGNAL`.
 
 ## Exports and files

@@ -4,14 +4,14 @@ const F=root.NC_FOUNDATIONS,C=F.colors;
 const PAGES=[
 {id:'gear',group:'车辆仪表',title:'挡位 / 转速',english:'GEAR & RPM',desc:'大挡位与分段转速弧；温度和油压位于下方。'},
 {id:'boost',group:'车辆仪表',title:'增压 / 真空',english:'MANIFOLD',desc:'270°压力弧、细指针与偏下方读数，替代斜坡面积图。'},
-{id:'coolant',group:'车辆仪表',title:'冷却液温度',english:'COOLANT',desc:'纵向温度柱、数字和状态文字；替代横向尺标。'},
+{id:'coolant',group:'车辆仪表',title:'冷却液温度',english:'COOLANT',desc:'纵向温度柱、数字和状态文字；高温范围用红色刻度表示，柱体只显示当前温度。'},
 {id:'oiltemp',group:'车辆仪表',title:'发动机油温',english:'OIL TEMPERATURE',desc:'温度弧与主读数居中对齐，保留暖机与报警状态。'},
 {id:'oilpress',group:'车辆仪表',title:'发动机油压',english:'OIL PRESSURE',desc:'左侧偏心机械表与右侧读数区各自留出空间；压力、单位和状态共用右侧对齐轴，圆弧与数字保持间距。'},
 {id:'triple',group:'车辆仪表',title:'三项综合监测',english:'POWERTRAIN',desc:'主增压读数与下方油温、油压双分区。'},
 {id:'multi',group:'车辆仪表',title:'多项综合监测',english:'ENGINE VITALS',desc:'中间右侧以 TPS / B.P 标签和大读数组成整体切换区；点击标签、数字或留白均切换指标，琥珀色和下划线标明当前项。'},
 {id:'tyres',group:'车辆仪表',title:'四轮胎压 / 胎温',english:'TYRE MONITOR',desc:'原创敞篷跑车俯视线稿，四轮定位；文字与颜色共同提示异常。'},
 {id:'speed',group:'动态与健康',title:'车速 / 巡航',english:'SPEED',desc:'路面透视构图，当前车速为主、巡航设定为辅。'},
-{id:'gforce',group:'动态与健康',title:'G 力 / 当前点',english:'G-FORCE',desc:'同心圆与十字刻度：内圈 1g、外圈 2g，只显示当前坐标点和双轴读数。'},
+{id:'gforce',group:'动态与健康',title:'G 力 / 当前点',english:'G-FORCE',desc:'同心圆与十字刻度：内圈 1g、外圈 2g，以当前点直接表达方向；提醒触发时保留虚线阈值圈与当前点强调，表盘底部不显示文字。'},
 {id:'heart',group:'动态与健康',title:'心率 / 趋势',english:'DRIVER PULSE',desc:'实时心率、低值、峰值、1分钟统计与脉搏波形。'},
 {id:'analog',group:'车辆仪表',title:'机械压力表',english:'PRESSURE / ANALOG',desc:'参考 01／02／04 的表盘构图：居中的 270°针式刻度，BOOST 小标识融入表盘内部，下方直接显示压力读数与单位。'},
 {id:'music',group:'媒体与系统',title:'音乐 / 歌词',english:'NOW PLAYING',desc:'圆形主播放键配轻量切歌图标，保留唱片、歌词与进度信息。'},
@@ -29,7 +29,7 @@ const m=S.resolve(id,s),v=m.connected,n=m.values,dash='—';
 const find=k=>m.alerts.find(a=>a.field===k),ink=(k,normal='text')=>find(k)?alertInk(find(k)):normal;
 const readState=k=>!v?'disconnected':find(k)&&find(k).severity!=='advisory'?'warning':'normal';
 function reading(k,x,y,label,value,unit,compact=false){
- const alert=find(k),name=compact&&alert?'! '+alert.reason:label;
+ const alert=find(k),name=compact&&alert?alert.reason:label;
  return alertField(k,metric(x,y,name,value,unit,compact,ink(k),readState(k)),alert);
 }
 let a=shell(!v?(id==='heart'?'NO SENSOR':'NO SIGNAL'):'');
@@ -49,10 +49,10 @@ case 'boost':{
  a+=alertMessage(m.alerts);break;}
 case 'coolant':{
  a+=header('COOLANT','ENGINE THERMAL')+art('thermal');
- if(v){const y=502-Math.min(1,Math.max(0,(n.coolant-60)/60))*292;
-  a+='<g data-live-indicator="temperature">'+r(154,y,20,502-y,ink('coolant','amber'),10)+path('M137 '+y+'h49',ink('coolant'),3)+'</g>';
+ if(v){const y=498-Math.min(1,Math.max(0,(n.coolant-60)/60))*288;
+  a+='<g data-live-indicator="temperature">'+r(154,y,20,498-y,ink('coolant','amber'),10)+path('M137 '+y+'h49',ink('coolant'),3)+'</g>';
  }
- a+=reading('coolant',265,220,'WATER',n.coolant,'°C')+t(420,530,!v?'WAITING':find('coolant')?'TEMP HIGH':'STABLE',F.typography.sizes.label,!v?'muted':find('coolant')?'red':'green')+t(112,208,'120',F.typography.sizes.support,'muted')+t(112,480,'60',F.typography.sizes.support,'muted');break;}
+ a+=reading('coolant',265,220,'WATER',n.coolant,'°C')+t(420,530,!v?'WAITING':find('coolant')?'TEMP HIGH':'STABLE',F.typography.sizes.label,!v?'muted':find('coolant')?'red':'green')+t(112,208,'120',F.typography.sizes.support,'red')+t(112,480,'60',F.typography.sizes.support,'muted');break;}
 case 'oiltemp':{
  a+=art('oil');
  if(v)a+=liveArc(360,360,246,135,135+Math.min(1,Math.max(0,(n.oiltemp-40)/100))*270,ink('oiltemp','amber'));
@@ -65,19 +65,19 @@ case 'oilpress':{
 case 'triple':{
  a+=header('POWERTRAIN','THREE CHANNEL VIEW')+art('triple');
  if(v)a+='<g data-live-indicator="boost-bar">'+r(112,196,496*Math.min(1,(n.boost+1)/4),10,ink('boost','amber'),5)+'</g>';
- a+=alertField('boost',readout({x:200,y:215,label:find('boost')?'! BOOST HIGH':'BOOST',value:n.boost.toFixed(2),unit:'bar',state:readState('boost')}),find('boost'));
+ a+=alertField('boost',readout({x:200,y:215,label:find('boost')?'BOOST HIGH':'BOOST',value:n.boost.toFixed(2),unit:'bar',state:readState('boost')}),find('boost'));
  a+=reading('oiltemp',130,492,'OIL TEMP',n.oiltemp,'°C',true)+reading('oilpress',370,492,'OIL PRESS',n.oilpress.toFixed(1),'bar',true);
  a+=alertMessage(m.alerts,650);break;}
 case 'multi':{
  a+=header('ENGINE VITALS')+path('M108 314H612M360 162V308M108 466H612M360 470V610');
  a+=reading('oilpress',115,166,'OIL PRESS',n.oilpress.toFixed(1),'bar',true)+reading('oiltemp',375,166,'OIL TEMP',n.oiltemp,'°C',true)+reading('battery',115,477,'BATTERY',n.battery.toFixed(1),'V',true)+reading('coolant',375,477,'COOLANT',n.coolant,'°C',true);
- a+=alertField('boost',t(206,336,v?n.boost.toFixed(2):dash,F.typography.sizes.boost,ink('boost','amber'),'middle',F.typography.number)+t(206,427,find('boost')?'! BOOST HIGH':'BOOST / bar',F.typography.sizes.small,ink('boost','muted')),find('boost'))+readoutControl(s.channel==='TPS'?'TPS':'B.P',v?(s.channel==='TPS'?'38%':'21%'):dash);
+ a+=alertField('boost',t(206,336,v?n.boost.toFixed(2):dash,F.typography.sizes.boost,ink('boost','amber'),'middle',F.typography.number)+t(206,427,find('boost')?'BOOST HIGH':'BOOST / bar',F.typography.sizes.small,ink('boost','muted')),find('boost'))+readoutControl(s.channel==='TPS'?'TPS':'B.P',v?(s.channel==='TPS'?'38%':'21%'):dash);
  a+=alertMessage(m.alerts);break;}
 case 'tyres':{
  a+=header('TYRE MONITOR','MX-5 / ROADSTER')+art('roadster');
  [[186,252,'FL'],[534,252,'FR'],[186,430,'RL'],[534,430,'RR']].forEach(([x,y,wheel])=>{
   const p=find(wheel+'.pressure'),temp=find(wheel+'.temp'),alert=p||temp,q=m.tyres[wheel];
-  a+='<g data-wheel="'+wheel+'">'+t(x,y,wheel+(alert?' !':''),F.typography.sizes.small,alert?alertInk(alert):'muted');
+  a+='<g data-wheel="'+wheel+'">'+t(x,y,wheel,F.typography.sizes.small,alert?alertInk(alert):'muted');
   a+=alertField(wheel+'.pressure',t(x,y+29,v?q.pressure.toFixed(1):dash,F.typography.sizes.tyre,p?alertInk(p):'text','middle',F.typography.number),p);
   a+=alertField(wheel+'.temp',t(x,y+112,'bar / '+(v?q.temp:dash)+'°C',F.typography.sizes.small,temp?alertInk(temp):'muted'),temp);
   if(alert)a+=path('M'+(x-58)+' '+(y+143)+'H'+(x+58),alertInk(alert),3,'data-wheel-alert="'+wheel+'"');
@@ -87,7 +87,7 @@ case 'tyres':{
 case 'speed':{
  const alert=find('speed');
  a+=header('SPEED','ROADSTER / TOURING')+path('M158 575L292 380M562 575L428 380','line',3)+path('M360 550V524M360 490V474','amber',5)+reading('speed',200,204,'VELOCITY',n.speed,'km/h');
- a+=chip(224,490,272,!v?'CRUISE UNAVAILABLE':alert?'! SPEED LIMIT':'CRUISE ACTIVE',alert?'amber':'panel')+t(360,551,!v?'SET — km/h':alert?'LIMIT '+m.limits.speed+' km/h':'SET 100 km/h',F.typography.sizes.title,!v?'muted':alert?'amber':'green');break;}
+ a+=chip(224,490,272,!v?'CRUISE UNAVAILABLE':alert?'SPEED LIMIT':'CRUISE ACTIVE',alert?'amber':'panel')+t(360,551,!v?'SET — km/h':alert?'LIMIT '+m.limits.speed+' km/h':'SET 100 km/h',F.typography.sizes.title,!v?'muted':alert?'amber':'green');break;}
 case 'gforce':{
  const radius=238,lat=n.lat,lon=n.lon,alert=find('gforce');
  a+=header('G-FORCE');
@@ -97,8 +97,6 @@ case 'gforce':{
  if(v){const x=(360+lat*radius/2).toFixed(2),y=(360-lon*radius/2).toFixed(2);a+='<g data-field="gforce" data-state="'+(alert?'alert':'normal')+'">';
   if(alert)a+='<circle data-g-limit="configured" cx="360" cy="360" r="'+(m.limits.gforce*radius/2)+'" fill="none" stroke="'+C.amber+'" stroke-width="2" stroke-dasharray="6 8"/>';
   a+='<circle cx="'+x+'" cy="'+y+'" r="16" fill="none" stroke="'+C.amber+'" stroke-width="2"/><circle data-g-meter-point="current" data-lat="'+lat+'" data-lon="'+lon+'" aria-label="横向 '+lat.toFixed(2)+' g，纵向 '+lon.toFixed(2)+' g" cx="'+x+'" cy="'+y+'" r="10" fill="'+C[alert?'amber':'text']+'"/>';
-  a+=t(360,610,'LAT +'+lat.toFixed(2)+' / LON +'+lon.toFixed(2)+' g',F.typography.sizes.support,alert?'amber':'text');
-  if(alert)a+=t(360,644,'! LIMIT '+m.limits.gforce.toFixed(1)+' g',F.typography.sizes.small,'amber');
   a+='</g>';
  }break;}
 case 'heart':{

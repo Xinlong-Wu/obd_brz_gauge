@@ -27,7 +27,7 @@ Edit shared foundations and controls in their corresponding layers. Specific gra
 - `night`: nighttime reading color; day / night brightness is a separate interaction state.
 - `face` / `panel` / `line`: dial background, control surface, and structure lines; the outer page panel has a separate viewer role.
 
-Do not communicate state through color alone. Warnings need readings or reason text and an abnormal-state marker. Selections need a marker, and unavailable data uses `—` and status information.
+Do not communicate state through color alone. Warnings need readings or reason text; do not add exclamation-mark prefixes, suffixes, or icons. Selections need a marker, and unavailable data uses `—` and status information.
 
 ### Warning and reminder coverage
 
@@ -93,7 +93,7 @@ Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and 
 
 `alertField` identifies the abnormal metric and semantic state; `alertMessage` supplies a reason summary; `alertRim` draws thin red arcs for critical scenes only. Type sizes, rim radius, and strokes use foundations.
 
-`needle`, `liveArc`, and `tachometer` generate current live indicators. Fixed graduations and danger ranges remain in `art.js`. The temperature column and composite progress bar are generated from the current sample values. Unavailable data hides live indicators; fixed danger graduations do not indicate a current warning.
+`needle`, `liveArc`, and `tachometer` generate current live indicators. Fixed graduations and danger ranges remain in `art.js`. Coolant uses red graduations for the 110–120°C range and a red 120 label, without a separate red segment inside the column. The temperature column and composite progress bar are generated from the current sample values. Unavailable data hides live indicators; fixed danger graduations do not indicate a current warning.
 
 ### Action and auxiliary controls
 
@@ -121,7 +121,7 @@ U.actionButton({
 
 Screen composition keeps distinct presentations: centered main gauges on 01 / 02 / 04 / 12, the eccentric split on 05, multi-channel partitions on 06 / 07, and the concentric coordinate plot on 10. Shared components keep type, readings, and controls consistent while composition suits each data type.
 
-Screen 10 displays the current point and both axis readings. Triggered reminders add a dashed threshold circle and LIMIT message. Unavailable data hides the active point, threshold circle, and readings.
+Screen 10 uses the current point and coordinate graduations to convey both axes, with no bottom LAT / LON labels or repeated axis values. Triggered optional G reminders use only a dashed threshold circle and emphasized current point. The bottom shows no OVER, threshold number, or other reminder text. Unavailable data hides the point and threshold circle.
 
 ## Editing and verification
 
