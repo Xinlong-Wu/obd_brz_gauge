@@ -38,9 +38,9 @@ through 16 pages —
 | 5 | OIL PRESSURE | eccentric mechanical dial + right-side readout (0–6 bar) |
 | 6 | POWERTRAIN | boost bar + oil temp/pressure compact readouts |
 | 7 | ENGINE VITALS | four corner readouts + TPS / B.P switcher (tap to toggle) |
-| 8 | TYRE MONITOR | roadster outline + four tyre pressures |
+| 8 | TYRE MONITOR | roadster outline + four tyre pressures (≤0.5 bar red low-pressure alert / ≥3.4 bar amber high, footer summary) |
 | 9 | SPEED | perspective roadside animation (faster with speed, stops when stopped) + cruise state |
-| 10 | G-FORCE | 1g/2g rings + current point |
+| 10 | G-FORCE | 1g/2g rings + current point (dashed limit circle appears and the dot turns amber above 1.0 g) |
 | 11 | DRIVER PULSE | heart rate & trend (source not wired yet; NO SENSOR state) |
 | 12 | PRESSURE / ANALOG | 41-tick mechanical boost dial |
 | 13 | NOW PLAYING | media page (source not wired yet; disconnected state) |
@@ -60,20 +60,32 @@ through 16 pages —
 ## Bluetooth (CONNECTIONS / PAIR DEVICE)
 
 - The status chip shows adapter state: **DEVICE CONNECTED** (green, bound and
-  connected) / **CONNECTION LOST** (amber, bound but not connected) /
-  **NO DEVICE** (unbound)
-- **FORGET** clears the adapter binding (name + MAC); **PAIR** opens the
-  pairing-code page — the code is derived from the device MAC; enter it in
-  the companion app to bind
+  connected) / **CONNECTION LOST** (amber, bound but not connected; the footer
+  shows SAVED PAIRING RETAINED) / **NO DEVICE** (unbound)
+- **FORGET ALL** clears the adapter binding (name + MAC) — tapping it opens a
+  **confirmation dialog**; only **CLEAR** actually clears, **CANCEL** goes back.
+  **PAIR** opens the pairing-code page — the code is derived from the device
+  MAC; enter it in the companion app to bind
+- **BACK** on this page returns to the gear / RPM page (page 1)
 - The **DISCOVERABLE / REMOTE KEY** toggles are UI placeholders for now
   (firmware capability pending)
 
 ## Data & disconnect
 
 All data flows through the unified channel reading the OBD data cache
-(BLE / ESP-NOW dual source, thread-safe). When disconnected: values show
-**—**, live indicators hide, and each page shows its own
-**NO SIGNAL / WAITING / —** semantics; everything resumes automatically.
+(BLE / ESP-NOW dual source, thread-safe).
+
+**Channel alerts**: on threshold breach the footer shows a reason summary
+(multiple items as "first +N"); critical alerts additionally draw double red
+arcs on the dial rim and turn the related readouts red. Thresholds:
+coolant/oil temp ≥110°C, oil pressure <1.0 bar (red alert), boost ≥2.4 bar,
+RPM ≥7200 (shift prompt) / ≥7900 (red alert), voltage ≤10.8 / ≥16.4 V,
+tyre pressure ≤0.5 (red) / ≥3.4 bar, G-force >1.0 g (dashed limit circle +
+footer reminder).
+
+When disconnected: values show **—**, live indicators hide, alert summaries
+are suppressed, and the dial bottom shows amber **NO SIGNAL** (NO SENSOR on
+the heart page); everything resumes automatically.
 
 ## Known trims (vs the legacy UI)
 
