@@ -25,13 +25,17 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 每个场景:sim 命令行 + 期望产出的截图文件名列表。
 # 公共参数:固定 seed、虚拟时钟、无面板 → 完全确定性。
-# splash 停 1.2s = 240 虚拟帧;首场景帧数须 > 240 才落到导航页。
+# splash 停 1.2s = 240 虚拟帧(虚拟帧 = 5ms);场景帧数须 > 240 才落到导航页。
 COMMON = ["--no-panel", "--seed", "42", "--clock", "virtual"]
 SCENARIOS = [
-    # JDM 骨架首页(splash 已过,导航占位页 + shell)
+    # JDM 组件画布页 1(仪表组件:shell/header/readout/tach/arc/needle/thermal/trend/alert)
     ("jdm_boot", COMMON + ["--frames", "500",
                            "--screenshot", "{out}/jdm_boot.bmp"],
      ["jdm_boot.bmp"]),
+    # 组件画布页 2(控件:chip/btn 变体/round/toggle,经一次左滑到达)
+    ("jdm_controls", COMMON + ["--frames", "0", "--tour", "1",
+                               "--shots-dir", "{out}"],
+     ["tour_000.bmp"]),
     # splash 本身(字体/face 底/标题的长期回归门槛)
     ("jdm_splash", COMMON + ["--frames", "200",
                              "--screenshot", "{out}/jdm_splash.bmp"],

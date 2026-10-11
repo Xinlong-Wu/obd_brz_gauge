@@ -45,10 +45,11 @@ static inline int jdm_data_logic_tach_lit(int32_t rpm)
     return (int)((rpm * JDM_TACH_SEGMENTS + JDM_TACH_RPM_MAX - 1) / JDM_TACH_RPM_MAX);
 }
 
-/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的中心角(度)。 */
-static inline int jdm_data_logic_tach_segment_angle(int i)
+/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(度,
+ *  整数截断,与原型 140+i*260/56 一致);段末角恒 400°。 */
+static inline int jdm_data_logic_tach_segment_start(int i)
 {
-    return 140 + ((2 * i + 1) * 260) / (2 * JDM_TACH_SEGMENTS);
+    return 140 + (i * 260) / JDM_TACH_SEGMENTS;
 }
 
 /** 温度柱(60–120°C):返回柱内归一化高度 0..1000(‰),钳出界。 */

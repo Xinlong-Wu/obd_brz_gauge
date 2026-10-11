@@ -95,6 +95,10 @@ add_gauge_test(test_jdm_data
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
 
+# ---- JDM readout 格式化纯逻辑:通道除数约定 / 负值 / 无效哨兵 ----
+add_gauge_test(test_jdm_widgets
+    SOURCES test_jdm_widgets.c)
+
 # ---- JDM 字体表:设计系统阶梯 / 分辨率换算 / init 有效性 ----
 # 字体 blob(生成物,~400KB C 数组)一并编入
 file(GLOB JDM_FONT_BLOBS "${UI_DIR}/assets/fonts/*.c")

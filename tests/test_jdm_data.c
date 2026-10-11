@@ -84,9 +84,9 @@ int main(void)
     TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(9000));  // 超转钳满
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(-100));
 
-    // ---- 纯逻辑:段角度几何(140° 起,扫 260°,取段中心) ----
-    TEST_ASSERT_EQ_INT(142, jdm_data_logic_tach_segment_angle(0));   // 140+260/112
-    TEST_ASSERT_EQ_INT(397, jdm_data_logic_tach_segment_angle(55));  // 140+111*260/112
+    // ---- 纯逻辑:段角度几何(140° 起,扫 260°,取段起点) ----
+    TEST_ASSERT_EQ_INT(140, jdm_data_logic_tach_segment_start(0));
+    TEST_ASSERT_EQ_INT(395, jdm_data_logic_tach_segment_start(55));  // 140+55*260/56
 
     // ---- 纯逻辑:温度柱 ‰ ----
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(50));

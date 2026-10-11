@@ -10,25 +10,11 @@
 
 #include <stdbool.h>
 #include "lvgl.h"
+#include "jdm_tokens.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** 语义色角色(tokens.h 里 11 个语义色去掉 night;night 只经 TEXT 接管)。 */
-typedef enum {
-    JDM_ROLE_CANVAS = 0,
-    JDM_ROLE_FACE,
-    JDM_ROLE_PANEL,
-    JDM_ROLE_LINE,
-    JDM_ROLE_TEXT,
-    JDM_ROLE_MUTED,
-    JDM_ROLE_AMBER,
-    JDM_ROLE_RED,
-    JDM_ROLE_GREEN,
-    JDM_ROLE_BLUE,
-    JDM_ROLE_COUNT,
-} jdm_color_role_t;
 
 /** 取语义色。夜间模式下 JDM_ROLE_TEXT 返回 night 色,其余不变。 */
 lv_color_t jdm_color(jdm_color_role_t role);

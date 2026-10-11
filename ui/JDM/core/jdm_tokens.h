@@ -20,6 +20,21 @@
 #define JDM_HEX_BLUE    0x91C6DB   // 连接信息
 #define JDM_HEX_NIGHT   0xE8B27A   // 夜间接管 TEXT
 
+// ---- 语义色角色(取色唯一入口 jdm_color();night 只经 TEXT 接管) ----
+typedef enum {
+    JDM_ROLE_CANVAS = 0,
+    JDM_ROLE_FACE,
+    JDM_ROLE_PANEL,
+    JDM_ROLE_LINE,
+    JDM_ROLE_TEXT,
+    JDM_ROLE_MUTED,
+    JDM_ROLE_AMBER,
+    JDM_ROLE_RED,
+    JDM_ROLE_GREEN,
+    JDM_ROLE_BLUE,
+    JDM_ROLE_COUNT,
+} jdm_color_role_t;
+
 // ---- 几何(母版 px)----
 #define JDM_GEO_MASTER       720
 #define JDM_GEO_RADIUS       360    // 整表半径(内容裁切边界)
