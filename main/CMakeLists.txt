@@ -106,6 +106,7 @@ idf_component_register(SRC_DIRS
                     "."
                     "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM"
                     "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/core"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/pages"
                     "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/widgets"
                     "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/fonts"
                     "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/images"
