@@ -99,6 +99,10 @@ add_gauge_test(test_jdm_data
 add_gauge_test(test_jdm_widgets
     SOURCES test_jdm_widgets.c)
 
+# ---- JDM 通道报警阈值:两级转速 / 温度 / 油压 / 增压 / 电压 / 胎压 / G 值 ----
+add_gauge_test(test_jdm_alerts
+    SOURCES test_jdm_alerts.c)
+
 # ---- JDM 字体表:设计系统阶梯 / 分辨率换算 / init 有效性 ----
 # 字体 blob(生成物,~400KB C 数组)一并编入
 file(GLOB JDM_FONT_BLOBS "${UI_DIR}/assets/fonts/*.c")

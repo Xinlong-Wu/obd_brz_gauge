@@ -79,3 +79,10 @@ typedef enum {
     JDM_ALERT_WARNING,
     JDM_ALERT_CRITICAL,
 } jdm_alert_level_t;
+
+// 单条报警(reason 指向静态串)。放 token 层使纯逻辑头(jdm_alerts_logic.h)
+// 免依赖 LVGL;呈现组件(jdm_alert.h)与页面共用此类型。
+typedef struct {
+    const char *reason;
+    jdm_alert_level_t level;
+} jdm_alert_item_t;

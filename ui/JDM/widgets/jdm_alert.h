@@ -15,10 +15,8 @@
 extern "C" {
 #endif
 
-typedef struct {
-    const char *reason;        // 短文案(如 "BOOST HIGH")
-    jdm_alert_level_t level;   // tokens.h 三级
-} jdm_alert_item_t;
+// jdm_alert_item_t(报警词汇表条目)定义在 core/jdm_tokens.h,
+// 供纯逻辑头 jdm_alerts_logic.h 免依赖 LVGL 复用。
 
 typedef struct {
     lv_obj_t *msg;    // 页脚摘要 label
