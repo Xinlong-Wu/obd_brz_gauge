@@ -57,5 +57,8 @@ lv_obj_t *jdm_draw_tick(lv_obj_t *parent, int32_t mcx, int32_t mcy,
 {
     jdm_pt_t pts[2] = {jdm_draw_polar(mcx, mcy, r1, deg),
                        jdm_draw_polar(mcx, mcy, r2, deg)};
-    return jdm_draw_poly(parent, pts, 2, width_master, color);
+    lv_obj_t *line = jdm_draw_poly(parent, pts, 2, width_master, color);
+    // 刻度在原型里是平头线(SVG butt 默认);圆帽会把短刻度画成圆点
+    lv_obj_set_style_line_rounded(line, false, 0);
+    return line;
 }

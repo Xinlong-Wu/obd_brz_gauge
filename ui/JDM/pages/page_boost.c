@@ -13,6 +13,7 @@
 #include "core/jdm_geo.h"
 #include "core/jdm_nav.h"
 #include "core/jdm_text.h"
+#include "core/jdm_fonts.h"
 #include "core/jdm_theme.h"
 #include "widgets/jdm_arc.h"
 #include "widgets/jdm_needle.h"
@@ -52,13 +53,20 @@ static void create(lv_obj_t *page)
                            : (i >= 23) ? JDM_ROLE_LINE : JDM_ROLE_TEXT;
         jdm_draw_tick(page, 360, 365, r1, 290, deg, major ? 4 : 2, c);
     }
-    // 刻度数字 −1..3(support 号,muted;坐标取自 art.js)
-    static const struct { int32_t x, y; const char *txt; } lbls[] = {
-        {189, 545, "\xE2\x88\x92" "1"}, {136, 281, "0"}, {360, 132, "1"},
-        {584, 281, "2"}, {531, 545, "3"},
-    };
-    for (unsigned i = 0; i < sizeof(lbls) / sizeof(lbls[0]); i++) {
-        jdm_text(page, lbls[i].x, lbls[i].y, lbls[i].txt,
+    // 刻度数字 −1..3(support 号,muted):中心按原型落在 r242 同心环
+    // (art.js 坐标为 SVG 基线语义,需按数字中心极坐标放置,垂直用
+    // 字体 line_height 居中)
+    const lv_font_t *num_font = jdm_font(JDM_FONT_SUPPORT);
+    int32_t half_lh = num_font->line_height / 2;
+    for (int v = -1; v <= 3; v++) {
+        jdm_pt_t p = jdm_draw_polar(360, 365, 242, 135 + (v + 1) * 270 / 4);
+        char txt[8];   // "−1" = 3 字节 UTF-8 负号 + 数字 + NUL
+        if (v == -1) {
+            snprintf(txt, sizeof(txt), "\xE2\x88\x92" "1");
+        } else {
+            snprintf(txt, sizeof(txt), "%d", v);
+        }
+        jdm_text(page, p.x, p.y - half_lh, txt,
                  JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     }
 
