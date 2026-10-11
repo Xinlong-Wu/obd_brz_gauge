@@ -10,12 +10,12 @@ int main(void)
 {
     const char *r = NULL;
 
-    // ---- 转速:advisory / critical 两级 ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_rpm(7199, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(7200, &r));
-    TEST_ASSERT_EQ_STR("SHIFT / 7,200", r);
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(7899, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(7900, &r));
+    // ---- 转速:advisory(红区前) / critical(红区起点,进红区即报) ----
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_rpm(6799, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6800, &r));
+    TEST_ASSERT_EQ_STR("SHIFT", r);
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6999, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(7000, &r));
     TEST_ASSERT_EQ_STR("RPM LIMIT", r);
 
     // ---- 油温/水温:≥110 warning ----

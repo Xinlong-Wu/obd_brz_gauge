@@ -100,8 +100,10 @@ void jdm_tach_update(lv_obj_t *tach, int32_t rpm, bool connected)
         lv_obj_t *seg = lv_obj_get_child(s_segs, i);
         jdm_color_role_t want;
         if (i < lit) {
-            want = (i >= JDM_TACH_RED_AT) ? JDM_ROLE_RED
-                 : (i >= JDM_TACH_AMBER_AT) ? JDM_ROLE_AMBER : JDM_ROLE_TEXT;
+            // 段色带按段起始转速对齐警戒区(琥珀/红区阈值见 jdm_data_logic.h)
+            int32_t seg_rpm = jdm_data_logic_tach_seg_rpm(i);
+            want = (seg_rpm >= JDM_TACH_RED_RPM) ? JDM_ROLE_RED
+                 : (seg_rpm >= JDM_TACH_AMBER_RPM) ? JDM_ROLE_AMBER : JDM_ROLE_TEXT;
         } else {
             want = JDM_ROLE_LINE;
         }

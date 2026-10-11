@@ -84,9 +84,20 @@ int main(void)
     TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(9000));  // 超转钳满
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(-100));
 
-    // ---- 纯逻辑:段角度几何(140° 起,扫 260°,取段起点) ----
+    // ---- 纯逻辑:段角度几何(140° 起,扫 260°;四舍五入保证节距均匀) ----
     TEST_ASSERT_EQ_INT(140, jdm_data_logic_tach_segment_start(0));
-    TEST_ASSERT_EQ_INT(395, jdm_data_logic_tach_segment_start(55));  // 140+55*260/56
+    TEST_ASSERT_EQ_INT(168, jdm_data_logic_tach_segment_start(6));   // 27.86 → 四舍五入 28
+    TEST_ASSERT_EQ_INT(395, jdm_data_logic_tach_segment_start(55));  // 255.36 → 255
+    for (int i = 1; i < 56; i++) {
+        TEST_ASSERT(jdm_data_logic_tach_segment_start(i) >= jdm_data_logic_tach_segment_start(i - 1));
+    }
+
+    // ---- 纯逻辑:段色带(琥珀/红区以段起始转速对齐警戒区) ----
+    TEST_ASSERT_EQ_INT(5571, jdm_data_logic_tach_seg_rpm(39));  // < AMBER_RPM → 白
+    TEST_ASSERT_EQ_INT(5714, jdm_data_logic_tach_seg_rpm(40));  // ≥ AMBER_RPM → 琥珀
+    TEST_ASSERT_EQ_INT(6857, jdm_data_logic_tach_seg_rpm(48));  // < RED_RPM → 琥珀
+    TEST_ASSERT_EQ_INT(7000, jdm_data_logic_tach_seg_rpm(49));  // ≥ RED_RPM → 红(=RPM critical)
+    TEST_ASSERT_EQ_INT(7857, jdm_data_logic_tach_seg_rpm(55));
 
     // ---- 纯逻辑:温度柱 ‰ ----
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(50));

@@ -32,10 +32,14 @@ static inline int jdm_data_logic_arc270_end(int pct)
 }
 
 // ---- 56 段转速弧(page_gear / tachometer)----
-#define JDM_TACH_SEGMENTS 56
-#define JDM_TACH_RPM_MAX  8000
-#define JDM_TACH_AMBER_AT 40    // i≥40 琥珀
-#define JDM_TACH_RED_AT   45    // i≥45 红
+// 量程 / 段数 / 警戒区以转速值定义(改这里即可重排表盘):
+//   琥珀(警告)从 AMBER_RPM 起,红(报警)从 RED_RPM 起到满量程;
+//   RED_RPM 须与 jdm_alerts_logic.h 的 JDM_ALERTS_RPM_LIMIT 一致
+//   (进红区即触发 critical 报警)。
+#define JDM_TACH_SEGMENTS   56
+#define JDM_TACH_RPM_MAX    8000
+#define JDM_TACH_AMBER_RPM  5700
+#define JDM_TACH_RED_RPM    7000
 
 /** 点亮段数 = ceil(clamp(rpm)/8000 × 56),rpm<8000 保底 1 段显示"活着"。 */
 static inline int jdm_data_logic_tach_lit(int32_t rpm)
@@ -45,11 +49,18 @@ static inline int jdm_data_logic_tach_lit(int32_t rpm)
     return (int)((rpm * JDM_TACH_SEGMENTS + JDM_TACH_RPM_MAX - 1) / JDM_TACH_RPM_MAX);
 }
 
-/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(度,
- *  整数截断,与原型 140+i*260/56 一致);段末角恒 400°。 */
+/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(度)。
+ *  LVGL 弧角度为整数,四舍五入(而非截断)使节距 4/5° 交替、
+ *  误差 ±0.5° 均匀分布,视觉等距;段末角恒 400°。 */
 static inline int jdm_data_logic_tach_segment_start(int i)
 {
-    return 140 + (i * 260) / JDM_TACH_SEGMENTS;
+    return 140 + (i * 260 + JDM_TACH_SEGMENTS / 2) / JDM_TACH_SEGMENTS;
+}
+
+/** 第 i 段起始位置对应的转速(段色带判定用)。 */
+static inline int32_t jdm_data_logic_tach_seg_rpm(int i)
+{
+    return i * JDM_TACH_RPM_MAX / JDM_TACH_SEGMENTS;
 }
 
 /** 温度柱(60–120°C):返回柱内归一化高度 0..1000(‰),钳出界。 */

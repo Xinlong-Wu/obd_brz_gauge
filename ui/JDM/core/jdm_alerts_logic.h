@@ -11,11 +11,14 @@
 
 #include <stdint.h>
 
+#include "core/jdm_data_logic.h"
 #include "core/jdm_tokens.h"
 
 // ---- 阈值(原始量纲:rpm / °C / 0.1bar / mV / 0.01g)----
-#define JDM_ALERTS_RPM_SHIFT   7200    // ≥ advisory 换挡提示
-#define JDM_ALERTS_RPM_LIMIT   7900    // ≥ critical 转速过高
+// 转速两档与表盘红区(JDM_TACH_RED_RPM)联动:进红区即 critical,
+// 换挡提示在红区之前。改 JDM_TACH_RED_RPM 时无需动这里。
+#define JDM_ALERTS_RPM_SHIFT   JDM_TACH_RED_RPM - 200  // ≥ advisory 换挡提示
+#define JDM_ALERTS_RPM_LIMIT   JDM_TACH_RED_RPM        // ≥ critical 转速过高(红区起点)
 #define JDM_ALERTS_OIL_HOT     110     // ≥ 油温过高
 #define JDM_ALERTS_OILP_LOW    10      // <  油压过低 critical(<1.0 bar)
 #define JDM_ALERTS_BOOST_HIGH  24      // ≥ 增压过高(2.4 bar,表盘红区起点)
@@ -30,7 +33,7 @@
 static inline jdm_alert_level_t jdm_alerts_logic_rpm(int32_t rpm, const char **reason)
 {
     if (rpm >= JDM_ALERTS_RPM_LIMIT) { *reason = "RPM LIMIT"; return JDM_ALERT_CRITICAL; }
-    if (rpm >= JDM_ALERTS_RPM_SHIFT) { *reason = "SHIFT / 7,200"; return JDM_ALERT_ADVISORY; }
+    if (rpm >= JDM_ALERTS_RPM_SHIFT) { *reason = "SHIFT"; return JDM_ALERT_ADVISORY; }
     return JDM_ALERT_NONE;
 }
 

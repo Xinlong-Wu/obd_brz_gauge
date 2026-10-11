@@ -12,6 +12,7 @@
 #include "core/jdm_geo.h"
 #include "core/jdm_nav.h"
 #include "core/jdm_text.h"
+#include "core/jdm_fonts.h"
 #include "core/jdm_theme.h"
 #include "widgets/jdm_arc.h"
 #include "widgets/jdm_readout.h"
@@ -49,13 +50,16 @@ static void create(lv_obj_t *page)
         jdm_color_role_t c = (i >= 27) ? JDM_ROLE_RED : JDM_ROLE_LINE;
         jdm_draw_tick(page, 360, 360, r1, 260, deg, major ? 4 : 2, c);
     }
-    // 标签 40/90/140(内圈 r214,support 号)
+    // 标签 40/90/140:数字中心按原型落在 r222 同心环(art.js 坐标为
+    // SVG 基线语义),垂直用字体 line_height 居中
     static const struct { int deg; const char *txt; } lbls[] = {
         {135, "40"}, {270, "90"}, {405, "140"},
     };
+    const lv_font_t *num_font = jdm_font(JDM_FONT_SUPPORT);
+    int32_t half_lh = num_font->line_height / 2;
     for (unsigned i = 0; i < sizeof(lbls) / sizeof(lbls[0]); i++) {
-        jdm_pt_t p = jdm_draw_polar(360, 360, 214, lbls[i].deg);
-        jdm_text(page, p.x, p.y - 12, lbls[i].txt, JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+        jdm_pt_t p = jdm_draw_polar(360, 360, 222, lbls[i].deg);
+        jdm_text(page, p.x, p.y - half_lh, lbls[i].txt, JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     }
 
     s_arc = jdm_arc_create(page, 360, 360, 246, 6);

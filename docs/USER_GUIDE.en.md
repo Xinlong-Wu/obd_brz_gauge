@@ -79,9 +79,9 @@ All data flows through the unified channel reading the OBD data cache
 (multiple items as "first +N"); critical alerts additionally draw double red
 arcs on the dial rim and turn the related readouts red. Thresholds:
 coolant/oil temp ≥110°C, oil pressure <1.0 bar (red alert), boost ≥2.4 bar,
-RPM ≥7200 (shift prompt) / ≥7900 (red alert), voltage ≤10.8 / ≥16.4 V,
-tyre pressure ≤0.5 (red) / ≥3.4 bar, G-force >1.0 g (dashed limit circle +
-footer reminder).
+RPM ≥6800 (shift prompt) / ≥7000 (red alert — the dial red zone 7000–8000,
+entering it trips the alarm), voltage ≤10.8 / ≥16.4 V, tyre pressure ≤0.5
+(red) / ≥3.4 bar, G-force >1.0 g (dashed limit circle + footer reminder).
 
 When disconnected: values show **—**, live indicators hide, alert summaries
 are suppressed, and the dial bottom shows amber **NO SIGNAL** (NO SENSOR on
