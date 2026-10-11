@@ -28,3 +28,9 @@
 #define UIS(px) (((int32_t)(px) >= 0) \
                  ? (((int32_t)(px) * UI_RENDER_RES + (UI_MASTER_RES / 2)) / UI_MASTER_RES) \
                  : (((int32_t)(px) * UI_RENDER_RES - (UI_MASTER_RES / 2)) / UI_MASTER_RES))
+
+/** 渲染像素 → 母版像素(UIS 的逆;用于字体度量这类按渲染分辨率
+ *  产出的值——如 lv_font 的 line_height/字形度量,回母版坐标换算)。 */
+#define UIM(px) (((int32_t)(px) >= 0) \
+                 ? (((int32_t)(px) * UI_MASTER_RES + (UI_RENDER_RES / 2)) / UI_RENDER_RES) \
+                 : (((int32_t)(px) * UI_MASTER_RES - (UI_RENDER_RES / 2)) / UI_RENDER_RES))

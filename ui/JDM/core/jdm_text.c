@@ -18,7 +18,7 @@ int32_t jdm_text_glyph_top_off(const lv_font_t *f)
     if (!f || !lv_font_get_glyph_dsc(f, &d, '0', 0)) return 0;
     int32_t off = (f->line_height - f->base_line) - ((int32_t)d.box_h + d.ofs_y);
     if (off < 0) off = 0;
-    return off * JDM_GEO_MASTER / UI_RENDER_RES;
+    return UIM(off);   // 度量是 res 像素,逆换算回母版
 }
 
 lv_obj_t *jdm_text(lv_obj_t *parent, int32_t mx, int32_t my, const char *text,
