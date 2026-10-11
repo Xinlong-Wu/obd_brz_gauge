@@ -4,7 +4,13 @@
 
 #include "jdm_nav.h"
 
+#include <string.h>
+
+#include "core/jdm_conn.h"
 #include "core/jdm_geo.h"
+#include "core/jdm_text.h"
+#include "core/jdm_theme.h"
+#include "widgets/jdm_shell.h"
 
 #include "esp_log.h"
 
@@ -15,6 +21,7 @@ static uint8_t s_page_count;
 static uint8_t s_active;
 static lv_obj_t *s_root;        // 全屏根容器(挂在默认屏上)
 static lv_obj_t *s_page_obj;    // 当前页容器
+static lv_obj_t *s_status;      // 断连状态文字(壳层底部,16 页共用)
 static lv_timer_t *s_refresher;
 
 static void refresh_cb(lv_timer_t *t)
@@ -22,6 +29,18 @@ static void refresh_cb(lv_timer_t *t)
     (void)t;
     if (s_pages && s_pages[s_active]->update) {
         s_pages[s_active]->update();
+    }
+    // 壳层断连状态(原型 shell(status)):断连时 (360,658) 显示
+    // NO SIGNAL(琥珀);心率页传感器独立,显示 NO SENSOR(muted)。
+    // jdm_conn.h 的 disconnected 语义在此落地。
+    bool conn = jdm_conn_active();
+    lv_obj_set_hidden(s_status, conn);
+    if (!conn) {
+        bool heart = strcmp(s_pages[s_active]->name, "heart") == 0;
+        lv_label_set_text(s_status, heart ? "NO SENSOR" : "NO SIGNAL");
+        lv_obj_set_style_text_color(s_status,
+                                    jdm_color(heart ? JDM_ROLE_MUTED
+                                                    : JDM_ROLE_AMBER), 0);
     }
 }
 
@@ -83,6 +102,14 @@ void jdm_nav_init(void)
     // 空白处按下时 act_obj 需要"可点对象"才成立,root 可点兜底,
     // 手势事件再经对象链冒泡到 screen
     lv_obj_add_flag(s_root, LV_OBJ_FLAG_CLICKABLE);
+    // 表盘壳层(face 底圆 + r342 外框线 + 12 点琥珀定位标)建在 root
+    // 最底层,16 页共用、切页不重建;原型 shell() 每页必含。页面直接
+    // 建在页容器上,壳层返回的 content 层这里用不到,删掉免吃点击。
+    lv_obj_delete(jdm_shell_build(s_root));
+    // 断连状态文字(壳层 (360,658);见 refresh_cb)
+    s_status = jdm_text(s_root, 360, 658, "", JDM_FONT_SUPPORT,
+                        JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
+    lv_obj_set_hidden(s_status, true);
     // 手势挂 screen:act_obj 无论落在哪个子控件,冒泡终点都是它
     lv_obj_add_event_cb(scr, gesture_cb, LV_EVENT_GESTURE_LEFT, NULL);
     lv_obj_add_event_cb(scr, gesture_cb, LV_EVENT_GESTURE_RIGHT, NULL);
