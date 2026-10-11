@@ -67,7 +67,7 @@ static void update(void)
     jdm_readout_set_value(&s_ro, buf);
 
     if (!conn) {
-        jdm_chip_set(s_chip, "CRUISE UNAVAILABLE", JDM_ROLE_AMBER);
+        jdm_chip_set(s_chip, "CRUISE UNAVAILABLE", JDM_ROLE_PANEL);   // 原型断连带为 panel
         lv_label_set_text(s_set_text, "SET \xE2\x80\x94 km/h");
         lv_obj_set_style_text_color(s_set_text, jdm_color(JDM_ROLE_MUTED), 0);
     } else if (speed == 0) {

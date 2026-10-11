@@ -3,8 +3,8 @@
 //  jdm_tokens.h — JDM 设计 token(单一事实源)
 //
 //  对应 ui-prototype/foundations.js:11 个语义色 + 夜间接管色、
-//  几何常量、间距、描边、控件规格。色值只在这里出现一次;
-//  代码一律经 jdm_color(角色) 取色,不直接引用宏。
+//  路景专属色(road.colors)、几何常量、间距、描边、控件规格。
+//  色值只在这里出现一次;代码一律经 jdm_color(角色) 取色,不直接引用宏。
 // ================================================================
 
 // ---- 调色板(foundations.js palette)----
@@ -20,6 +20,11 @@
 #define JDM_HEX_BLUE    0x91C6DB   // 连接信息
 #define JDM_HEX_NIGHT   0xE8B27A   // 夜间接管 TEXT
 
+// ---- 路景专属色(foundations.js road.colors;日/夜同值) ----
+#define JDM_HEX_ROAD_TREE   0x779D7B   // 树描边(灰绿)
+#define JDM_HEX_ROAD_FILL   0x2A4532   // 树填充(深绿)
+#define JDM_HEX_ROAD_WINDOW 0xB19668   // 建筑窗灯(暖)
+
 // ---- 语义色角色(取色唯一入口 jdm_color();night 只经 TEXT 接管) ----
 typedef enum {
     JDM_ROLE_CANVAS = 0,
@@ -32,6 +37,9 @@ typedef enum {
     JDM_ROLE_RED,
     JDM_ROLE_GREEN,
     JDM_ROLE_BLUE,
+    JDM_ROLE_ROAD_TREE,
+    JDM_ROLE_ROAD_FILL,
+    JDM_ROLE_ROAD_WINDOW,
     JDM_ROLE_COUNT,
 } jdm_color_role_t;
 

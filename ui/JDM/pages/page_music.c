@@ -2,7 +2,8 @@
 //  page_music.c — 音乐 / 歌词(原型 13 页 NOW PLAYING)
 //
 //  固件无媒体源:恒"SOURCE UNAVAILABLE"态(唱片 + 标题占位 +
-//  提示文案 + 进度条空)。按钮以线稿符号呈现,当前不可用。
+//  提示文案 + 进度条空)。按键按原型 mediaButton 几何呈现,整组
+//  禁用态(40% 不透明度)。
 //  原型歌词为中文——CJK 字体未嵌入,提示文案用英文(已知偏差)。
 // ================================================================
 
@@ -14,6 +15,24 @@
 #include "widgets/jdm_header.h"
 
 static lv_obj_t *s_hint;
+
+// play 填充三角(TEXT 色;随整组禁用透明度,见 keys 容器 opa)
+static void play_fill_cb(lv_event_t *e)
+{
+    if (lv_event_get_code(e) != LV_EVENT_DRAW_MAIN) return;
+    static const lv_point_precise_t pts[3] = {
+        {UIS(348), UIS(569)}, {UIS(380), UIS(588)}, {UIS(348), UIS(607)},
+    };
+    lv_layer_t *layer = lv_event_get_layer(e);
+    lv_draw_triangle_dsc_t d;
+    lv_draw_triangle_dsc_init(&d);
+    d.p[0] = pts[0];
+    d.p[1] = pts[1];
+    d.p[2] = pts[2];
+    d.color = jdm_color(JDM_ROLE_TEXT);
+    d.opa = LV_OPA_COVER;   // 容器 kc 的 opa 已统一打折
+    lv_draw_triangle(layer, &d);
+}
 
 static lv_obj_t *circle_create(lv_obj_t *parent, int32_t mcx, int32_t mcy,
                                int32_t mr, bool filled)
@@ -63,22 +82,32 @@ static void create(lv_obj_t *page)
     jdm_text(page, 150, 498, "\xE2\x80\x94:\xE2\x80\x94", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_START);
     jdm_text(page, 570, 498, "\xE2\x80\x94:\xE2\x80\x94", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_END);
 
-    // 三键线稿符号(上一首/播放/下一首,均不可用态)
-    static const struct { int32_t cx; } keys[3] = {{248, 0}, {360, 0}, {476, 0}};
-    for (int i = 0; i < 3; i++) {
-        circle_create(page, keys[i].cx, 584, 43, true);
-    }
-    // prev / next 符号(线 + 三角轮廓)
-    static const jdm_pt_t prev1[] = {{230, 567}, {230, 601}};
-    jdm_draw_poly(page, prev1, 2, 3, JDM_ROLE_MUTED);
-    static const jdm_pt_t prev2[] = {{276, 567}, {236, 584}, {276, 601}, {276, 567}};
-    jdm_draw_poly(page, prev2, 4, 3, JDM_ROLE_MUTED);
-    static const jdm_pt_t play[] = {{348, 565}, {380, 584}, {348, 603}, {348, 565}};
-    jdm_draw_poly(page, play, 4, 4, JDM_ROLE_MUTED);
-    static const jdm_pt_t next1[] = {{490, 567}, {490, 601}};
-    jdm_draw_poly(page, next1, 2, 3, JDM_ROLE_MUTED);
-    static const jdm_pt_t next2[] = {{444, 567}, {484, 584}, {444, 601}, {444, 567}};
-    jdm_draw_poly(page, next2, 4, 3, JDM_ROLE_MUTED);
+    // 三键(prev r43 / 播放主键 r51+amber 细圈 / next r43;y=588):
+    // 原型 mediaButton()——play 符号填充暖白,prev/next 描边;无媒体源
+    // 时整组按禁用态呈现(40% 不透明度)
+    lv_obj_t *kc = lv_obj_create(page);
+    lv_obj_remove_style_all(kc);
+    lv_obj_set_size(kc, UIS(720), UIS(720));
+    lv_obj_set_pos(kc, 0, 0);
+    lv_obj_clear_flag(kc, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_opa(kc, JDM_CTL_DISABLED_OPA, 0);
+
+    circle_create(kc, 248, 588, 43, true);
+    lv_obj_t *play = circle_create(kc, 360, 588, JDM_CTL_MUSIC_RADIUS, true);
+    lv_obj_set_style_border_color(play, jdm_color(JDM_ROLE_AMBER), 0);
+    lv_obj_set_style_border_width(play, UIS(2), 0);
+    circle_create(kc, 472, 588, 43, true);
+    lv_obj_add_event_cb(kc, play_fill_cb, LV_EVENT_DRAW_MAIN, NULL);
+
+    // prev / next 符号(竖线 + 三角轮廓,TEXT 色)
+    static const jdm_pt_t prev1[] = {{230, 571}, {230, 605}};
+    jdm_draw_poly(kc, prev1, 2, 3, JDM_ROLE_TEXT);
+    static const jdm_pt_t prev2[] = {{276, 571}, {236, 588}, {276, 605}, {276, 571}};
+    jdm_draw_poly(kc, prev2, 4, 3, JDM_ROLE_TEXT);
+    static const jdm_pt_t next1[] = {{490, 571}, {490, 605}};
+    jdm_draw_poly(kc, next1, 2, 3, JDM_ROLE_TEXT);
+    static const jdm_pt_t next2[] = {{444, 571}, {484, 588}, {444, 605}, {444, 571}};
+    jdm_draw_poly(kc, next2, 4, 3, JDM_ROLE_TEXT);
 }
 
 static void update(void)

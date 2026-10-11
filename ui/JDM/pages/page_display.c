@@ -62,7 +62,7 @@ static void refresh(void)
     jdm_round_btn_set_disabled(s_day_minus, day <= 10);
     jdm_round_btn_set_disabled(s_night_minus, night <= 10);
     // 上限禁用由按钮回调里钳制(round_btn 无 + 的禁用句柄,此处只禁 −)
-    lv_label_set_text(lv_obj_get_child(s_mode_btn, 0),
+    jdm_btn_set_label(s_mode_btn,
                       jdm_theme_is_night() ? "NIGHT ACTIVE" : "DAY ACTIVE");
 }
 

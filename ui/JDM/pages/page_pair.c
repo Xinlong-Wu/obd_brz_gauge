@@ -47,7 +47,7 @@ static void create(lv_obj_t *page)
 
     lv_obj_t *confirm = jdm_btn_create(page, 190, 440, 340, "CONFIRM PAIRING", JDM_BTN_PRIMARY);
     lv_obj_add_event_cb(confirm, back_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t *back = jdm_btn_create(page, 248, 552, 224, "BACK", JDM_BTN_SECONDARY);
+    lv_obj_t *back = jdm_btn_create_ex(page, 248, 552, 224, "BACK", JDM_BTN_GHOST, true);
     lv_obj_add_event_cb(back, back_cb, LV_EVENT_CLICKED, NULL);
 }
 

@@ -23,6 +23,10 @@ static const uint32_t s_palette[JDM_ROLE_COUNT] = {
     [JDM_ROLE_RED]    = JDM_HEX_RED,
     [JDM_ROLE_GREEN]  = JDM_HEX_GREEN,
     [JDM_ROLE_BLUE]   = JDM_HEX_BLUE,
+    // 路景专属色(road.colors):夜间也不换
+    [JDM_ROLE_ROAD_TREE]   = JDM_HEX_ROAD_TREE,
+    [JDM_ROLE_ROAD_FILL]   = JDM_HEX_ROAD_FILL,
+    [JDM_ROLE_ROAD_WINDOW] = JDM_HEX_ROAD_WINDOW,
 };
 
 lv_color_t jdm_color(jdm_color_role_t role)

@@ -10,6 +10,7 @@
 
 #include "core/jdm_data_logic.h"
 #include "core/jdm_geo.h"
+#include "core/jdm_text.h"
 #include "core/jdm_theme.h"
 #include "core/jdm_tokens.h"
 
@@ -23,6 +24,30 @@ lv_obj_t *jdm_tach_create(lv_obj_t *parent)
     lv_obj_set_size(box, UIS(720), UIS(720));
     lv_obj_set_pos(box, 0, 0);
     lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+
+    // 静态底盘(原型 art('tach')):r300 细环(140°..400°)+ 数字 0-8
+    // (support 号;0-6 muted,7/8 红)
+    lv_obj_t *base = lv_arc_create(box);
+    int32_t base_size = UIS(2 * 300 + 2);
+    lv_obj_set_size(base, base_size, base_size);
+    lv_obj_align(base, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_remove_style(base, NULL, LV_PART_KNOB);
+    lv_obj_set_style_arc_width(base, 0, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(base, jdm_color(JDM_ROLE_LINE), LV_PART_MAIN);
+    lv_obj_set_style_arc_width(base, UIS(2), LV_PART_MAIN);
+    lv_arc_set_rotation(base, 0);
+    lv_arc_set_bg_angles(base, 140, TACH_SWEEP_END);
+    lv_obj_clear_flag(base, LV_OBJ_FLAG_CLICKABLE);
+
+    static const struct { int32_t x, y; const char *txt; } nums[9] = {
+        {170, 528, "0"}, {114, 401, "1"}, {135, 264, "2"}, {227, 160, "3"},
+        {360, 121, "4"}, {493, 160, "5"}, {585, 264, "6"}, {606, 401, "7"},
+        {550, 528, "8"},
+    };
+    for (int i = 0; i < 9; i++) {
+        jdm_text(box, nums[i].x, nums[i].y, nums[i].txt, JDM_FONT_SUPPORT,
+                 (i >= 7) ? JDM_ROLE_RED : JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    }
 
     for (int i = 0; i < JDM_TACH_SEGMENTS; i++) {
         int seg_w = (i % 6 == 0) ? 18 : 10;
