@@ -27,8 +27,8 @@ typedef struct {
 /** 初始化导航(建根容器 + 手势 + 刷新 timer),此后 set_pages。 */
 void jdm_nav_init(void);
 
-/** 注册轮播页表(指针数组须常驻)。自动 goto(0)。 */
-void jdm_nav_set_pages(const jdm_page_t *pages, uint8_t count);
+/** 注册轮播页表(jdm_page_t 指针数组,须常驻)。自动 goto(0)。 */
+void jdm_nav_set_pages(const jdm_page_t *const *pages, uint8_t count);
 
 /** 跳页(环形取模)。 */
 void jdm_nav_goto(uint8_t idx);

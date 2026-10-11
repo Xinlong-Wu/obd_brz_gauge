@@ -13,6 +13,7 @@ void sim_opts_defaults(sim_opts_t *o)
     o->scenario = "drive";
     o->profile = 0;
     o->role = 2;          /* standalone */
+    o->page = -1;
     o->shots_dir = "sim_shots";
 }
 
@@ -37,6 +38,7 @@ void sim_opts_print_help(const char *prog)
         "  --seed N           pin the fake-data PRNG (deterministic screenshots)\n"
         "  --clock MODE       real (default) | virtual — frame-locked clock for\n"
         "                     bit-identical headless screenshots (implies fast-run)\n"
+        "  --page N           jump to carousel page N after boot\n"
         "  --tap X,Y,FRAME    scripted tap at screen coords on a given frame (headless)\n"
         "  --help\n"
         "\n"
@@ -120,6 +122,10 @@ bool sim_opts_parse(sim_opts_t *o, int argc, char **argv)
                 fprintf(stderr, "bad --clock value: %s (real|virtual)\n", v);
                 return false;
             }
+        } else if (strcmp(a, "--page") == 0) {
+            const char *v = NEXT();
+            if (!v) return false;
+            o->page = atoi(v);
         } else if (strcmp(a, "--tap") == 0) {
             const char *v = NEXT();
             if (!v || sscanf(v, "%d,%d,%ld", &o->tap_x, &o->tap_y, &o->tap_frame) != 3) {

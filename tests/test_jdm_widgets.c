@@ -12,8 +12,8 @@ int main(void)
 {
     char buf[16];
 
-    // ---- 无效 → "--" ----
-    TEST_ASSERT_EQ_STR("--", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_RPM, 0, false));
+    // ---- 无效 → em dash(设计断连语义) ----
+    TEST_ASSERT_EQ_STR("\xE2\x80\x94", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_RPM, 0, false));
 
     // ---- 整数通道 ----
     TEST_ASSERT_EQ_STR("4800", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_RPM, 4800, true));
@@ -33,9 +33,9 @@ int main(void)
     TEST_ASSERT_EQ_STR("600", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BKT, 6000, true));
 
     // ---- BOOST:可负 1 位小数 ----
-    TEST_ASSERT_EQ_STR("0.6", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, 6, true));
-    TEST_ASSERT_EQ_STR("-0.6", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, -6, true));
-    TEST_ASSERT_EQ_STR("1.2", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, 12, true));
+    TEST_ASSERT_EQ_STR("0.60", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, 6, true));
+    TEST_ASSERT_EQ_STR("-0.60", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, -6, true));
+    TEST_ASSERT_EQ_STR("1.20", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, 12, true));
 
     // ---- AFR:×100 → 1 位小数 ----
     TEST_ASSERT_EQ_STR("14.7", jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_AFR, 1470, true));

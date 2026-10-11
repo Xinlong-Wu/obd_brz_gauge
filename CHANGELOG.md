@@ -6,6 +6,28 @@
 
 ---
 
+## UI 推翻重写：JDM 设计语言 16 页轮播（删除旧 UI 与主题架构）
+
+旧 UI（SquareLine 导出的 `main/export_path/`、24+ 页面）、两套主题系统
+（编译期 TOML 主题 + theme_0 运行时主题引擎）、开机扫摆/intro/showroom
+联动全部移除，新 UI 以 `ui-prototype/` 浏览器原型的设计为准在 `ui/JDM/`
+实现：16 页表盘轮播（gear/boost/coolant/oiltemp/oilpress/triple/multi/
+tyres/speed/gforce/heart/analog/music/display/bluetooth/pair），纯代码
+矢量绘制，Barlow Condensed + IBM Plex Mono 字体，日/夜双档亮度记忆。
+
+- **页面**：左右滑动循环切换；断连时数值显示 "—" 并隐藏动态指示；
+  心率/音乐两页的数据源尚未接入（恒断连态）；ILLUMINATION 页可调
+  日/夜亮度（±5，10–100%，NVS 记忆）并切换日夜模式
+- **分区表**：`theme_0`（4MB）删除，`bootmedia` 前移至 0x620000 ——
+  **旧设备 OTA 升级后开机动画数据错位，需 USB 重烧 bootmedia.bin**
+- **功能裁剪**：设置页、OBD 协议选择、告警阈值页、自定义仪表页、
+  BLE 扫描页、OTA 升级入口页不再存在（OTA HTTP 服务端保留、暂无界面
+  入口）；车型/轮询等沿用 NVS 既有值
+- **三连表**：ESP-NOW 包格式不变（sweep/intro 步进恒 0）；联动特性本轮
+  不做
+- **验证**：主机单测 9 项、模拟器截图回归（splash + 16 页巡览 + 240/466
+  分辨率金图）全绿；固件 Docker 构建通过（app 分区余量约 28%）
+
 ## 字体改 TinyTTF 运行时渲染：删位图管线，一套 OTF 服务全部板型
 
 八档 FontTypoder 不再由 `lv_font_conv` 离线转成位图 C 数组（三套分辨率

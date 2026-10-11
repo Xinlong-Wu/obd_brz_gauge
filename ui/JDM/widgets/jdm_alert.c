@@ -33,13 +33,13 @@ static lv_obj_t *rim_segment_create(lv_obj_t *parent, int a_start, int a_end)
     return arc;
 }
 
-void jdm_alert_create(lv_obj_t *parent, jdm_alert_widgets_t *out)
+void jdm_alert_create(lv_obj_t *parent, int32_t footer_my, jdm_alert_widgets_t *out)
 {
     out->msg = lv_label_create(parent);
     lv_obj_set_style_text_font(out->msg, jdm_font(JDM_FONT_SMALL), 0);
     lv_obj_set_style_text_color(out->msg, jdm_color(JDM_ROLE_RED), 0);
     lv_label_set_text(out->msg, "");
-    lv_obj_align(out->msg, LV_ALIGN_TOP_MID, 0, UIS(JDM_ALERT_FOOTER_Y));
+    lv_obj_align(out->msg, LV_ALIGN_TOP_MID, 0, UIS(footer_my ? footer_my : JDM_ALERT_FOOTER_Y));
 
     out->rim = lv_obj_create(parent);
     lv_obj_remove_style_all(out->rim);

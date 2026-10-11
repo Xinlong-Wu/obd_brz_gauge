@@ -7,6 +7,33 @@ cleanups live in the git history.
 
 ---
 
+## UI rewritten: JDM design language, 16-page carousel (legacy UI and theme architecture removed)
+
+The legacy UI (SquareLine-exported `main/export_path/`, 24+ screens), both
+theme systems (compiled TOML themes + the theme_0 runtime theme engine) and
+the sweep/intro/showroom linkage are all removed. The new UI implements the
+`ui-prototype/` browser design in `ui/JDM/`: a 16-page gauge carousel
+(gear/boost/coolant/oiltemp/oilpress/triple/multi/tyres/speed/gforce/heart/
+analog/music/display/bluetooth/pair), all code-drawn vectors, Barlow
+Condensed + IBM Plex Mono fonts, day/night brightness memory.
+
+- **Pages**: swipe left/right to cycle; when disconnected values show "—"
+  and live indicators hide; the heart and music pages' data sources are not
+  wired yet (always disconnected); the ILLUMINATION page adjusts day/night
+  brightness (±5, 10–100%, NVS-persisted) and toggles day/night mode
+- **Partition table**: `theme_0` (4 MB) removed, `bootmedia` moved up to
+  0x620000 — **devices updated over the air end up with a misplaced boot
+  animation and need a USB re-flash of bootmedia.bin**
+- **Feature trims**: the settings page, OBD protocol selector, alarm
+  threshold pages, custom gauge pages, the BLE scan page and the OTA entry
+  page no longer exist (the OTA HTTP backend is kept, currently unreachable
+  from the UI); vehicle/poll settings keep their NVS values
+- **Triple gauge**: the ESP-NOW packet format is unchanged (sweep/intro
+  steps broadcast 0); linked features are out of scope this round
+- **Verification**: 9 host unit tests, simulator screenshot regression
+  (splash + 16-page tour + 240/466 resolution goldens) all green; firmware
+  Docker build passes (~28% app-partition headroom)
+
 ## Fonts switched to runtime TinyTTF rendering: bitmap pipeline removed, one OTF serves every board
 
 The eight FontTypoder fonts are no longer rasterized offline into bitmap C

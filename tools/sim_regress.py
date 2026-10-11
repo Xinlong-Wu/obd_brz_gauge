@@ -28,14 +28,15 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # splash 停 1.2s = 240 虚拟帧(虚拟帧 = 5ms);场景帧数须 > 240 才落到导航页。
 COMMON = ["--no-panel", "--seed", "42", "--clock", "virtual"]
 SCENARIOS = [
-    # JDM 组件画布页 1(仪表组件:shell/header/readout/tach/arc/needle/thermal/trend/alert)
+    # 首页(挡位/转速;tach + readout + 数据摘要)
     ("jdm_boot", COMMON + ["--frames", "500",
                            "--screenshot", "{out}/jdm_boot.bmp"],
      ["jdm_boot.bmp"]),
-    # 组件画布页 2(控件:chip/btn 变体/round/toggle,经一次左滑到达)
-    ("jdm_controls", COMMON + ["--frames", "0", "--tour", "1",
-                               "--shots-dir", "{out}"],
-     ["tour_000.bmp"]),
+    # 整环巡览:16 页每页一张(--page 逐页跳转由 tour 无法覆盖,
+    # 这里用 16 次交替滑动近似巡览顺序)
+    ("jdm_tour", COMMON + ["--frames", "0", "--tour", "16",
+                           "--shots-dir", "{out}"],
+     ["tour_%03d.bmp" % i for i in range(16)]),
     # splash 本身(字体/face 底/标题的长期回归门槛)
     ("jdm_splash", COMMON + ["--frames", "200",
                              "--screenshot", "{out}/jdm_splash.bmp"],

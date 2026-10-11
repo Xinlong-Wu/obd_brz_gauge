@@ -19,7 +19,6 @@ main/
 │   ├── ota_wifi_server   # WiFi SoftAP HTTP OTA 服务（全部 /ota/* 端点）
 │   ├── device_identity   # BLE 设备清单 JSON（0x1FFA，硬件 + build_tag）
 │   ├── boot_media_mount / boot_block_player  # bootmedia 分区挂载与开机动画播放
-│   └── theme_mount       # theme_0 分区挂载辅助
 │
 ├── bsp_obd_dsp/          # 板级支持包（换开发板主要改这里）
 │   ├── elm327_ble_client # ELM327 BLE 客户端 + 单线程轮询状态机 + 协议自动检测
@@ -34,17 +33,27 @@ main/
 │   ├── exio/             # TCA9554 IO 扩展（仅 V1 板）
 │   └── i2c_driver/       # I2C 主驱动
 │
-├── export_path/          # LVGL UI（SquareLine 导出 + 手写扩展）
-│   ├── ui.c              # 页面创建顺序、手势导航（轮播环）、联动报警逻辑
-│   ├── screens/          # 24 个页面：Logo/Main/Gear/ThemeGauge/Rpm/Speed/ODBProtocal/
-│   │                     #   EasterEgg(版本页)/BLEScan/OTAMode/Temp/TempCustom/
-│   │                     #   OilPressure(曲线页)/ChartConfig/ChartAlarm/Info/InfoCustom/
-│   │                     #   Settings/OilWarn/RpmWarn/Needle/NeedleConfig/MultiGauge/Intro
-│   ├── ui_ext.c          # 手写扩展（扫表动画、展厅模式、开机动画调度）——SquareLine 重导出时不会覆盖
-│   ├── ui_disp_item.c    # 显示项枚举（TEMP/INFO 页可映射的数据源）
-│   └── ui_theme*         # 编译期主题运行时（活动主题、NVS、访问器；生成文件见 THEMES.md）
-│
-└── theme_engine/         # 运行时主题引擎（theme_0 分区 → 页面/颜色/素材/数据绑定）
+```
+
+UI 在仓库根 `ui/JDM/`（720 母版坐标系，设计稿为 `ui-prototype/` 原型）：
+
+```
+ui/JDM/
+├── jdm_ui.c              # 入口：splash → 16 页轮播（原型 PAGES 顺序）
+├── core/                 # 框架层
+│   ├── jdm_tokens.h      # 设计 token（11 语义色/几何/间距/控件规格；单一事实源）
+│   ├── jdm_geo.h         # UIS() 720 母版 → 240/360/466 编译期折叠
+│   ├── jdm_theme.c       # 日/夜模式 + 亮度记忆（NVS）+ jdm_color() 取色
+│   ├── jdm_fonts.c       # Barlow Condensed + IBM Plex Mono（TinyTTF 运行时栅格化）
+│   ├── jdm_data.c        # 统一数据通道（disp_item_t 词汇表 + 哨兵判定）
+│   ├── jdm_data_logic.h  # 值→渲染量映射纯逻辑（百分比/弧角/段数，单测覆盖）
+│   ├── jdm_conn.c        # 在线判定（ELM327 已连 或 从表已收数据）
+│   ├── jdm_nav.c         # 16 页轮播（左右滑手势 + 自适应刷新周期）
+│   ├── jdm_text/jdm_draw # 文本基元与静态线稿（刻度/分隔线/线稿）
+│   └── assets/           # 生成物：字体/图片 C 数组（gen_jdm_fonts.py / gen_assets.py）
+├── widgets/              # 可复用组件，一文件一控件（readout/tach/arc/needle/
+│                         #   thermal/trend/alert/chip/btn/round_btn/toggle…）
+└── pages/                # 16 个表盘页，一页一文件（只做取值→判报警→喂组件）
 ```
 
 ### 数据流
@@ -55,12 +64,12 @@ ELM327 BLE 适配器 ──BLE──→ elm327_ble_client（单线程轮询：�
                                    ▼
                             obd_data_cache ←── rs485_brake_temp（刹车温度）
                                    │      ←── ads1115_oil_pressure（油压，V1 板）
-                 ┌─────────────────┼──────────────────┐
-                 ▼                 ▼                  ▼
-           LVGL 页面刷新     theme_update_data()   espnow_link（主表广播）
-           （内置表盘页）     （运行时主题页面）           │
-                                                          ▼
-                                              从表 espnow_link 接收 → 直接渲染
+                 ┌──────────────────┐
+                 ▼                  ▼
+        ui/JDM 页面刷新      espnow_link（主表广播）
+     （jdm_nav → 页 update          │
+       → jdm_data_read_cache）      ▼
+                          从表 espnow_link 接收 → 写同一缓存 → 直接渲染
 ```
 
 *ATMA CAN 监听仅 `ZN/C6 CAN` 车型启用，其余全部走 OBD 轮询，避免适配器双路抢占。
@@ -102,9 +111,10 @@ tools/docker-build.sh menuconfig
 | | V3 | 新板 B：ST77916 v2 init，直连 GPIO，无 TCA9554 / ADS1115 |
 | RS485 引脚 | TX 13 / RX 12 / DE-RE −1 | 刹车温度模块；TX 不要用 GPIO43/44（板载 USB 串口）|
 
-构建系统在 CMake configure 阶段自动运行 `tools/gen_themes.py` 生成主题表，
-并把 git 分支 / 提交数 / 短哈希注入 `OBD_GAUGE_BUILD_TAG`（设备清单和版本页显示的
-build tag 就是它，所以发版前必须先 commit，见[发布流程](#发布流程)）。
+构建系统在 CMake configure 阶段自动运行 `tools/gen_assets.py` 生成图片素材
+（输出 `ui/JDM/assets/images*/`），并把 git 分支 / 提交数 / 短哈希注入
+`OBD_GAUGE_BUILD_TAG`（设备清单显示的 build tag 就是它，所以发版前必须先
+commit，见[发布流程](#发布流程)）。
 
 ## 分辨率策略（720 母版）
 
@@ -113,20 +123,16 @@ UI/字体/素材/主题资产统一按 **720×720 母版**创作，编译期缩�
 WS185=360 / WS175=466 / WS128=240），**所有板以面板原生分辨率渲染**。
 大于 360 的屏幕（如 WS175）自动获得满屏原生 UI，无需任何布局改动。
 
-- **布局**：`export_path/ui_res.h` 的 `UIS(母版像素)` 在编译期折叠
-  （对称四舍五入）；新代码直接写母版值，`tools/migrate_ui_literals.py`
-  负责历史字面量迁移（角度/透明度/延时永远不裹 UIS）
+- **布局**：`ui/JDM/core/jdm_geo.h` 的 `UIS(母版像素)` 在编译期折叠
+  （对称四舍五入）；新代码直接写母版值（角度/透明度/延时永远不裹 UIS）
 - **图片**：`assets_src/images/*.png` 母版 → `tools/gen_assets.py`
   按分辨率生成 C 数组（LANCZOS；@360 与历史数据逐字节一致）
-- **字体**：`fonts/Conthrax-SemiBold.otf` 原文嵌入固件
-  （`tools/gen_font_blob.py` 生成 `main/ui_fonts/conthrax_otf.c`），
-  LVGL TinyTTF 运行时按需栅格化（`main/ui_fonts/ui_fonts.c`）；字号
-  `px = max(8, round(2×名义×res/720))` 运行时计算，与旧位图管线逐档一致，
-  三个分辨率一套文件，无需 node/npx；大字 0-9NR 在 Logo 阶段预热进缓存
-- **主题**：`gen_themes.py` / `theme_packer` 接受 ≥360 方形母版
-  （360 的整数倍，如 720），构建/打包期 LANCZOS 到 360 契约；运行时
-  主题包里的资产在加载时若与渲染分辨率不符则盒式重采样（PSRAM，
-  unload 释放）；开机动画画布按渲染分辨率建、网格单元自动映射
+- **字体**：`ui-prototype/fonts/` 的 Barlow Condensed（数字）+ IBM Plex Mono
+  （标签）TTF 原文嵌入固件（`tools/gen_jdm_fonts.py` 生成
+  `ui/JDM/assets/fonts/jdm_*.c`），LVGL TinyTTF 运行时按需栅格化
+  （`ui/JDM/core/jdm_fonts.c`）；14 档角色字号 = 母版值 × res/720 运行时
+  计算（`jdm_fonts_logic.h`），三个分辨率一套文件；hero 数字 0-9 在
+  splash 阶段预热进缓存
 - **渲染 ≠ 面板**（非常规配置）时 `boards/ui_scale.c` 在 flush 阶段
   缩放（下采样=盒式滤波/上采样=最近邻），启动 log 明示
   `display: panel WxH, render N (native|...via ui_scale)`
@@ -218,15 +224,15 @@ UI 源码**零改动**跑在电脑上（SDL2 窗口，鼠标当触摸，假数�
 ```bash
 brew install cmake sdl2          # Linux: sudo apt install cmake libsdl2-dev
 cmake -S simulator -B simulator/build && cmake --build simulator/build -j
-./simulator/build/obd_gauge_sim --no-boot
+./simulator/build/obd_gauge_sim
 ```
 
 - ESP-IDF 依赖由 `simulator/shims/`（include 路径遮蔽 + 桩实现）补齐，固件源码不动；
   LVGL 直接用 `managed_components/` 里与固件同版本的那份（9.6.0）
-- 支持编译期/运行时主题切换（`--theme-slot` / `--theme theme.bin`）、模拟未连接
-  （`--disconnected`）、开关机动画（`--no-boot`）、假数据场景（`--scenario`）、
-  渲染分辨率（`--ui-res 240|466`，验证非 360 布局/字体/素材，等价于改
-  `CONFIG_OBD_UI_RENDER_RES`；字体为运行时栅格化，随 `--ui-res` 同步落档）
+- 模拟未连接（`--disconnected`）、假数据场景（`--scenario`）、渲染分辨率
+  （`--ui-res 240|466`，验证非 360 布局/字体，等价于改
+  `CONFIG_OBD_UI_RENDER_RES`；字体为运行时栅格化，随 `--ui-res` 同步落档）、
+  跳页（`--page N`）
 - 无头截图验收：`SDL_VIDEODRIVER=dummy ... --frames 500 --screenshot x.bmp`，
   或 `--tour N` 自动巡览一圈逐页截图
 - 里程统计、开机动画解码、主题 manifest 解析路径与固件完全一致；BLE/OTA/三连表
@@ -246,8 +252,8 @@ ctest --test-dir tests/build -R '^test_' --output-on-failure
 # 2) 模拟器截图回归(金图对比;改 UI 后 --update-goldens 刷新并入库)
 python3 tools/sim_regress.py
 
-# 3) 主题生成物一致性(零依赖)
-python3 tools/gen_themes.py --check
+# 3) 素材/字体生成物一致性(零依赖)
+python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 ```
 
 - 单测新增用例:在 `tests/` 加 `test_xxx.c` + `tests/CMakeLists.txt` 注册
@@ -255,20 +261,18 @@ python3 tools/gen_themes.py --check
   `*_logic.h`(`static inline`,不依赖 LVGL/ESP-IDF)再测
 - 截图回归依赖 `--seed` + `--clock virtual` 的确定性(同参数位级一致);
   金图在 `tests/goldens/`(PNG)
-- CI(`.github/workflows/ci.yml`)三 job:themes-check / unit-sim(单测+
-  截图回归,失败上传差图)/ firmware(Docker `espressif/idf:v5.5.3` 构建,
-  产物上传 artifact)
+- CI(`.github/workflows/ci.yml`)三 job:codegen-check(素材/字体生成物
+  一致性)/ unit-sim(单测+截图回归,失败上传差图)/ firmware(Docker
+  `espressif/idf:v5.5.3` 构建,产物上传 artifact)
 
 ## 工具脚本
 
 | 脚本 | 用途 |
 |------|------|
-| `tools/gen_themes.py` | 编译期主题代码生成（CMake 自动跑；`--check` 供 CI）|
-| `tools/theme_packer/pack_theme.py` | 运行时主题打包成 4MB theme.bin |
-| `tools/gen_theme_store.py` | 重新生成主题商店 catalog.json |
+| `tools/gen_assets.py` | 图片素材 → 多分辨率 C 数组（CMake 自动跑；`--check` 供 CI）|
+| `tools/gen_jdm_fonts.py` | 原型 TTF → 内嵌字体 blob（`--check` 供 CI）|
 | `tools/release.sh` | 一键发版（commit → build → push）|
 | `tools/make_boot_block.py` | 视频编码成 boot_block.bin/txt（ffmpeg + Pillow；帧数超 65535 自动切 v2 格式）|
-| `tools/convert_rpm_flash.py` | 3 张 PNG → RPM 报警闪烁图（imgRpmFlash1..3.c）|
 | `tools/fake_elm327.py` | 伪 ELM327 TCP 服务器：记录 App 发的每条请求，未知 PID 一律返回肯定应答 |
 | `tools/one_shot.py` | 一键 PID 挖掘：起伪服务器 → 手机录一遍 → 自动出 pids_full.csv |
 | `tools/analyze_proble.py` | 把注入信号与 Car Scanner 录制对上号，反推 PID→仪表映射与解码公式 |
@@ -314,8 +318,9 @@ App 用 `latest.json` 里的 `firmware.count` 比对设备固件新旧；托管�
 ## 提交约定
 
 - 行为变化与烧录方式变化要记 [CHANGELOG.md](../CHANGELOG.md)
-- NVS `nvs_user_cfg_t` / 主题结构体新字段**只能追加到末尾**（老设备 NVS 兼容）
-- 主题相关提交别动 `ui_theme_generated.c` / `theme_assets/`（生成物）
+- NVS `nvs_user_cfg_t` 新字段**只能追加到末尾**（老设备 NVS 兼容）
+- `ui/JDM/assets/`（字体/图片 C 数组）是生成物，不要手改
+- disp_item_t 枚举值只能末尾追加（NVS dashboard 兼容）
 
 ### 双语文档维护规则
 

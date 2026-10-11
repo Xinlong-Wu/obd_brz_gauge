@@ -10,7 +10,7 @@
 
 static const char *TAG = "jdm_nav";
 
-static const jdm_page_t *s_pages;
+static const jdm_page_t *const *s_pages;
 static uint8_t s_page_count;
 static uint8_t s_active;
 static lv_obj_t *s_root;        // 全屏根容器(挂在默认屏上)
@@ -20,8 +20,8 @@ static lv_timer_t *s_refresher;
 static void refresh_cb(lv_timer_t *t)
 {
     (void)t;
-    if (s_pages && s_pages[s_active].update) {
-        s_pages[s_active].update();
+    if (s_pages && s_pages[s_active]->update) {
+        s_pages[s_active]->update();
     }
 }
 
@@ -50,7 +50,7 @@ static void page_build(uint8_t idx)
     lv_obj_set_size(s_page_obj, UIS(720), UIS(720));
     lv_obj_clear_flag(s_page_obj, LV_OBJ_FLAG_SCROLLABLE);
 
-    const jdm_page_t *p = &s_pages[idx];
+    const jdm_page_t *p = s_pages[idx];
     if (p->create) {
         p->create(s_page_obj);
     }
@@ -90,7 +90,7 @@ void jdm_nav_init(void)
     s_refresher = lv_timer_create(refresh_cb, JDM_NAV_UPDATE_PERIOD_DEFAULT, NULL);
 }
 
-void jdm_nav_set_pages(const jdm_page_t *pages, uint8_t count)
+void jdm_nav_set_pages(const jdm_page_t *const *pages, uint8_t count)
 {
     s_pages = pages;
     s_page_count = count;

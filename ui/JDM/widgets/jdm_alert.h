@@ -25,8 +25,8 @@ typedef struct {
     lv_obj_t *rim;    // critical 外缘双弧容器
 } jdm_alert_widgets_t;
 
-/** 建页脚摘要 + 外缘弧(初始隐藏)。 */
-void jdm_alert_create(lv_obj_t *parent, jdm_alert_widgets_t *out);
+/** 建页脚摘要(页脚 y 为母版值,默认 638)+ 外缘弧(初始隐藏)。 */
+void jdm_alert_create(lv_obj_t *parent, int32_t footer_my, jdm_alert_widgets_t *out);
 
 /** 更新(内部脏检查)。alerts=NULL/0 = 清除。 */
 void jdm_alert_set(const jdm_alert_widgets_t *w, const jdm_alert_item_t *alerts, uint8_t n);

@@ -19,7 +19,6 @@ main/
 │   ├── ota_wifi_server   # WiFi SoftAP HTTP OTA service (all /ota/* endpoints)
 │   ├── device_identity   # BLE manifest JSON (0x1FFA, hardware + build_tag)
 │   ├── boot_media_mount / boot_block_player  # bootmedia partition mount & boot-animation playback
-│   └── theme_mount       # theme_0 partition mount helpers
 │
 ├── bsp_obd_dsp/          # Board support package (porting a new board happens here)
 │   ├── elm327_ble_client # ELM327 BLE client + single-thread poll state machine + protocol auto-detect
@@ -34,17 +33,28 @@ main/
 │   ├── exio/             # TCA9554 IO expander (V1 board only)
 │   └── i2c_driver/       # I2C master driver
 │
-├── export_path/          # LVGL UI (SquareLine export + hand-written extensions)
-│   ├── ui.c              # page creation order, gesture navigation (carousel), linked-warning logic
-│   ├── screens/          # 24 screens: Logo/Main/Gear/ThemeGauge/Rpm/Speed/ODBProtocal/
-│   │                     #   EasterEgg(version)/BLEScan/OTAMode/Temp/TempCustom/
-│   │                     #   OilPressure(chart)/ChartConfig/ChartAlarm/Info/InfoCustom/
-│   │                     #   Settings/OilWarn/RpmWarn/Needle/NeedleConfig/MultiGauge/Intro
-│   ├── ui_ext.c          # hand-written extensions (sweep, showroom, boot animation) — survives SquareLine re-exports
-│   ├── ui_disp_item.c    # display-item enum (the data sources mappable onto TEMP/INFO pages)
-│   └── ui_theme*         # compiled-theme runtime (active theme, NVS, accessors; generated files: THEMES.en.md)
-│
-└── theme_engine/         # runtime theme engine (theme_0 partition → pages/colors/artwork/data binding)
+```
+
+The UI lives in `ui/JDM/` at the repo root (720-master coordinates; the design
+source is the `ui-prototype/` browser prototype):
+
+```
+ui/JDM/
+├── jdm_ui.c              # entry: splash → 16-page carousel (prototype PAGES order)
+├── core/                 # framework layer
+│   ├── jdm_tokens.h      # design tokens (11 semantic colors / geometry / spacing; single source)
+│   ├── jdm_geo.h         # UIS() 720-master → 240/360/466 compile-time folding
+│   ├── jdm_theme.c       # day/night + brightness memory (NVS) + jdm_color()
+│   ├── jdm_fonts.c       # Barlow Condensed + IBM Plex Mono (TinyTTF runtime)
+│   ├── jdm_data.c        # unified data channel (disp_item_t vocabulary + sentinels)
+│   ├── jdm_data_logic.h  # value→render mapping pure logic (unit-tested)
+│   ├── jdm_conn.c        # online check (ELM327 connected or slave data received)
+│   ├── jdm_nav.c         # 16-page carousel (swipe gestures + adaptive refresh)
+│   ├── jdm_text/jdm_draw # text primitive and static line art (ticks/separators)
+│   └── assets/           # generated: font/image C arrays (gen_jdm_fonts.py / gen_assets.py)
+├── widgets/              # reusable components, one file each (readout/tach/arc/needle/
+│                         #   thermal/trend/alert/chip/btn/round_btn/toggle…)
+└── pages/                # 16 gauge pages, one file each (fetch → alarm → feed widgets)
 ```
 
 ### Data flow
@@ -55,12 +65,12 @@ ELM327 BLE adapter ──BLE──→ elm327_ble_client (single-thread poll: sta
                                    ▼
                             obd_data_cache ←── rs485_brake_temp (brake temperature)
                                    │      ←── ads1115_oil_pressure (oil pressure, V1 board)
-                 ┌─────────────────┼──────────────────┐
-                 ▼                 ▼                  ▼
-           LVGL page refresh   theme_update_data()   espnow_link (master broadcast)
-           (built-in gauges)   (runtime theme pages)       │
-                                                          ▼
-                                              slave espnow_link receive → direct render
+                 ┌──────────────────┐
+                 ▼                  ▼
+        ui/JDM page refresh    espnow_link (master broadcast)
+     (jdm_nav → page update          │
+       → jdm_data_read_cache)        ▼
+                          slave espnow_link receive → same cache → direct render
 ```
 
 *ATMA CAN monitoring is enabled only for the `ZN/C6 CAN` profile; everything
@@ -108,41 +118,34 @@ devices, so flash/monitor from the host
 | | V3 | New board B: ST77916 v2 init, direct GPIO, no TCA9554 / ADS1115 |
 | RS485 pins | TX 13 / RX 12 / DE-RE −1 | Brake-temperature module; avoid GPIO43/44 for TX (onboard USB-UART) |
 
-The build runs `tools/gen_themes.py` at CMake configure time to generate the
-theme table, and injects the git branch / commit count / short hash as
-`OBD_GAUGE_BUILD_TAG` (this is the build tag shown in the device manifest and
-on the version page — so commit *before* releasing, see
+The build runs `tools/gen_assets.py` at CMake configure time to generate the
+image assets (into `ui/JDM/assets/images*/`) and injects the git branch /
+commit count / short hash as `OBD_GAUGE_BUILD_TAG` (this is the build tag
+shown in the device manifest — so commit *before* releasing, see the
 [release workflow](#release-workflow)).
 
 ## Resolution strategy (720 master)
 
-UI, fonts, image assets and theme artwork are all authored against a
+UI, fonts and image assets are all authored against a
 **720x720 master** and scaled at compile time to the render resolution
 `CONFIG_OBD_UI_RENDER_RES` (Kconfig, 240-480, pinned per board:
 WS185=360 / WS175=466 / WS128=240). **Every board renders at its panel's
 native resolution.** Panels larger than 360 (WS175) get the full-screen
 native UI with zero layout changes.
 
-- **Layout**: `UIS(master_px)` in `export_path/ui_res.h` folds at compile
-  time (symmetric rounding); write master values in new code,
-  `tools/migrate_ui_literals.py` migrates historical literals (angles/
+- **Layout**: `UIS(master_px)` in `ui/JDM/core/jdm_geo.h` folds at compile
+  time (symmetric rounding); write master values in new code (angles/
   opacities/delays are never wrapped)
 - **Images**: `assets_src/images/*.png` masters → `tools/gen_assets.py`
   emits C arrays per resolution (LANCZOS; the 360 data is byte-identical
   to the historical arrays)
-- **Fonts**: `fonts/Conthrax-SemiBold.otf` is embedded verbatim into the
-  firmware (`tools/gen_font_blob.py` emits `main/ui_fonts/conthrax_otf.c`);
-  LVGL TinyTTF rasterizes glyphs on demand at runtime
-  (`main/ui_fonts/ui_fonts.c`). Size = `max(8, round(2×nominal×res/720))`
-  computed at runtime, matching the old bitmap pipeline per size — one set
-  of files for all three resolutions, no node/npx; the big digits 0-9NR are
-  prewarmed into the glyph cache during the logo screen
-- **Themes**: `gen_themes.py` / `theme_packer` accept square masters
-  >=360 (integer multiples of 360, e.g. 720) and LANCZOS down to the 360
-  contract at build/pack time; runtime theme assets are box-rescaled at
-  load when they don't match the render resolution (PSRAM, freed on
-  unload); the boot animation canvas follows the render resolution with
-  grid cells mapped automatically
+- **Fonts**: the Barlow Condensed (numbers) and IBM Plex Mono (labels) TTFs
+  from `ui-prototype/fonts/` are embedded verbatim (`tools/gen_jdm_fonts.py`
+  emits `ui/JDM/assets/fonts/jdm_*.c`); LVGL TinyTTF rasterizes glyphs on
+  demand at runtime (`ui/JDM/core/jdm_fonts.c`). The 14 role sizes are
+  `master_px × res / 720` computed at runtime (`jdm_fonts_logic.h`) — one
+  set of files for all three resolutions; the hero digits 0-9 are
+  prewarmed into the glyph cache during the splash
 - **Render != panel** (unusual configs) engages `boards/ui_scale.c` at
   flush time (downscale = box filter / upscale = nearest), and the boot
   log states the path: `display: panel WxH, render N (native|...via ui_scale)`
@@ -155,11 +158,9 @@ fill kills animation frame rates; supersampled text is softer than
 native rasterization. Masters exist only at authoring and compile
 time — on the board, everything renders natively.
 
-**Red-line revision**: since the UIS() migration, `screens/*.c` is
-maintained in this repo (no longer "SquareLine-generated, do not edit");
-a SquareLine re-export would drop the UIS() wrapping — rerun
-`tools/migrate_ui_literals.py` and pass the sim_regress golden gate.
-New UI keeps writing master values (the 360-era visual spec x2).
+New UI code keeps writing master values (the 360-era visual spec x2), and
+every intentional UI change must pass the sim_regress golden gate
+(`--update-goldens`, commit the new goldens).
 
 ## Porting a new board
 
@@ -259,17 +260,14 @@ cmake -S simulator -B simulator/build && cmake --build simulator/build -j
 - ESP-IDF dependencies are satisfied by `simulator/shims/` (include-path
   shadowing + stubs); no firmware file changes. LVGL is taken straight from
   `managed_components/` — the exact copy the firmware builds against (9.6.0)
-- Compile-time / runtime theme switching (`--theme-slot` / `--theme
-  theme.bin`), disconnected simulation (`--disconnected`), boot-video toggle
-  (`--no-boot`), fake-data scenarios (`--scenario`), render resolution
-  (`--ui-res 240|466`, verifies non-360 layout/fonts/assets — equivalent to
-  changing `CONFIG_OBD_UI_RENDER_RES`; fonts are rasterized at runtime and
-  follow `--ui-res`)
+- Disconnected simulation (`--disconnected`), fake-data scenarios
+  (`--scenario`), render resolution (`--ui-res 240|466`), page jump
+  (`--page N`)
 - Headless screenshot acceptance: `SDL_VIDEODRIVER=dummy ... --frames 500
   --screenshot x.bmp`, or `--tour N` to walk the whole carousel with a
   screenshot per page
-- Mileage stats, boot-video decoding and theme manifest parsing follow the
-  exact firmware code paths; BLE/OTA/triple-gauge are stubs (unavailable)
+- Mileage stats follow the exact firmware code path; BLE/OTA/triple-gauge
+  are stubs (unavailable)
 
 Full option table and architecture notes in
 [simulator/README.en.md](../simulator/README.en.md).
@@ -288,8 +286,8 @@ ctest --test-dir tests/build -R '^test_' --output-on-failure
 #    intentional UI change, refresh with --update-goldens and commit)
 python3 tools/sim_regress.py
 
-# 3) Theme codegen freshness (zero deps)
-python3 tools/gen_themes.py --check
+# 3) Asset/font codegen freshness (zero deps)
+python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 ```
 
 - New unit tests: add `test_xxx.c` under `tests/` and register it in
@@ -299,7 +297,7 @@ python3 tools/gen_themes.py --check
 - Screenshot regression relies on the determinism of `--seed` +
   `--clock virtual` (bit-identical for identical args); goldens are PNGs
   under `tests/goldens/`
-- CI (`.github/workflows/ci.yml`) has three jobs: themes-check /
+- CI (`.github/workflows/ci.yml`) has three jobs: codegen-check (
   unit-sim (unit tests + screenshot regression, diff overlays uploaded
   on failure) / firmware (Docker build with `espressif/idf:v5.5.3`,
   binaries uploaded as artifacts)
@@ -308,12 +306,10 @@ python3 tools/gen_themes.py --check
 
 | Script | Purpose |
 |--------|---------|
-| `tools/gen_themes.py` | compiled-theme codegen (runs from CMake; `--check` for CI) |
-| `tools/theme_packer/pack_theme.py` | packs a runtime theme into a 4 MB theme.bin |
-| `tools/gen_theme_store.py` | regenerates the theme-store catalog.json |
+| `tools/gen_assets.py` | image masters → multi-resolution C arrays (runs from CMake; `--check` for CI) |
+| `tools/gen_jdm_fonts.py` | prototype TTFs → embedded font blobs (`--check` for CI) |
 | `tools/release.sh` | one-shot release (commit → build → push) |
 | `tools/make_boot_block.py` | encodes video into boot_block.bin/txt (ffmpeg + Pillow; auto _v2 when frames > 65535) |
-| `tools/convert_rpm_flash.py` | 3 PNGs → RPM warning flash images (imgRpmFlash1..3.c) |
 | `tools/fake_elm327.py` | fake ELM327 TCP server: logs every app request, answers unknown PIDs positively |
 | `tools/one_shot.py` | one-shot PID hunting: starts the fake server → you record once → pids_full.csv |
 | `tools/analyze_proble.py` | correlates injected signals with Car Scanner recordings to recover PID mappings and formulas |
@@ -364,9 +360,10 @@ The app compares the device firmware against `firmware.count` in
 ## Commit conventions
 
 - Record behavior and flashing changes in [CHANGELOG.en.md](../CHANGELOG.en.md)
-- New fields in NVS `nvs_user_cfg_t` / theme structs are **appended at the
-  end only** (on-device NVS compatibility)
-- Never hand-commit `ui_theme_generated.c` / `theme_assets/` (generated files)
+- New fields in NVS `nvs_user_cfg_t` are **appended at the end only**
+  (on-device NVS compatibility)
+- Never hand-edit `ui/JDM/assets/` (generated font/image C arrays)
+- `disp_item_t` enum values are append-only (NVS dashboard compatibility)
 
 ### Bilingual documentation rules
 

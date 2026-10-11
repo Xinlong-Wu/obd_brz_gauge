@@ -16,6 +16,7 @@
 
 #include "lvgl.h"
 #include "jdm_ui.h"
+#include "core/jdm_nav.h"
 #include "core/jdm_fonts.h"
 #include "cli.h"
 #include "fake_data.h"
@@ -63,6 +64,8 @@ static sim_pointer_t s_mouse;    /* real mouse, window coords / scale */
 static sim_pointer_t s_inject;   /* tour/tap override (gauge region only) */
 static bool s_inject_active;
 static int  s_press_region = REGION_NONE;
+
+static int s_page_jump = -1;   /* --page N: jump once after the nav is up */
 
 /* ---- LVGL flush: native RGB565 straight into the SDL texture (user_data) ----
  * v9 display runs NATIVE RGB565 (image sources are big-endian and get converted
@@ -422,6 +425,9 @@ int main(int argc, char **argv)
 
     if (opts.tour > 0) sim_tour_start(&opts);
     sim_tap_start(&opts);
+    if (opts.page >= 0) {
+        s_page_jump = opts.page;
+    }
 
     /* ---- main loop ---- */
     bool quit = false;
@@ -457,6 +463,10 @@ int main(int argc, char **argv)
         sim_esp_timer_poll();
         sim_tour_tick((int)dt, &quit);
         sim_tap_tick();
+        if (s_page_jump >= 0 && s_frame >= 350) {   /* splash 1.2s + margin */
+            jdm_nav_goto((uint8_t)s_page_jump);
+            s_page_jump = -1;
+        }
 
         lv_timer_handler();
 

@@ -20,7 +20,7 @@ static inline const char *jdm_readout_logic_format(char *buf, unsigned len,
 {
     if (!buf || len == 0) return buf;
     if (!valid) {
-        snprintf(buf, len, "--");
+        snprintf(buf, len, "\xE2\x80\x94");   // "—"(em dash,设计断连语义)
         return buf;
     }
     switch (item) {
@@ -39,9 +39,9 @@ static inline const char *jdm_readout_logic_format(char *buf, unsigned len,
     case DISP_ITEM_BKT:   // 0.1°C → 整数
         snprintf(buf, len, "%d", (int)(raw / 10));
         break;
-    case DISP_ITEM_BOOST: {   // 0.1 bar 表压,可负
-        int32_t a = (raw < 0) ? -raw : raw;
-        snprintf(buf, len, "%s%d.%d", (raw < 0) ? "-" : "", (int)(a / 10), (int)(a % 10));
+    case DISP_ITEM_BOOST: {   // 0.01 bar 表压,可负(原型 toFixed(2);raw 0.1bar 低位补 0)
+        int32_t a = (raw < 0) ? -raw * 10 : raw * 10;
+        snprintf(buf, len, "%s%d.%02d", (raw < 0) ? "-" : "", (int)(a / 100), (int)(a % 100));
         break;
     }
     case DISP_ITEM_AFR:   // ×100 → 1 位小数

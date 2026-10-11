@@ -18,6 +18,7 @@ typedef struct {
     const char  *shots_dir;    // where --tour screenshots go (default "sim_shots")
     long         seed;         // PRNG seed for deterministic fake data (0 = wall clock)
     bool         virtual_clock; // frame-locked clock (deterministic screenshots, faster headless)
+    int          page;         // --page N: jump to carousel page N after boot (-1 = off)
     int          tap_x;        // --tap X,Y,FRAME: scripted screen tap for headless flows
     int          tap_y;
     long         tap_frame;    // frame number at which the tap fires (0 = off)

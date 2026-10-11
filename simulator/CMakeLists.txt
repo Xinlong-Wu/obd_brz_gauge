@@ -52,6 +52,7 @@ target_compile_definitions(lvgl_sim PUBLIC LV_CONF_INCLUDE_SIMPLE)
 
 # ---- Firmware UI sources (compiled unmodified) ----
 file(GLOB JDM_WIDGET_SOURCES "${UI_DIR}/widgets/*.c")
+file(GLOB JDM_PAGE_SOURCES "${UI_DIR}/pages/*.c")
 file(GLOB JDM_FONT_BLOBS "${UI_DIR}/assets/fonts/*.c")
 set(FW_SOURCES
     "${UI_DIR}/jdm_ui.c"
@@ -59,7 +60,11 @@ set(FW_SOURCES
     "${UI_DIR}/core/jdm_fonts.c"
     "${UI_DIR}/core/jdm_data.c"
     "${UI_DIR}/core/jdm_nav.c"
+    "${UI_DIR}/core/jdm_text.c"
+    "${UI_DIR}/core/jdm_draw.c"
+    "${UI_DIR}/core/jdm_conn.c"
     ${JDM_WIDGET_SOURCES}
+    ${JDM_PAGE_SOURCES}
     ${JDM_FONT_BLOBS}
     "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
     "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c")
