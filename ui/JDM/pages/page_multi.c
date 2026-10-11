@@ -65,7 +65,7 @@ static void create(lv_obj_t *page)
     jdm_readout_set_unit(&s_clt_ro, "\xC2\xB0" "C");
 
     // 左中:BOOST 大值 + 标签
-    s_boost_big = jdm_text(page, 206, 336, "--", JDM_FONT_BOOST, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
+    s_boost_big = jdm_text(page, 206, 336 + 9 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_BOOST)), "--", JDM_FONT_BOOST, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
     s_boost_lbl = jdm_text(page, 206, 427, "BOOST / bar", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
     // 右中:TPS / B.P 切换区(整体可点)

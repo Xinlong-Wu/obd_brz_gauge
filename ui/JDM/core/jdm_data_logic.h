@@ -41,6 +41,12 @@ static inline int jdm_data_logic_arc270_end(int pct)
 #define JDM_TACH_AMBER_RPM  5700
 #define JDM_TACH_RED_RPM    7000
 
+/* 编译期校验可配置量之间的关系——改宏时即时报错,不必等渲染或测试 */
+_Static_assert(JDM_TACH_SEGMENTS > 0, "tach needs at least one segment");
+_Static_assert(JDM_TACH_AMBER_RPM < JDM_TACH_RED_RPM, "tach amber zone must precede red zone");
+_Static_assert(JDM_TACH_RED_RPM <= JDM_TACH_RPM_MAX, "tach red zone must not exceed full scale");
+_Static_assert(JDM_TACH_AMBER_RPM >= 0, "tach amber zone start must not be negative");
+
 /** 点亮段数 = ceil(clamp(rpm)/8000 × 56),rpm<8000 保底 1 段显示"活着"。 */
 static inline int jdm_data_logic_tach_lit(int32_t rpm)
 {

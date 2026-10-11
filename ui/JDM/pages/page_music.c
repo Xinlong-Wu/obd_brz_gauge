@@ -65,7 +65,7 @@ static void create(lv_obj_t *page)
     lv_obj_t *dot = circle_create(page, 174, 284, 12, true);
     lv_obj_set_style_bg_color(dot, jdm_color(JDM_ROLE_MUTED), 0);
 
-    jdm_text(page, 280, 233, "No media", JDM_FONT_MEDIA_TITLE, JDM_ROLE_TEXT, JDM_TEXT_START);
+    jdm_text(page, 280, 233 + 6 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_MEDIA_TITLE)), "No media", JDM_FONT_MEDIA_TITLE, JDM_ROLE_TEXT, JDM_TEXT_START);
     jdm_text(page, 280, 305, "SOURCE UNAVAILABLE", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_START);
 
     s_hint = jdm_text(page, 360, 399, "CONNECT A MEDIA DEVICE",

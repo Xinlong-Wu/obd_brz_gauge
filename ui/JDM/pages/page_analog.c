@@ -59,7 +59,7 @@ static void create(lv_obj_t *dial)
     lv_obj_set_style_bg_opa(s_hub, LV_OPA_COVER, 0);
     lv_obj_set_hidden(s_hub, true);
 
-    s_value = jdm_text(dial, 360, 466, "--", JDM_FONT_ANALOG, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
+    s_value = jdm_text(dial, 360, 466 + 10 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_ANALOG)), "--", JDM_FONT_ANALOG, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
     jdm_text(dial, 360, 579, "bar", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
     jdm_alert_create(dial, 0, &s_alert);

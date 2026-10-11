@@ -21,6 +21,12 @@ typedef enum {
     JDM_TEXT_END,
 } jdm_text_anchor_t;
 
+/** label 盒顶 → 字形视觉顶 的偏移(按数字 '0' 的字形度量,含行距
+ *  leading)。jdm_text 的 my 是盒顶语义;大字号文本要对齐原型的
+ *  hanging 视觉顶边时,把盒顶上提本值(浏览器 hanging 另有 ≈0.1em
+ *  的字形下沉,需一并补偿,见 readout 各档 hang 值)。 */
+int32_t jdm_text_glyph_top_off(const lv_font_t *f);
+
 /** 建静态文本(内容建后不改;要改的用 label 返回值自行 set_text)。 */
 lv_obj_t *jdm_text(lv_obj_t *parent, int32_t mx, int32_t my, const char *text,
                    jdm_font_role_t font, jdm_color_role_t color,

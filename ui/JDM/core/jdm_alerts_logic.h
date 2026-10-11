@@ -29,6 +29,14 @@
 #define JDM_ALERTS_TYRE_HIGH   34      // ≥ 胎压过高(3.4 bar)
 #define JDM_ALERTS_G_LIMIT     100     // >  G 值提醒(1.0 g)
 
+/* 编译期校验:RPM critical 与表盘红区同源(别名定义已保证),其余
+ * 配置对的大小关系在此把关——改宏时即时报错 */
+_Static_assert(JDM_ALERTS_RPM_LIMIT == JDM_TACH_RED_RPM, "rpm critical must trip at the dial red zone");
+_Static_assert(JDM_ALERTS_RPM_SHIFT < JDM_ALERTS_RPM_LIMIT, "shift prompt must precede the rpm critical");
+_Static_assert(JDM_ALERTS_TYRE_LOW < JDM_ALERTS_TYRE_HIGH, "tyre low threshold must precede high");
+_Static_assert(JDM_ALERTS_BAT_LOW < JDM_ALERTS_BAT_HIGH, "battery low threshold must precede high");
+_Static_assert(JDM_ALERTS_OILP_LOW > 0, "oil pressure low threshold must be positive");
+
 /** 判定一通道;JDM_ALERT_NONE 时 reason 不写,否则置为静态文案。 */
 static inline jdm_alert_level_t jdm_alerts_logic_rpm(int32_t rpm, const char **reason)
 {
