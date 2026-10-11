@@ -21,7 +21,6 @@
 | [docs/FLASH.md](docs/FLASH.md) | **烧录与升级** —— 分区表、USB 烧录、App OTA 与回滚 |
 | [docs/APP_PROTOCOL.md](docs/APP_PROTOCOL.md) | **App 对接协议** —— BLE 服务与 WiFi HTTP API |
 | [docs/VEHICLES.md](docs/VEHICLES.md) | **车型适配** —— 17 个内置车型、新增车型教程 |
-| [docs/THEMES.md](docs/THEMES.md) | **主题制作** —— 两套主题系统、素材规格、主题商店 |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | **故障排查** —— 连不上 / 没数据、协议自动检测 |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | **开发指南** —— 代码架构、编译配置、工具脚本 |
 | [CHANGELOG.md](CHANGELOG.md) | 更新日志 |
@@ -59,7 +58,7 @@ MX-5 NC/JDM 的 16 页浏览器 UI 原型及预览、导出说明见
 - **厂商油温路径**：丰田/斯巴鲁 Mode 21、马自达 / MINI / BMW Mode 22、FCA UDS 扩展寻址等，主策略失败自动回退
 - **三连表（ESP-NOW）**：主表广播、从表零额外 OBD 负载，走真蓝牙配对（主表广播 `SkyGauge-XXYY`），断电记忆
 - **转速报警（含联动模式）**：超阈值全屏红色闪烁；三连表模式按表位依次亮起
-- **两套主题系统**：编译期 TOML 主题（改颜色/素材）与运行时主题分区（自定义表盘页面布局），见 [docs/THEMES.md](docs/THEMES.md)
+- **JDM 视觉**：ui/JDM 以 MX-5 NC/JDM 浏览器原型（ui-prototype/）的设计语言实现 16 页表盘，纯代码矢量绘制
 - **双路 OTA**：配套手机 App 走 BLE 或 WiFi 热点传输，SHA256 校验 + 15 秒开机自检失败自动回滚
 - **开机动画**：OFF / RACE / VIDEO 三模式，VIDEO 模式可从手机 App 上传自制动画（360×360 圆形安全区）
 - **RaceChrono BLE 输出**：可作为 RaceChrono DIY 设备向手机 App 提供数据
@@ -83,7 +82,7 @@ idf.py -p PORT flash monitor
 - 首次烧录会擦除全部数据（含 NVS 设置）
 - 首次构建会自动下载组件依赖到 `managed_components/`；换开发板编译前先在
   `idf.py menuconfig → OBD DSP Configuration` 里选硬件版本（见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)）
-- 不烧 `bootmedia.bin`（开机动画）和可选的主题分区 `0x620000` 也能正常开机
+- 不烧 `bootmedia.bin`（开机动画）也能正常开机
 - 完整分区布局见 [docs/FLASH.md](docs/FLASH.md)，烧录地址以 [partitions.csv](partitions.csv) 为准
 
 ## 仓库目录
@@ -92,15 +91,12 @@ idf.py -p PORT flash monitor
 main/
 ├── app_main.c          # 入口：硬件、LVGL、BLE 与任务启动
 ├── app_obd_dsp/        # 应用层：OBD 缓存、车型配置、OTA、开机动画、设备身份
-├── bsp_obd_dsp/        # 板级：ELM327 BLE 客户端、ESP-NOW、LCD/触摸/IO 扩展、NVS、RS485
-├── export_path/        # LVGL UI（SquareLine 导出）：20+ 页面、字体、图片
-└── theme_engine/       # 运行时主题加载器（theme_0 分区）
-themes/                 # 编译期主题源文件（TOML 清单 + 素材）
-theme_store/            # 打包好的主题二进制与目录索引（分发用）
+└── bsp_obd_dsp/        # 板级：ELM327 BLE 客户端、ESP-NOW、LCD/触摸/IO 扩展、NVS、RS485
+ui/JDM/                 # LVGL UI（JDM 设计语言）：core 框架 + widgets 复用控件 + pages 表盘页
 bootmedia/              # 开机动画源文件
 simulator/              # PC 端 UI 模拟器（SDL2，固件 UI 源码零改动上电脑）
 ui-prototype/           # MX-5 NC/JDM browser UI prototype (HTML/CSS/SVG)
-tools/                  # 工具脚本（主题生成、打包、PID 挖掘）
+tools/                  # 工具脚本（素材/字体生成、打包、PID 挖掘）
 model/                  # 3D 打印模型（外壳、表座、支架）
 docs/                   # 文档（见上方索引）
 partitions.csv          # Flash 分区表（16MB）

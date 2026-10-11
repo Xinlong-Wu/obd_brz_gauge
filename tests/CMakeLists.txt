@@ -21,6 +21,7 @@ set(REPO_ROOT   "${TESTS_DIR}/..")
 set(MAIN_DIR    "${REPO_ROOT}/main")
 set(SIM_DIR     "${REPO_ROOT}/simulator")
 set(SHIM_DIR    "${SIM_DIR}/shims")
+set(UI_DIR      "${REPO_ROOT}/ui/JDM")
 
 # ---- LVGL(与固件/模拟器同版本;tests/lv_conf.h,无 SDL) ----
 set(LVGL_DIR "${REPO_ROOT}/managed_components/lvgl__lvgl")
@@ -37,39 +38,10 @@ endif()
 file(GLOB_RECURSE LVGL_SOURCES "${LVGL_DIR}/src/*.c")
 add_library(lvgl_tests STATIC ${LVGL_SOURCES})
 target_include_directories(lvgl_tests PUBLIC
-    "${LVGL_DIR}"          # lvgl.h shim + lvgl_private.h (in-tree lv_meter widget)
+    "${LVGL_DIR}"          # lvgl.h shim + lvgl_private.h
     "${LVGL_DIR}/include"  # v9 public headers
     "${TESTS_DIR}")
 target_compile_definitions(lvgl_tests PUBLIC LV_CONF_INCLUDE_SIMPLE)
-
-# ---- cJSON(theme_loader.c 的 manifest 解析;同 simulator 的发现逻辑) ----
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
-find_path(CJSON_INCLUDE_DIR cJSON.h)
-find_library(CJSON_LIBRARY NAMES cjson libcjson)
-if(CJSON_INCLUDE_DIR AND CJSON_LIBRARY)
-    add_library(cjson_tests INTERFACE)
-    target_include_directories(cjson_tests INTERFACE "${CJSON_INCLUDE_DIR}")
-    target_link_libraries(cjson_tests INTERFACE "${CJSON_LIBRARY}")
-else()
-    message(STATUS "System cJSON not found; fetching cJSON v1.7.18")
-    include(FetchContent)
-    set(CJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(CJSON_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(CJSON_OVERRIDE_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-    FetchContent_Declare(cjson
-        GIT_REPOSITORY https://github.com/DaveGamble/cJSON
-        GIT_TAG        v1.7.18)
-    # EXCLUDE_FROM_ALL:cJSON 自带的测试目标不进默认构建(1.7.18 无视
-    # CJSON_BUILD_TESTS 开关),CTest 也用 -R "^test_" 只跑本仓库用例。
-    FetchContent_GetProperties(cjson)
-    if(NOT cjson_POPULATED)
-        FetchContent_Populate(cjson)
-        add_subdirectory("${cjson_SOURCE_DIR}" "${cjson_BINARY_DIR}" EXCLUDE_FROM_ALL)
-    endif()
-    add_library(cjson_tests INTERFACE)
-    target_include_directories(cjson_tests INTERFACE "${cjson_SOURCE_DIR}")
-    target_link_libraries(cjson_tests INTERFACE cjson)
-endif()
 
 # ---- 共同编译环境:固件头 + shim 头(遮蔽 ESP-IDF) ----
 function(add_gauge_test name)
@@ -81,8 +53,8 @@ function(add_gauge_test name)
         "${TESTS_DIR}"
         "${SIM_DIR}/src"        # sim_platform.h / cli.h(nvs_storage_mock 依赖)
         "${MAIN_DIR}"
-        "${MAIN_DIR}/export_path")
-    target_link_libraries("${name}" PRIVATE lvgl_tests cjson_tests)
+        "${UI_DIR}")            # "core/jdm_xxx.h"
+    target_link_libraries("${name}" PRIVATE lvgl_tests)
     add_test(NAME "${name}" COMMAND "${name}")
     set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${REPO_ROOT}")
 endfunction()
@@ -115,24 +87,23 @@ add_gauge_test(test_nvs_poll_mode
     SOURCES test_nvs_poll_mode.c
             ${TEST_SHIMS})
 
-# ---- 内置仪表组件(M3.2):类型映射 / 防御式 / 格式化 / 进度换算 ----
-# (组件用 &ui_font_X 取字体,一并编入 TinyTTF 运行时字体并在 main 里 init)
-add_gauge_test(test_ui_component
-    SOURCES test_ui_component.c
-            stub_ui_theme.c
-            "${MAIN_DIR}/export_path/ui_component.c"
-            "${MAIN_DIR}/export_path/ui_disp_item.c"
-            "${MAIN_DIR}/ui_fonts/ui_fonts.c"
-            "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
+# ---- JDM 数据通道:哨兵判定 / 元数据量程表 / 纯逻辑映射 ----
+add_gauge_test(test_jdm_data
+    SOURCES test_jdm_data.c
+            "${UI_DIR}/core/jdm_data.c"
             "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             ${TEST_SHIMS})
 
-# ---- 运行时字体字号表:8 档 × 3 分辨率与旧 lv_font_conv 产物逐值一致 ----
-add_gauge_test(test_ui_fonts
-    SOURCES test_ui_fonts.c)
+# ---- JDM 字体表:设计系统阶梯 / 分辨率换算 / init 有效性 ----
+# 字体 blob(生成物,~400KB C 数组)一并编入
+file(GLOB JDM_FONT_BLOBS "${UI_DIR}/assets/fonts/*.c")
+add_gauge_test(test_jdm_fonts
+    SOURCES test_jdm_fonts.c
+            "${UI_DIR}/core/jdm_fonts.c"
+            ${JDM_FONT_BLOBS})
 
-# ---- 用户自定义仪表页数据模型(M4):清洗 / 迁移 / 平铺数 ----
+# ---- 用户自定义仪表页数据模型(旧 M4 遗留,NVS 兼容清洗) ----
 add_gauge_test(test_ui_dashboard
     SOURCES test_ui_dashboard.c
             ${TEST_SHIMS})
@@ -148,28 +119,4 @@ add_gauge_test(test_vehicle_profiles
     SOURCES test_vehicle_profiles.c
             "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
             "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
-            ${TEST_SHIMS})
-
-# ---- 数据项系统:有效性判定 / 格式化 / 自然量程 / 元数据访问 / 统一缓存读取 ----
-# (M3 起 ui_disp_item.c 读数据缓存,一并编入 obd_data_cache + vehicle_profiles)
-add_gauge_test(test_ui_disp_item
-    SOURCES test_ui_disp_item.c
-            "${MAIN_DIR}/export_path/ui_disp_item.c"
-            "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
-            "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
-            ${TEST_SHIMS})
-
-# ---- 主题引擎:默认回退 + theme.bin v1 加载(manifest/颜色/页面) ----
-add_gauge_test(test_theme_engine
-    SOURCES test_theme_engine.c
-            stub_ui_theme.c
-            "${MAIN_DIR}/theme_engine/theme_loader.c"
-            "${MAIN_DIR}/theme_engine/theme_test.c"
-            "${MAIN_DIR}/export_path/ui_component.c"
-            "${MAIN_DIR}/export_path/ui_disp_item.c"
-            "${MAIN_DIR}/ui_fonts/ui_fonts.c"
-            "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
-            "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
-            "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
-            "${SHIM_DIR}/src/esp_partition_file.c"
             ${TEST_SHIMS})

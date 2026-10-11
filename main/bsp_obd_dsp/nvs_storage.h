@@ -32,13 +32,13 @@ typedef struct {
     ui_dashboard_page_cfg_t pages[UI_DASHBOARD_MAX_PAGES];
 } ui_dashboard_cfg_t;
 
-// Theme config. The index/selectors are real now (see ui_theme.c); the two
-// color fields are legacy and unused, kept only to preserve struct layout.
+// Theme config. LEGACY since the JDM UI rewrite: the old multi-theme engine is
+// gone; every field here is unused and kept only to preserve struct layout.
 typedef struct {
-    uint8_t  theme;         // UI theme index (0=DEFAULT, registry in ui_theme.c)
+    uint8_t  theme;         // unused (was UI theme index)
     uint32_t user_theme_domiant_color;   // legacy, unused (kept for layout)
     uint32_t user_theme_secondary_color;   // legacy, unused (kept for layout)
-    uint8_t  theme_slot;    // unused — only one theme partition (theme_0) exists, kept for struct layout
+    uint8_t  theme_slot;    // legacy, unused (kept for layout)
     uint8_t rsv[4];         // reserved for future use
 } theme_cfg_t;
 
@@ -70,11 +70,12 @@ typedef struct {
                                  // Only applies when neither the vehicle override nor the profile pins
                                  // poll_gap_ms (see elm327_ble_client.c gap resolution). Appended LAST
                                  // for old-device NVS compatibility.
-    ui_dashboard_cfg_t dashboard; // user-defined gauge pages (M4); zero page_count =
-                                 // not yet migrated (runtime fills from the legacy maps
-                                 // below on first boot, see ui_dashboard_logic.h)
+    ui_dashboard_cfg_t dashboard; // LEGACY: user-defined gauge pages (old M4 UI, no longer rendered);
+                                 // kept for struct layout. zero page_count = not migrated.
                                  // NOTE: new fields MUST be appended at the END of this struct;
                                  // see the load_blob grow logic comment in nvs_storage.c.
+    uint8_t brightness_night;  // JDM night brightness 10-100, 0=unset (use 35)
+    uint8_t night_mode;        // JDM night mode: 0=day, 1=night (text→amber take-over + night backlight)
 } nvs_user_cfg_t;
 
 
@@ -154,19 +155,9 @@ esp_err_t nvs_storage_init(void);
 const nvs_user_cfg_t * nvs_cfg_get(void);
 esp_err_t nvs_cfg_set(const nvs_user_cfg_t *cfg);
 
-// Per-item alarm threshold for the chart page (raw units; value>=threshold alarms; 32767=off). item = disp_item_t value.
-int16_t nvs_chart_alarm_get(uint8_t item);
-void    nvs_chart_alarm_set(uint8_t item, int16_t raw_threshold);
-
-// Multi-gauge boot animation: 0=OFF, 1=RACE AS ONE, 2=VIDEO. Stored as a separate blob, not in the cfg struct.
-uint8_t nvs_intro_enable_get(void);           // 0=OFF 1=RACE 2=VIDEO (boot_block flashed via the phone app)
-void    nvs_intro_enable_set(uint8_t en);
-uint8_t nvs_device_position_get(void);        // 1/2/3
+// Multi-gauge device position: 1/2/3 (live; sent in the ESP-NOW presence packet).
+uint8_t nvs_device_position_get(void);
 void    nvs_device_position_set(uint8_t pos);
-
-// Boot mode: 0=default Sky Gauge animation, 1=custom boot image, 2=video animation (boot_block)
-uint8_t nvs_boot_mode_get(void);
-void    nvs_boot_mode_set(uint8_t mode);
 
 /* Runtime statistics accessors */
 const nvs_stat_t * nvs_stat_get(void);

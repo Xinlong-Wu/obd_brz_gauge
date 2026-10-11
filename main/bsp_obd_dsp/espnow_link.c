@@ -18,10 +18,6 @@
 #include "bsp_obd_dsp/elm327_ble_client.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 
-// Sweep / boot-animation sync: read from the master (implemented in ui.c to avoid re-including lvgl here)
-extern int  ui_sweep_get_step(void);
-extern int  ui_intro_get_step(void);
-
 #define TAG "espnow_link"
 
 #define ESPNOW_CHANNEL          1       // master and slaves must share a channel (fixed here when STA is not connected to an AP)
@@ -138,8 +134,10 @@ static void master_pack(espnow_obd_packet_t *p) {
     obd_data_get_snapshot(&snap);
     p->rpm              = snap.rpm;
     p->speed            = snap.speed;
-    p->sweep_step       = (uint8_t)ui_sweep_get_step();   // broadcast sweep progress for slave sync
-    p->intro_step       = (uint8_t)ui_intro_get_step();   // broadcast boot-animation progress for slave sync
+    // sweep/intro sync fields: the JDM UI dropped the boot sweep/intro; keep the
+    // wire format unchanged and broadcast 0 so mixed-firmware gauge sets stay compatible.
+    p->sweep_step       = 0;
+    p->intro_step       = 0;
     p->coolant_temp     = snap.coolant_temp;
     p->intake_temp      = snap.intake_temp;
     p->oil_temp         = snap.oil_temp;
@@ -225,9 +223,8 @@ static void apply_packet(const espnow_obd_packet_t *p) {
     obd_data_set_tps(p->tps);
     obd_data_set_bat_mv(p->bat_mv);
     obd_data_set_afr_x100(p->afr_x100);
-    // Notify the UI task via the event queue (avoids races from direct cross-task calls)
-    app_event_send(APP_EVT_ESPNOW_SYNC_SLOT, p->sweep_step);
-    app_event_send(APP_EVT_ESPNOW_INTRO_STEP, p->intro_step);
+    // sweep/intro UI sync events retired with the JDM UI — the JDM pages read
+    // obd_data_cache directly, no per-broadcast event needed.
     memcpy(s_master_name, p->name, MASTER_NAME_LEN);
     s_master_name[MASTER_NAME_LEN - 1] = '\0';   // remember the master name (shown on the info page)
 }

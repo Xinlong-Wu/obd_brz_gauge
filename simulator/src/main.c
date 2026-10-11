@@ -15,15 +15,13 @@
 #include <SDL.h>
 
 #include "lvgl.h"
-#include "ui.h"
-#include "ui_ext.h"
-#include "ui_home_runtime.h"
+#include "jdm_ui.h"
+#include "core/jdm_fonts.h"
 #include "cli.h"
 #include "fake_data.h"
 #include "control_panel.h"
 #include "sim_platform.h"
 #include "sim_clock.h"
-#include "ui_fonts/ui_fonts.h"             /* TinyTTF 运行时字体(镜像 app_main.c) */
 #include "esp_timer.h"                     /* sim_esp_timer_poll() */
 #include "esp_random.h"                    /* sim_esp_random_seed() */
 
@@ -353,7 +351,6 @@ int main(int argc, char **argv)
     sim_nvs_mock_configure(&opts);
     sim_bsp_apply_opts(&opts);
     sim_bootmedia_set_dir(opts.bootmedia);
-    sim_theme_partition_load(opts.theme);   /* before ui_init() → theme_engine_init() */
 
     /* ---- LVGL bring-up, mirroring app_main.c ---- */
     lv_init();
@@ -367,12 +364,8 @@ int main(int argc, char **argv)
                            sizeof(gauge_fb), LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_user_data(gauge_disp, s_gauge_tex);
 
-    /* app_main.c step 7: default theme before any screen exists.
-     * 字体先于主题:传运行时 s_ui_res,--ui-res 240/466 时字号随之落档
-     * (旧位图方案在 sim 里恒为 360 档,这里顺带修正)。host CPU 快,
-     * 大字预热同步做,与截图输出无关。 */
-    ui_fonts_init(s_ui_res);
-    ui_fonts_prewarm_size140();
+    /* JDM pages style every object explicitly (remove_style_all + tokens); the
+     * default theme only covers the sim control panel and base-widget defaults. */
     lv_theme_t *theme = lv_theme_default_init(gauge_disp, lv_palette_main(LV_PALETTE_BLUE),
                                               lv_palette_main(LV_PALETTE_RED),
                                               false, LV_FONT_DEFAULT);
@@ -407,20 +400,9 @@ int main(int argc, char **argv)
 
     vehicle_profile_set_active(nvs_cfg_get()->vehicle_profile_idx);
 
-    /* Logo first (so it paints while the theme/system pages are built), then
-     * the full UI — same as app_main.c step 7. */
-    ui_ScreenPageLogo_screen_init();
-    lv_scr_load(ui_ScreenPageLogo);
-    for (int i = 0; i < 3; i++) {
-        lv_timer_handler();
-        SDL_Delay(2);
-    }
-    ui_init();
-    ui_ext_init();
-
-    /* M4: boot enters the home pager via ui_ext (flag kept as a no-op for
-     * compat with existing scenario scripts) */
-    (void)opts.home;
+    /* JDM UI bring-up (mirrors app_main.c step 7): fonts → splash → nav.
+     * Pass the runtime s_ui_res so --ui-res 240/466 sizes fonts accordingly. */
+    jdm_ui_init(s_ui_res);
 
     /* build the control panel on its own display */
     if (s_panel_on) {

@@ -29,8 +29,7 @@
 #include "bsp_obd_dsp/boards/board_api.h"        // board abstraction (WS185/WS175/WS128/...)
 #include "bsp_obd_dsp/boards/board_display_compat.h"  // Set_Backlight/LCD_H_RES compat facade
 #include "bsp_obd_dsp/boards/ui_scale.h"         // render-res != panel-res flush scaler
-#include "export_path/ui_res.h"                  // UI_RENDER_RES (720-master UIS() folding)
-#include "ui_fonts/ui_fonts.h"                   // TinyTTF 运行时字体(替代位图 FontTypoder)
+#include "core/jdm_geo.h"                        // UI_RENDER_RES (720-master UIS() folding)
 
 /* Application layer */
 #include "bsp_obd_dsp/bsp_board.h"
@@ -47,9 +46,8 @@
 #include "app_obd_dsp/screen_capture.h"
 #include "app_obd_dsp/screen_capture_server.h"
 #include "app_obd_dsp/remote_touch.h"
-#include "export_path/ui_ext.h"
 #include "app_obd_dsp/app_event.h"
-#include "theme_engine/theme_interface.h"
+#include "jdm_ui.h"                              // JDM UI 入口(splash → 16 页轮播)
 
 // ===== Triple-gauge roles =====
 // Normally select master/slave via "Settings page -> swipe down to the MULTI-GAUGE page" (stored in NVS device_role, effective after reboot); one firmware is enough.
@@ -74,14 +72,13 @@ static void mark_app_valid_task(void *arg)
     vTaskDelete(NULL);
 }
 
-extern void ui_init(void);
-SemaphoreHandle_t lvgl_mux = NULL; // non-static: used by BLE scan page
+SemaphoreHandle_t lvgl_mux = NULL; // non-static: taken briefly by the WiFi screen-capture snapshot path
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////// LCD & LVGL configuration ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* Resolution: UI_RENDER_RES (ui_res.h, = CONFIG_OBD_UI_RENDER_RES); panel via board_disp */
+/* Resolution: UI_RENDER_RES (core/jdm_geo.h, = CONFIG_OBD_UI_RENDER_RES); panel via board_disp */
 
 /* LVGL parameters */
 #define LVGL_TICK_PERIOD_MS         2
@@ -164,14 +161,6 @@ static void lvgl_unlock(void)
     xSemaphoreGive(lvgl_mux);
 }
 
-/* 一次性:Logo 停留期间把仪表大字 0-9NR 预栅格化进 tiny_ttf 缓存 */
-static void ui_fonts_prewarm_once_cb(lv_timer_t *timer)
-{
-    LV_UNUSED(timer);
-    ui_fonts_prewarm_size140();
-    ESP_LOGI(TAG, "ui_fonts size140 prewarmed");
-}
-
 static void lvgl_port_task(void *arg)
 {
     uint32_t task_delay_ms = LVGL_TASK_MAX_DELAY_MS;
@@ -233,7 +222,7 @@ void app_main(void)
     lv_init();
 
     /* Render resolution: 720-master UI folded to CONFIG_OBD_UI_RENDER_RES at
-       compile time (ui_res.h). Normally equals the panel resolution (native
+       compile time (core/jdm_geo.h). Normally equals the panel resolution (native
        rendering, direct flush); a different value engages ui_scale at flush
        time — logged below so misconfigurations are visible at boot. */
     const uint16_t render_res = (uint16_t)UI_RENDER_RES;
@@ -309,47 +298,16 @@ void app_main(void)
     /* 6. Start LVGL task */
     lvgl_mux = xSemaphoreCreateMutex();
     assert(lvgl_mux);
-    static TaskHandle_t s_lvgl_task_handle = NULL;
-    xTaskCreate(lvgl_port_task, "LVGL", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, &s_lvgl_task_handle);
-    // exposed to ui.c for temporarily raising priority during flashing
-    extern TaskHandle_t g_lvgl_task_handle;
-    g_lvgl_task_handle = s_lvgl_task_handle;
+    xTaskCreate(lvgl_port_task, "LVGL", LVGL_TASK_STACK_SIZE, NULL, LVGL_TASK_PRIORITY, NULL);
 
     /* 6.5 Initialize Bluetooth stack BEFORE UI to claim internal RAM early */
     elm327_ble_ensure_stack_init();
 
-    /* 7. Start UI - Logo displayed first, then theme loading */
-    // Step 1: Show logo immediately (before theme loading)
-    ESP_LOGI(TAG, "Creating and displaying logo page");
+    /* 7. Start UI (JDM): fonts → splash → carousel nav, all inside one lock.
+     * jdm_ui_init 内部做字体按分辨率落档与日夜背光恢复。 */
+    ESP_LOGI(TAG, "Starting JDM UI");
     if (lvgl_lock(-1)) {
-        ui_fonts_init(CONFIG_OBD_UI_RENDER_RES);   // 任何 UI(含 Logo)之前填好八档字体
-        lv_display_t *dispp = lv_display_get_default();
-        lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
-                                                   false, LV_FONT_DEFAULT);
-        lv_display_set_theme(dispp, theme);
-        extern void ui_ScreenPageLogo_screen_init(void);
-        extern lv_obj_t * ui_ScreenPageLogo;
-        ui_ScreenPageLogo_screen_init();
-        lv_screen_load(ui_ScreenPageLogo);
-        // 大字预栅格化延迟到 Logo 上屏后:一次性 12 字形,几帧内完成,
-        // 避免吃掉 Logo 首帧;之后齿轮页首切大字就是纯 blit
-        lv_timer_t *prewarm = lv_timer_create(ui_fonts_prewarm_once_cb, 800, NULL);
-        lv_timer_set_repeat_count(prewarm, 1);
-        lvgl_unlock();  // Release lock so logo can be rendered immediately
-    }
-    ESP_LOGI(TAG, "Logo page displayed, yielding to LVGL task");
-
-    // Force LVGL to flush the logo to screen immediately
-    // Give LVGL task multiple chances to complete rendering
-    for (int i = 0; i < 3; i++) {
-        vTaskDelay(1);  // Each delay allows one LVGL task iteration
-    }
-
-    ESP_LOGI(TAG, "Starting theme load");
-    // Step 2: Load theme and create other UI elements (logo already visible)
-    if (lvgl_lock(-1)) {
-        ui_init();  // Now loads theme with logo already displayed
-        ui_ext_init();
+        jdm_ui_init(render_res);
         lvgl_unlock();
     }
     app_event_init();

@@ -2,7 +2,7 @@
 
 [English](README.en.md) | 简体中文
 
-主机侧开发/调试工具，不参与固件编译。构建期例外有两个：`gen_themes.py` 在
+主机侧开发/调试工具，不参与固件编译。构建期例外有两个：`gen_assets.py` 在
 CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeLists.txt`
 自动调用。逐工具速查表见
 [docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md#工具脚本)。
@@ -11,7 +11,8 @@ CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeList
 
 | 脚本 | 用途 |
 |------|------|
-| `gen_themes.py` | 编译期主题代码生成：`themes/registry.txt` + 各主题 `theme.toml` → `ui_theme_generated.c` + `theme_assets/`。CMake 配置期自动跑；`--check` 校验入库生成物是否过期（零第三方依赖）|
+| `gen_assets.py` | 图片素材代码生成：`assets_src/images/*.png` → `ui/JDM/assets/images{,_r240,_r466}/*.c`（多分辨率）。CMake 配置期自动跑；`--check` 校验入库生成物是否过期 |
+| `gen_jdm_fonts.py` | JDM 字体内嵌：`ui-prototype/fonts/*.ttf` → `ui/JDM/assets/fonts/jdm_*.c/.h`（TinyTTF 运行时栅格化）。`--check` 校验新鲜度（零第三方依赖）|
 | `gen_bootmedia.py` | 编译期出厂开机动画镜像：`bootmedia/slot_a/` 的 manifest+帧流 → raw 布局 `bootmedia.bin`（manifest 补齐 4KB 槽后拼接帧数据，缺 `binary_size` 自动注入）。manifest 缺必需键直接构建失败，防止出厂静默无动画 |
 | `release.sh` | 一键发版：commit（**必须先提交**，build tag 的 count 取 git 提交数）→ `idf.py build` → push |
 | `sim_regress.py` | 模拟器截图回归（Pillow）：固定 seed + 虚拟时钟无头跑场景，逐像素对比 `tests/goldens/` 金图。`--update-goldens` 在有意改 UI 后刷新金图。CI 的 unit-sim job 调用 |
@@ -21,9 +22,6 @@ CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeList
 | 脚本 | 依赖 | 用途 |
 |------|------|------|
 | `make_boot_block.py` | ffmpeg + Pillow | 视频 → 开机动画 `bootmedia/slot_a/`（`boot_block.bin/txt` + `boot.pcm`）|
-| `convert_rpm_flash.py` | Pillow | 3 张 PNG → RPM 报警闪烁图 `main/export_path/images/imgRpmFlash{1,2,3}.c` |
-| `theme_packer/pack_theme.py` | Pillow | 运行时主题目录 → 4MB `theme.bin` 分区镜像（App 经 OTA 推给设备）|
-| `gen_theme_store.py` | — | 扫描 `theme_store/<id>/` 重新生成 `catalog.json`（主题商店索引，App 拉取）|
 
 ## 调试 / PID 挖掘（无需实车）
 

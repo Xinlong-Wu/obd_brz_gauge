@@ -152,8 +152,6 @@ requires the gauge to be in OTA mode first (**version page → OTA button**):
   firmware must pass a 15-second boot self-check before being marked valid,
   otherwise the bootloader rolls back
 - **Boot animation**: trim the video in the app, encode, upload
-- **Theme package**: pushes a runtime theme to the theme_0 partition
-  (see [THEMES.en.md](THEMES.en.md))
 
 The device exposes a read-only BLE manifest service (`0x1FFA`) with hardware
 and build info; the app validates compatibility before flashing and refuses

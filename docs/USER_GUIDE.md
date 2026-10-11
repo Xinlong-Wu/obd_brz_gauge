@@ -118,7 +118,6 @@ OTA 按钮 → OTA 升级模式（见 [FLASH.md](FLASH.md#app-ota-升级双槽�
 - **固件升级**：BLE 握手 → WiFi 热点（`OBD-Gauge-OTA-XXXX`，密码 `obd2024`）高速传输，
   写入备用 OTA 槽；新固件启动 15 秒自检通过才标记有效，失败自动回滚
 - **开机动画**：App 内裁切视频、编码后上传
-- **主题包**：推送运行时主题到 theme_0 分区（见 [THEMES.md](THEMES.md)）
 
 设备会通过 BLE 只读清单服务（`0x1FFA`）暴露硬件 / 构建信息，App 刷写前自动做兼容校验，
 硬件不匹配会拒绝刷写。协议细节见 [APP_PROTOCOL.md](APP_PROTOCOL.md)。

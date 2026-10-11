@@ -2,7 +2,7 @@
 
 English | [简体中文](DEVELOPMENT.md)
 
-Vehicles: [VEHICLES.en.md](VEHICLES.en.md) · Theming: [THEMES.en.md](THEMES.en.md) ·
+Vehicles: [VEHICLES.en.md](VEHICLES.en.md) ·
 Flash & update: [FLASH.en.md](FLASH.en.md) · App protocol: [APP_PROTOCOL.en.md](APP_PROTOCOL.en.md).
 
 ## Code architecture

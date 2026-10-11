@@ -980,12 +980,6 @@ static void obd_poll_task(void *arg) {
     while (1)
     {
         esp_task_wdt_reset();  // feed the watchdog
-        // Showroom mode: pause OBD polling to avoid overwriting the dummy data
-        extern bool ui_showroom_is_active(void);
-        if (ui_showroom_is_active()) {
-            vTaskDelay(pdMS_TO_TICKS(500));
-            continue;
-        }
         // WiFi OTA: keep the ELM327 polling quiet so BLE stops competing for the radio.
         if (s_ota_paused) {
             vTaskDelay(pdMS_TO_TICKS(200));

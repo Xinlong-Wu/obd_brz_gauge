@@ -1,41 +1,14 @@
 file(GLOB_RECURSE SOURCES_C *.c)
 file(GLOB_RECURSE SOURCES_CPP *.cpp)
 
-# ---- UI theme table codegen ------------------------------------------------
-# themes/registry.txt + themes/*/<id>/theme.toml -> export_path/ui_theme_generated.c
-# Runs BEFORE idf_component_register because SRC_DIRS is globbed at register time.
-# Adding a theme requires editing registry.txt, and registry.txt is watched
-# below, so a new theme always triggers a reconfigure and regeneration.
-set(THEMES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../themes")
-file(GLOB THEME_MANIFESTS "${THEMES_DIR}/*/*/theme.toml")
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-             "${THEMES_DIR}/registry.txt" ${THEME_MANIFESTS})
-
 # idf.py sets `python` to the IDF virtualenv interpreter; fall back for plain
-# cmake / IDE reconfigures. gen_themes.py has no third-party dependencies.
+# cmake / IDE reconfigures.
 if(NOT DEFINED python)
     set(python "python3")
 endif()
 
-execute_process(
-    COMMAND "${python}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/gen_themes.py"
-    RESULT_VARIABLE THEME_GEN_RESULT
-    OUTPUT_VARIABLE THEME_GEN_STDOUT
-    ERROR_VARIABLE  THEME_GEN_STDERR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_STRIP_TRAILING_WHITESPACE)
-if(NOT THEME_GEN_RESULT EQUAL 0)
-    message(FATAL_ERROR
-            "Theme generation failed.\n${THEME_GEN_STDOUT}\n${THEME_GEN_STDERR}\n"
-            "See themes/README.md.")
-endif()
-if(THEME_GEN_STDERR)
-    message(WARNING "${THEME_GEN_STDERR}")
-endif()
-message(STATUS "${THEME_GEN_STDOUT}")
-
 # ---- UI image assets codegen -----------------------------------------------
-# assets_src/images/*.png masters -> export_path/images{,_r240,_r466}/*.c
+# assets_src/images/*.png masters -> ui/JDM/assets/images{,_r240,_r466}/*.c
 # (LANCZOS to each render resolution; byte-identical data at 360).
 # Pillow is imported lazily only when a master's SHA changes.
 set(ASSET_MASTERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../assets_src/images")
@@ -62,7 +35,7 @@ endif()
 # served with Content-Encoding: gzip. Pure stdlib — no node/Pillow needed.
 # 生成器从脚本位置自定仓库根、产物写源树(main/app_obd_dsp/,已 gitignore):
 # 本文件在 requirements 阶段会被以构建目录为上下文重复 include,传路径不可信
-# (gen_themes/gen_assets 同款自定根约定);重复执行幂等(确定性 gzip)。
+# (gen_assets 同款自定根约定);重复执行幂等(确定性 gzip)。
 set(CAPTURE_PAGE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../assets_src/web/capture.html")
 set(CAPTURE_PAGE_GZ  "${CMAKE_CURRENT_SOURCE_DIR}/app_obd_dsp/capture_page.html.gz")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CAPTURE_PAGE_SRC}")
@@ -127,16 +100,17 @@ set(OBD_GAUGE_BUILD_TAG "${OBD_GAUGE_GIT_BRANCH_SAFE}-${OBD_GAUGE_GIT_COUNT}-${O
 # The WS185 driver dirs also always compile: OBD_HW_VERSION keeps its default
 # selection on WS175 builds, the unused LCD/touch/exio code is never called
 # there and is dropped by the linker's --gc-sections.
+# UI 源在组件目录之外(仓库根 ui/JDM),用绝对路径挂进 SRC_DIRS;
+# INCLUDE_DIRS 挂 ui/JDM 根,include 写法为 "core/jdm_xxx.h" / "jdm_ui.h"。
 idf_component_register(SRC_DIRS
                     "."
-                    "export_path/components"
-                    "ui_fonts"
-                    "export_path/images"
-                    "export_path/images_r240"
-                    "export_path/images_r466"
-                    "export_path/theme_assets"
-                    "export_path/screens"
-                    "export_path"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/core"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/widgets"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/fonts"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/images"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/images_r240"
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM/assets/images_r466"
                     "app_obd_dsp"
                     "bsp_obd_dsp"
                     "bsp_obd_dsp/boards"
@@ -145,10 +119,9 @@ idf_component_register(SRC_DIRS
                     "bsp_obd_dsp/exio"
                     "bsp_obd_dsp/i2c_driver"
                     "bsp_obd_dsp/touch_driver"
-                    "theme_engine"
-                    "ui_widgets/lv_meter"
                     INCLUDE_DIRS
                     "."
+                    "${CMAKE_CURRENT_LIST_DIR}/../ui/JDM"
                     REQUIRES
                     esp_http_server
                     esp_wifi
@@ -160,12 +133,6 @@ idf_component_register(SRC_DIRS
                     esp_lcd
                     driver
                     EMBED_FILES "app_obd_dsp/capture_page.html.gz")
-
-# LVGL 9 keeps lv_obj_class_t/lv_obj_t private; defining a custom widget class
-# (ui_widgets/lv_meter) needs the private umbrella header at the component root.
-# managed_components is gitignored and re-created by the component manager.
-target_include_directories(${COMPONENT_LIB} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/../managed_components/lvgl__lvgl")
 
 # Auto-generate the factory bootmedia image in the raw layout the firmware
 # reads (manifest at partition offset 0, frame stream at 0x1000 — see

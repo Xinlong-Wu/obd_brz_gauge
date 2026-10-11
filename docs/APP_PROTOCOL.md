@@ -74,20 +74,18 @@ App 连上设备 SoftAP 后走 HTTP（所有端点均支持 OPTIONS 预检）。
 | `/ota/firmware` | POST | 固件上传 |
 | `/ota/bootmedia/prepare` | POST | 开机动画预检 |
 | `/ota/bootmedia` | POST | 开机动画上传 |
-| `/ota/theme/prepare` | POST | 主题预检（返回挂载状态，不擦除）|
-| `/ota/theme` | POST | 主题分块上传 |
-| `/ota/theme/erase` | POST | 擦除主题分区，下次开机回退默认主题 |
+
+> 旧协议的 `/ota/theme`、`/ota/theme/prepare`、`/ota/theme/erase` 三个端点已
+> 随主题架构移除；同时移除的还有设备端 OTA 入口页（服务端保留，当前无 UI
+> 触达路径，见 [FLASH.md](FLASH.md)）。
 
 各上传端点的专有请求头：
 
 - `/ota/firmware`：`X-OTA-SHA256`（64 位 hex）、`X-OTA-Size`（字节），Body 为固件二进制
 - `/ota/bootmedia`：`X-OTA-SHA256`、`X-OTA-Size`（manifest+bin 总大小）、
   `X-OTA-Manifest-Size`，Body 为 `[manifest][bin]` 拼接
-- `/ota/theme`：`X-OTA-SHA256`、`X-OTA-Size`（≤4MB）、`X-OTA-Offset`（块偏移）、
-  `X-Last`（`1`=最后一块），Body 为 `theme.bin` 分块数据
 
 **安全性**：token 每会话随机；SoftAP WPA2-PSK；全部负载 SHA256 校验。
-主题打包格式见 [THEMES.md](THEMES.md)。
 
 ## WiFi 取图（屏幕截图 / 实时流）
 

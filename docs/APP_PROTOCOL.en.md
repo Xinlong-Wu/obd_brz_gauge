@@ -79,9 +79,11 @@ endpoint also answers OPTIONS preflight).
 | `/ota/firmware` | POST | Firmware upload |
 | `/ota/bootmedia/prepare` | POST | Boot-animation preflight |
 | `/ota/bootmedia` | POST | Boot-animation upload |
-| `/ota/theme/prepare` | POST | Theme preflight (returns mount status, no erase)|
-| `/ota/theme` | POST | Chunked theme upload |
-| `/ota/theme/erase` | POST | Erase the theme partition; falls back to the default theme on next boot |
+
+> The old `/ota/theme`, `/ota/theme/prepare` and `/ota/theme/erase` endpoints
+> were removed with the theme architecture; the on-device OTA entry page was
+> removed too (the HTTP backend is kept, currently unreachable from the UI —
+> see [FLASH.en.md](FLASH.en.md)).
 
 Per-endpoint upload headers:
 
@@ -89,12 +91,9 @@ Per-endpoint upload headers:
   the firmware binary
 - `/ota/bootmedia`: `X-OTA-SHA256`, `X-OTA-Size` (manifest+bin total),
   `X-OTA-Manifest-Size`; body is `[manifest][bin]` concatenated
-- `/ota/theme`: `X-OTA-SHA256`, `X-OTA-Size` (≤4MB), `X-OTA-Offset` (chunk
-  offset), `X-Last` (`1` = final chunk); body is a `theme.bin` chunk
 
 **Security**: the token is random per session; the SoftAP uses WPA2-PSK;
-every payload is SHA256-verified. Theme packaging is described in
-[THEMES.en.md](THEMES.en.md).
+every payload is SHA256-verified.
 
 ## WiFi screen capture (screenshot / live stream)
 

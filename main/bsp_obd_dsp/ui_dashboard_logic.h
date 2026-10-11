@@ -4,15 +4,15 @@
 //
 //  职责:配置清洗(损坏 NVS 自愈)、老设备迁移(按现有 TEMP/INFO/
 //  NEEDLE/CHART 映射生成初始页,外观对齐现轮播)、平铺数计算。
-//  渲染在 ui_home_runtime.c;此处零依赖可单测。
+//  渲染层已随旧 UI 移除(现仅存 NVS 兼容清洗);此处零依赖可单测。
 // ================================================================
 
 #include <string.h>
 
 #include "bsp_obd_dsp/nvs_storage.h"
-// 槽项有效性判据用统一通道词汇表(disp_item_t)。bsp→export_path 的这层
-// 依赖是有意取舍:词汇表是全仓单一事实源,避免在两处硬编码 18。
-#include "export_path/ui_disp_item.h"
+// 槽项有效性判据用统一通道词汇表(disp_item_t)。bsp→ui/JDM 的这层
+// 依赖是有意取舍:词汇表是全仓单一事实源,避免在两处硬编码通道数。
+#include "core/jdm_data.h"
 
 /** 首页平铺:MENU(0) + 仪表页(1..N) + ADD(N+1)。 */
 #define UI_HOME_PAGE_MENU 0u

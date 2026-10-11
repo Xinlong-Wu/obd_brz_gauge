@@ -9,7 +9,7 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "app_obd_dsp/boot_media_mount.h"
-#include "export_path/ui_res.h"   // UI_RENDER_RES (canvas rescale)
+#include "core/jdm_geo.h"   // UI_RENDER_RES (canvas rescale)
 
 typedef struct {
     uint16_t canvas_width;

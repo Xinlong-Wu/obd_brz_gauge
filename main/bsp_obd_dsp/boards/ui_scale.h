@@ -3,7 +3,7 @@
 //  ui_scale.h — 渲染分辨率 → 面板分辨率 的通用缩放输出层
 //
 //  布局按 720 母版经 UIS() 在编译期缩放到 CONFIG_OBD_UI_RENDER_RES
-//  (export_path/ui_res.h),正常情况下渲染分辨率 = 面板分辨率,直通
+//  (ui/JDM/core/jdm_geo.h),正常情况下渲染分辨率 = 面板分辨率,直通
 //  lvgl_flush_cb。当两者不同(有意配置或调试)时本层接管:
 //  LVGL flush 先并入全帧影子缓冲,再按方向分块发往面板——
 //    下采样(S>D): 盒式滤波(覆盖源矩形逐分量平均)

@@ -8,12 +8,16 @@
 ## 这是什么项目
 
 ESP32-S3 圆形车载仪表（微雪 1.85" 圆屏）：ESP-IDF 5.5.3 + LVGL 9，
-BLE 连 ELM327 兼容适配器读车况，ESP-NOW 三连表联动，双主题系统。
+BLE 连 ELM327 兼容适配器读车况，ESP-NOW 三连表联动。
+UI 为 JDM 设计语言（`ui/JDM/`），设计稿是 `ui-prototype/` 的浏览器原型。
 
 MX-5 NC/JDM 视觉原型位于 `ui-prototype/`；后续原型修改与预览使用仓库内文件，
 不要回写会话临时副本（入口与导出方式见 `ui-prototype/README.md`）。
 原型基础与共用控件分别改 `foundations.js` 和 `components.js`；规则见
 `ui-prototype/DESIGN_SYSTEM.md`，生成的 `foundations.css` / `.json` 不手改。
+固件 UI 改 `ui/JDM/`：设计 token 只在 `core/jdm_tokens.h`，色值经
+`jdm_color()` 取，几何一律裹 `UIS()`（720 母版，见 `core/jdm_geo.h`）；
+组件一文件一控件放 `widgets/`，页面编排放 `pages/`。
 
 ## 改代码必须同步更新文档
 
@@ -22,10 +26,10 @@ MX-5 NC/JDM 视觉原型位于 `ui-prototype/`；后续原型修改与预览使�
 | 改了什么 | 必须同步 |
 |----------|----------|
 | 车型增删、PID / 协议 / 油温路径 | `docs/VEHICLES.md`（+.en.md）、README 车型清单与数量 |
-| 分区表 `partitions.csv` | `docs/FLASH.md`、`firmware/README.md`、README 快速开始——三处烧录地址必须一致，以 `partitions.csv` 为准 |
+| 分区表 `partitions.csv` | `docs/FLASH.md`（+.en.md）、README 快速开始——烧录地址必须一致，以 `partitions.csv` 为准 |
 | OTA 端点 / BLE 服务 / 设备清单格式 | `docs/APP_PROTOCOL.md`（+.en.md）|
-| 页面导航、设置项、三连表、开机动画行为 | `docs/USER_GUIDE.md`（+.en.md）|
-| 主题系统 / 主题引擎 | `docs/THEMES.md`（+.en.md）|
+| 页面导航、设置项、开机动画行为 | `docs/USER_GUIDE.md`（+.en.md）|
+| 设计 token / 颜色 / 字号阶梯 | `ui/JDM/core/jdm_tokens.h`、`core/jdm_fonts_logic.h` 与 `ui-prototype/foundations.js` 三处一致，并跑 `python3 tools/gen_jdm_fonts.py` |
 | 任何行为或烧录方式变化 | `CHANGELOG.md` **和** `CHANGELOG.en.md` 各加一条 |
 
 硬规则：
@@ -35,21 +39,20 @@ MX-5 NC/JDM 视觉原型位于 `ui-prototype/`；后续原型修改与预览使�
 - 文档里的数字拿不准时读代码，事实源清单：分区地址 → `partitions.csv`；
   车型表 → `main/app_obd_dsp/vehicle_profiles.c`；HTTP 端点 →
   `main/app_obd_dsp/ota_wifi_server.c`；NVS 配置键 → `main/bsp_obd_dsp/nvs_storage.h`；
-  页面导航 → `main/export_path/ui.c` 手势处理函数
+  数据通道词汇表 → `ui/JDM/core/jdm_data.h`（枚举值只能末尾追加）
 
 ## 代码红线
 
-- NVS `nvs_user_cfg_t` 和主题结构体**新字段只能追加到末尾**（老设备 NVS 兼容，见 `nvs_storage.c` 的 grow 逻辑）
-- `themes/registry.txt` 只能在末尾追加、槽位 0 必须 `default`（NVS 存槽位号，改序会静默换肤）
-- `main/export_path/ui_theme_generated.c`、`main/export_path/theme_assets/` 是生成物，永远不要手改
-- `main/export_path/ui_ext.c` 是手写扩展区，SquareLine 重导出不得覆盖
+- NVS `nvs_user_cfg_t` **新字段只能追加到末尾**（老设备 NVS 兼容，见 `nvs_storage.c` 的 grow 逻辑）
+- `ui/JDM/assets/`（字体/图片 C 数组）是 `tools/gen_jdm_fonts.py` / `gen_assets.py` 的生成物，永远不要手改
+- disp_item_t 枚举值是持久化契约（NVS dashboard 槽项），只能末尾追加、不可改序
 - ELM327 轮询是**单线程状态机**，不要引入并行/交错请求
 - 发版前必须先 commit——build tag 的 count 取 git 提交数（`tools/release.sh` 流程）
 
 ## 构建与验证
 
 - `idf.py set-target esp32s3 && idf.py build`；换开发板先在 menuconfig → OBD DSP Configuration 选硬件版本（V1/V2/V3）。无本地 IDF 环境用 `tools/docker-build.sh`（espressif/idf:v5.5.3 容器；macOS 容器无法烧录/监视）
-- 改主题可独立快速验证：`python3 tools/gen_themes.py --check`
+- 素材/字体可独立快速验证：`python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check`
 - 主机端三层验证（无需开发板）：单测 `ctest --test-dir tests/build -R '^test_'`、截图回归 `python3 tools/sim_regress.py`（有意改 UI 先 `--update-goldens`）、固件 Docker 构建；新代码遵循 `docs/CODE_STYLE.md`（纯逻辑抽 `*_logic.h` 配单测）
 - `build/` 下的二进制是构建产物，普通源码改动不要碰
 - 没有实车/适配器时用 `tools/fake_elm327.py` 模拟 ELM327 调试

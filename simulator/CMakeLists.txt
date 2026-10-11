@@ -1,9 +1,9 @@
-# PC-side LVGL SDL simulator for the obd_brz_gauge firmware UI.
+# PC-side LVGL SDL simulator for the obd_brz_gauge JDM UI.
 #
-# Compiles the UNMODIFIED firmware UI sources (main/export_path, theme_engine,
-# obd_data_cache, vehicle_profiles, boot_block_player) against SDL2 + LVGL 8.4.
-# All ESP-IDF dependencies are satisfied by the shim layer in shims/ — include
-# path shadowing, no firmware file is touched.
+# Compiles the UNMODIFIED firmware UI sources (ui/JDM, obd_data_cache,
+# vehicle_profiles) against SDL2 + LVGL 9.6. All ESP-IDF dependencies are
+# satisfied by the shim layer in shims/ — include path shadowing, no firmware
+# file is touched.
 #
 #   cmake -S simulator -B simulator/build
 #   cmake --build simulator/build -j
@@ -23,7 +23,7 @@ find_package(SDL2 REQUIRED)
 set(SIM_DIR    "${CMAKE_CURRENT_SOURCE_DIR}")
 set(REPO_ROOT  "${SIM_DIR}/..")
 set(MAIN_DIR   "${REPO_ROOT}/main")
-set(UI_DIR     "${MAIN_DIR}/export_path")
+set(UI_DIR     "${REPO_ROOT}/ui/JDM")
 
 # ---- LVGL: use the exact copy the firmware builds against (managed_components,
 #      version pinned by dependencies.lock); fall back to fetching v9.6.0. ----
@@ -50,59 +50,18 @@ target_compile_definitions(lvgl_sim PUBLIC LV_CONF_INCLUDE_SIMPLE)
 # clock in main.c), so lvgl_sim itself no longer needs SDL; the executable
 # links SDL directly (see the SDL2 block after add_executable below).
 
-# ---- cJSON: theme manifest parser (theme_loader.c) ----
-# cJSON v1.7.18's CMakeLists predates the CMake 4.0 <3.5 removal.
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
-find_path(CJSON_INCLUDE_DIR cJSON.h)
-find_library(CJSON_LIBRARY NAMES cjson libcjson)
-if(CJSON_INCLUDE_DIR AND CJSON_LIBRARY)
-    message(STATUS "Using system cJSON: ${CJSON_LIBRARY}")
-    add_library(cjson_shim INTERFACE)
-    target_include_directories(cjson_shim INTERFACE "${CJSON_INCLUDE_DIR}")
-    target_link_libraries(cjson_shim INTERFACE "${CJSON_LIBRARY}")
-    set(CJSON_EXTRA_INCLUDE "")
-else()
-    message(STATUS "System cJSON not found; fetching cJSON v1.7.18")
-    include(FetchContent)
-    set(CJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(CJSON_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(CJSON_OVERRIDE_BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-    FetchContent_Declare(cjson
-        GIT_REPOSITORY https://github.com/DaveGamble/cJSON
-        GIT_TAG        v1.7.18)
-    FetchContent_MakeAvailable(cjson)
-    add_library(cjson_shim ALIAS cjson)
-    # cJSON's own target doesn't reliably propagate its include dir through
-    # the alias — obd_gauge_sim adds it explicitly after target creation.
-    set(CJSON_EXTRA_INCLUDE "${cjson_SOURCE_DIR}")
-endif()
-
 # ---- Firmware UI sources (compiled unmodified) ----
-file(GLOB SIM_SCREENS "${UI_DIR}/screens/*.c")
-file(GLOB SIM_IMAGES  "${UI_DIR}/images/*.c")
-# NOTE: do NOT copy the file list from export_path/filelist.txt / its
-# CMakeLists — those reference assets that no longer exist; the actual
-# directory listing is the truth.
+file(GLOB JDM_FONT_BLOBS "${UI_DIR}/assets/fonts/*.c")
 set(FW_SOURCES
-    "${UI_DIR}/ui.c"
-    "${UI_DIR}/ui_ext.c"
-    "${UI_DIR}/ui_disp_item.c"
-    "${UI_DIR}/ui_component.c"
-    "${UI_DIR}/ui_home_runtime.c"
-    "${UI_DIR}/ui_dashboard_config.c"
-    "${UI_DIR}/ui_theme.c"
-    "${UI_DIR}/ui_helpers.c"
-    "${UI_DIR}/ui_theme_generated.c"
-    ${SIM_SCREENS}
-    ${SIM_IMAGES}
-    "${MAIN_DIR}/ui_fonts/ui_fonts.c"
-    "${MAIN_DIR}/ui_fonts/conthrax_otf.c"
-    "${MAIN_DIR}/ui_widgets/lv_meter/lv_meter.c"
-    "${MAIN_DIR}/theme_engine/theme_loader.c"
-    "${MAIN_DIR}/theme_engine/theme_test.c"
+    "${UI_DIR}/jdm_ui.c"
+    "${UI_DIR}/core/jdm_theme.c"
+    "${UI_DIR}/core/jdm_fonts.c"
+    "${UI_DIR}/core/jdm_data.c"
+    "${UI_DIR}/core/jdm_nav.c"
+    "${UI_DIR}/widgets/jdm_shell.c"
+    ${JDM_FONT_BLOBS}
     "${MAIN_DIR}/app_obd_dsp/obd_data_cache.c"
-    "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c"
-    "${MAIN_DIR}/app_obd_dsp/boot_block_player.c")
+    "${MAIN_DIR}/app_obd_dsp/vehicle_profiles.c")
 
 file(GLOB SHIM_SOURCES "${SIM_DIR}/shims/src/*.c")
 
@@ -121,19 +80,15 @@ target_include_directories(obd_gauge_sim BEFORE PRIVATE
 target_include_directories(obd_gauge_sim PRIVATE
     "${SIM_DIR}"           # lv_conf.h (LV_CONF_INCLUDE_SIMPLE)
     "${SIM_DIR}/src"       # sim_platform.h / cli.h / fake_data.h
-    "${MAIN_DIR}"          # "bsp_obd_dsp/...", "app_obd_dsp/...", "theme_engine/..."
-    "${UI_DIR}")           # ui.c's "ui.h" etc.
-if(CJSON_EXTRA_INCLUDE)
-    target_include_directories(obd_gauge_sim PRIVATE "${CJSON_EXTRA_INCLUDE}")
-endif()
+    "${MAIN_DIR}"          # "bsp_obd_dsp/...", "app_obd_dsp/..."
+    "${UI_DIR}")           # "core/jdm_xxx.h", "jdm_ui.h"
 
 target_compile_definitions(obd_gauge_sim PRIVATE
     OBD_GAUGE_BUILD_TAG="sim"
     SIM_REPO_ROOT="${REPO_ROOT}")
 
 target_link_libraries(obd_gauge_sim PRIVATE
-    lvgl_sim
-    cjson_shim)
+    lvgl_sim)
 
 # SDL2: used by the sim sources (window, events, ticks in real mode).
 if(TARGET SDL2::SDL2)

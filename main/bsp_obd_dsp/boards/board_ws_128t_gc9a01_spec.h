@@ -16,7 +16,7 @@
 #define BOARD_WS_128T_GC9A01_DRAW_BUFFER_LINES 40
 #define BOARD_WS_128T_GC9A01_HAS_TOUCH 1
 
-// 渲染分辨率由 CONFIG_OBD_UI_RENDER_RES 决定(export_path/ui_res.h,
+// 渲染分辨率由 CONFIG_OBD_UI_RENDER_RES 决定(ui/JDM/core/jdm_geo.h,
 // 720 母版编译期缩放):=240 原生渲染;≠240 时 app_main 自动启用 ui_scale。
 
 // 四线 SPI 总线与面板控制引脚(RST=14 与 BL=2 均为触摸版特有)

@@ -13,8 +13,11 @@
 | phy_init | 0x11000 | 4 KB | 射频校准 |
 | ota_0 | 0x20000 | 3 MB | 固件槽 A |
 | ota_1 | 0x320000 | 3 MB | 固件槽 B |
-| theme_0 | 0x620000 | 4 MB | 运行时主题（可空，见 [THEMES.md](THEMES.md)）|
-| bootmedia | 0xA20000 | 5.875 MB | 开机动画 |
+| bootmedia | 0x620000 | 5.875 MB | 开机动画 |
+
+> 旧分区表中的 theme_0（0x620000，4 MB）已随主题架构移除，bootmedia 前移到
+> 其原地址。**已部署设备 OTA 到新固件后开机动画数据错位，需 USB 重新烧录
+> bootmedia.bin**（OTA 无法改写分区表本身）。
 
 ## USB 烧录
 
@@ -28,20 +31,18 @@ esptool.py --chip esp32s3 -p PORT -b 460800 --before default_reset --after hard_
   0x8000   build/partition_table/partition-table.bin \
   0xf000   build/ota_data_initial.bin \
   0x20000  build/obd_brz_gauge.bin \
-  0xA20000 build/bootmedia.bin
+  0x620000 build/bootmedia.bin
 ```
 
-- `bootmedia.bin`（开机动画）可选，不烧只是没有 VIDEO 模式动画。镜像为
+- `bootmedia.bin`（开机动画）可选，不烧只是没有开机动画。镜像为
   raw 布局（构建期 `tools/gen_bootmedia.py` 自动生成：偏移 0 是 manifest
   文本、0x1000 起是帧数据），不是文件系统镜像
-- 可选追加主题：`0x620000 your_theme.bin`
-- **从老分区表（bootmedia 在其他地址、无 theme_0）的设备升级必须 USB 全量重刷** ——
-  OTA 无法改写分区表本身
 
 ## App OTA 升级（双槽回滚）
 
-配套手机 App（不随本仓库分发）可以推送固件、开机动画和主题包，
-操作入口都在仪表 **版本页 → OTA 按钮**。升级固件时：
+配套手机 App（不随本仓库分发）可以推送固件和开机动画。JDM UI 重写后
+**设备端 OTA 入口页已移除**（HTTP 服务端 `ota_wifi_server` 保留，当前无
+UI 触达路径，待后续按 JDM 设计语言补回入口页）。固件升级流程：
 
 1. App 取 `latest.json`，BLE 读设备清单比对硬件兼容性，不匹配会拒绝刷写
 2. 新固件写入**当前未运行的 OTA 槽**（`esp_ota_ops`）

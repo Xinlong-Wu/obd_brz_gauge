@@ -19,11 +19,7 @@ static nvs_user_cfg_t s_cfg;
 static nvs_stat_t     s_stat;
 static bool           s_cfg_valid;
 static bool           s_stat_valid;
-static int16_t        s_chart_alarm[12];
-static bool           s_chart_alarm_valid;
-static uint8_t        s_intro_enable = 2;   /* firmware default: VIDEO */
 static uint8_t        s_device_position = 1;
-static uint8_t        s_boot_mode = 0;
 static uint64_t       s_run_ms_total;
 
 static void ensure_defaults(void)
@@ -33,55 +29,19 @@ static void ensure_defaults(void)
 
     memset(&s_cfg, 0, sizeof(s_cfg));
     s_cfg.protocol = 0;                          /* auto */
-    s_cfg.theme_cfg.theme = 0;                   /* registry slot 0 = default */
-    s_cfg.theme_cfg.user_theme_domiant_color = 0xFFFFFF;
-    s_cfg.theme_cfg.user_theme_secondary_color = 0x333333;
-    s_cfg.default_page = 0;                      /* Temp */
-    s_cfg.brightness_day = 100;
+    s_cfg.default_page = 0;                      /* legacy, unused (JDM has fixed pages) */
+    s_cfg.brightness_day = 85;                   /* JDM display page default */
+    s_cfg.brightness_night = 35;
     s_cfg.vehicle_profile_idx = 0;
     s_cfg.brake_temp_warn_c = 600;
     s_cfg.oil_pressure_warn_x10 = 80;
-    s_cfg.temp_display_map[0] = 0;
-    s_cfg.temp_display_map[1] = 1;
-    s_cfg.temp_display_map[2] = 2;
-    s_cfg.info_display_map[0] = 0;
-    s_cfg.info_display_map[1] = 2;
-    s_cfg.info_display_map[2] = 3;
-    s_cfg.info_display_map[3] = 4;
-    s_cfg.info_display_map[4] = 1;
-    s_cfg.needle_source_idx = 0;                 /* CLT */
     s_cfg.device_role = ESPNOW_ROLE_STANDALONE;
-    s_cfg.chart_source_idx = 8;                  /* OILP */
     s_cfg.rpm_warn_threshold = 6000;
-    s_cfg.rpm_warn_anim_en = 0;
-    s_cfg.rpm_warn_linked_en = 0;
     s_cfg.rc_enabled = 0;
-    /* Unbound by default: the plain `obd_gauge_sim` run boots to the BLE scan
-     * page, where the fake adapters can be picked and "connected" manually.
-     * --bound pre-fills a saved adapter so boot lands straight on the gauges. */
+    /* Unbound by default: pages show "—" until a source feeds obd_data_cache
+     * (the control panel / fake-data engine writes it directly). */
 
     memset(&s_stat, 0, sizeof(s_stat));
-
-    /* M4:与固件 nvs_storage_init 同款的自愈 + 老配置迁移(mock 不落盘) */
-    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
-    (void)ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
-                                               s_cfg.temp_display_map,
-                                               s_cfg.info_display_map,
-                                               s_cfg.needle_source_idx,
-                                               s_cfg.chart_source_idx);
-
-    /* M4:与固件 nvs_storage_init 同款的自愈 + 老配置迁移(mock 不落盘) */
-    (void)ui_dashboard_logic_sanitize(&s_cfg.dashboard);
-    (void)ui_dashboard_logic_migrate_from_maps(&s_cfg.dashboard,
-                                               s_cfg.temp_display_map,
-                                               s_cfg.info_display_map,
-                                               s_cfg.needle_source_idx,
-                                               s_cfg.chart_source_idx);
-
-    /* index = disp_item_t: CLT,IAT,OIL,LOD,TPS,RPM,SPD,BAT,OIP,BKT,BST,AFR */
-    for (int i = 0; i < 12; i++) s_chart_alarm[i] = 32767; /* off */
-    s_chart_alarm[8]  = 80;                      /* OIP: 8.0 bar */
-    s_chart_alarm[9]  = 600;                     /* BKT: 600 C */
 }
 
 void sim_nvs_mock_configure(const sim_opts_t *opts)
@@ -91,10 +51,8 @@ void sim_nvs_mock_configure(const sim_opts_t *opts)
 
     if (opts->profile >= 0)     s_cfg.vehicle_profile_idx = (uint8_t)opts->profile;
     if (opts->role >= 0)        s_cfg.device_role = (uint8_t)opts->role;
-    if (opts->theme_slot >= 0)  s_cfg.theme_cfg.theme = (uint8_t)opts->theme_slot;
-    if (opts->no_boot)          s_intro_enable = 0;   /* OFF */
     if (opts->bound) {
-        /* Pre-saved adapter: boot skips the BLE scan page. */
+        /* Pre-saved adapter (legacy field; JDM pages currently don't gate on it). */
         snprintf(s_cfg.ble_device_name, sizeof(s_cfg.ble_device_name), "SIM-ELM327");
         const uint8_t fake_mac[6] = {0x02, 0x42, 0x53, 0x49, 0x4D, 0x01}; /* locally administered, "SIM" */
         memcpy(s_cfg.ble_obd_mac, fake_mac, 6);
@@ -121,26 +79,8 @@ esp_err_t nvs_cfg_set(const nvs_user_cfg_t *cfg)
     return 0;
 }
 
-int16_t nvs_chart_alarm_get(uint8_t item)
-{
-    ensure_defaults();
-    if (item >= 12) return 32767;
-    return s_chart_alarm[item];
-}
-
-void nvs_chart_alarm_set(uint8_t item, int16_t raw_threshold)
-{
-    ensure_defaults();
-    if (item >= 12) return;
-    s_chart_alarm[item] = raw_threshold;
-}
-
-uint8_t nvs_intro_enable_get(void)      { ensure_defaults(); return s_intro_enable; }
-void    nvs_intro_enable_set(uint8_t en){ ensure_defaults(); s_intro_enable = en; }
 uint8_t nvs_device_position_get(void)   { ensure_defaults(); return s_device_position; }
 void    nvs_device_position_set(uint8_t pos) { ensure_defaults(); s_device_position = pos; }
-uint8_t nvs_boot_mode_get(void)         { ensure_defaults(); return s_boot_mode; }
-void    nvs_boot_mode_set(uint8_t mode) { ensure_defaults(); s_boot_mode = mode; }
 
 const nvs_stat_t *nvs_stat_get(void)
 {

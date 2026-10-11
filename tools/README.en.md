@@ -3,7 +3,7 @@
 English | [简体中文](README.md)
 
 Host-side development/debug tooling; none of it takes part in compiling the
-firmware. The build-time exceptions are `gen_themes.py` (invoked by
+firmware. The build-time exceptions are `gen_assets.py` (invoked by
 `main/CMakeLists.txt` at CMake configure time) and `gen_bootmedia.py`
 (invoked during the firmware build). Quick
 reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts).
@@ -12,7 +12,8 @@ reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts
 
 | Script | Purpose |
 |--------|---------|
-| `gen_themes.py` | Compile-time theme codegen: `themes/registry.txt` + per-theme `theme.toml` → `ui_theme_generated.c` + `theme_assets/`. Runs automatically at CMake configure; `--check` verifies the checked-in artifacts are fresh (zero third-party deps) |
+| `gen_assets.py` | Image asset codegen: `assets_src/images/*.png` → `ui/JDM/assets/images{,_r240,_r466}/*.c` (multi-resolution). Runs automatically at CMake configure; `--check` verifies the checked-in artifacts are fresh |
+| `gen_jdm_fonts.py` | JDM font embedding: `ui-prototype/fonts/*.ttf` → `ui/JDM/assets/fonts/jdm_*.c/.h` (TinyTTF runtime rasterization). `--check` verifies freshness (zero third-party deps) |
 | `gen_bootmedia.py` | Compile-time factory boot-animation image: manifest + frame stream from `bootmedia/slot_a/` → raw-layout `bootmedia.bin` (manifest zero-padded to the 4 KB slot, frames concatenated at 0x1000; injects `binary_size` when missing). A manifest missing required keys fails the build instead of shipping a silent no-animation image |
 | `release.sh` | One-shot release: commit (**commit first** — the build tag's count is the git commit count) → `idf.py build` → push |
 | `sim_regress.py` | Simulator screenshot regression (Pillow): headless scenarios with a fixed seed + virtual clock, compared pixel-by-pixel against the `tests/goldens/` goldens. `--update-goldens` refreshes them after an intentional UI change. Called by the CI unit-sim job |
@@ -22,9 +23,6 @@ reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts
 | Script | Deps | Purpose |
 |--------|------|---------|
 | `make_boot_block.py` | ffmpeg + Pillow | Video → boot animation in `bootmedia/slot_a/` (`boot_block.bin/txt` + `boot.pcm`) |
-| `convert_rpm_flash.py` | Pillow | 3 PNGs → RPM alarm flash images `main/export_path/images/imgRpmFlash{1,2,3}.c` |
-| `theme_packer/pack_theme.py` | Pillow | Runtime theme directory → 4 MB `theme.bin` partition image (pushed to the device via app OTA) |
-| `gen_theme_store.py` | — | Rescan `theme_store/<id>/` and regenerate `catalog.json` (theme store index fetched by the app) |
 
 ## Debugging / PID hunting (no car required)
 

@@ -22,7 +22,6 @@ reads vehicle data, and renders a touch UI with LVGL.
 | [docs/FLASH.en.md](docs/FLASH.en.md) | **Flash & update** — partition table, USB flashing, App OTA with rollback |
 | [docs/APP_PROTOCOL.en.md](docs/APP_PROTOCOL.en.md) | **App integration protocol** — BLE services, WiFi HTTP API |
 | [docs/VEHICLES.en.md](docs/VEHICLES.en.md) | **Vehicle profiles** — all 17 built-in profiles, adding a new vehicle |
-| [docs/THEMES.en.md](docs/THEMES.en.md) | **Theming** — both theme systems, artwork specs, theme store |
 | [docs/TROUBLESHOOTING.en.md](docs/TROUBLESHOOTING.en.md) | **Troubleshooting** — no connection / no data, protocol auto-detection |
 | [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md) | **Development** — architecture, build config, tool scripts |
 | [CHANGELOG.en.md](CHANGELOG.en.md) | Changelog |
@@ -71,9 +70,8 @@ profiles are configured but some still need road testing.
   `SkyGauge-XXYY`), survives power cycles
 - **RPM warning (incl. linked mode)** — full-screen red flash past the
   threshold; in cluster mode the gauges light up in position order
-- **Two theme systems** — compiled-in TOML themes (colors/artwork) and a
-  runtime theme partition (custom page layouts), see
-  [docs/THEMES.en.md](docs/THEMES.en.md)
+- **JDM look** — ui/JDM implements the 16 gauge pages in the design language of
+  the MX-5 NC/JDM browser prototype (ui-prototype/), all code-drawn vectors
 - **Dual-path OTA** — the companion app pushes over BLE or a WiFi hotspot,
   SHA256-verified, with a 15-second boot self-check and automatic rollback
 - **Boot animation** — OFF / RACE / VIDEO modes; VIDEO plays a custom
@@ -104,8 +102,7 @@ idf.py -p PORT flash monitor
   Before building for a different board, pick the hardware version under
   `idf.py menuconfig → OBD DSP Configuration` (see
   [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md))
-- `bootmedia.bin` (boot animation) and the optional theme partition at
-  `0x620000` are not required to boot
+- `bootmedia.bin` (boot animation) is not required to boot
 - Full partition layout in [docs/FLASH.en.md](docs/FLASH.en.md); flash
   addresses are governed by [partitions.csv](partitions.csv)
 
@@ -115,15 +112,12 @@ idf.py -p PORT flash monitor
 main/
 ├── app_main.c          # Entry point: hardware, LVGL, BLE and task startup
 ├── app_obd_dsp/        # Application: OBD cache, vehicle profiles, OTA, boot media, device identity
-├── bsp_obd_dsp/        # Board support: ELM327 BLE client, ESP-NOW, LCD/touch/IO expander, NVS, RS485
-├── export_path/        # LVGL UI (SquareLine export): 20+ screens, fonts, images
-└── theme_engine/       # Runtime theme loader (theme_0 partition)
-themes/                 # Compiled-theme sources (TOML manifests + artwork)
-theme_store/            # Packed theme binaries and catalog (distribution)
+└── bsp_obd_dsp/        # Board support: ELM327 BLE client, ESP-NOW, LCD/touch/IO expander, NVS, RS485
+ui/JDM/                 # LVGL UI (JDM design language): core framework + reusable widgets + gauge pages
 bootmedia/              # Boot animation sources
 simulator/              # PC UI simulator (SDL2; runs the firmware UI sources unmodified)
 ui-prototype/           # MX-5 NC/JDM browser UI prototype (HTML/CSS/SVG)
-tools/                  # Helper scripts (theme codegen, packing, PID hunting)
+tools/                  # Helper scripts (asset/font codegen, packing, PID hunting)
 model/                  # 3D-printable models (housing, pods, brackets)
 docs/                   # Documentation (see index above)
 partitions.csv          # Flash partition table (16MB)

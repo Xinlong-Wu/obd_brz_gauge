@@ -10,10 +10,10 @@
  * SW renderer converts them at draw time, so the display itself runs NATIVE
  * RGB565 and the SDL blit needs no swapping.
  *
- * Widget set matches what main/export_path actually instantiates:
- * arc/bar/button/canvas/chart/image/label/list/roller/slider/spinner (+obj)
- * plus the in-tree lv_meter port (main/ui_widgets/lv_meter, config-free).
- * Everything else stays off so accidental usage fails loudly at compile time. */
+ * Widget set matches what ui/JDM actually instantiates:
+ * arc/bar/button/canvas/image/label/line (+obj). Fonts are TinyTTF-runtime
+ * (ui/JDM/core/jdm_fonts.c). Everything else stays off so accidental usage
+ * fails loudly at compile time. */
 
 /* Memory / string / sprintf: plain libc on PC. */
 #define LV_USE_STDLIB_MALLOC LV_STDLIB_CLIB
@@ -32,7 +32,7 @@
 /* Timings matching the firmware sdkconfig. */
 #define LV_DEF_REFR_PERIOD 16
 
-/* Fonts (firmware set; the UI mostly uses its own FontTypoder fonts). */
+/* Fonts (firmware set; the UI mostly uses its own JDM TinyTTF fonts). */
 #define LV_FONT_MONTSERRAT_12 1
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_16 1
@@ -42,33 +42,18 @@
 #define LV_FONT_DEFAULT &lv_font_montserrat_16
 #define LV_FONT_FMT_TXT_LARGE 1
 
-/* Extra libs: FontTypoder 八档由 TinyTTF 运行时渲染(main/ui_fonts)。
+/* Extra libs: JDM 字体由 TinyTTF 运行时渲染(ui/JDM/core/jdm_fonts.c)。
  * FILE_SUPPORT 保持关(create_data 直读 rodata),cache 走默认 128 字形。 */
 #define LV_USE_TINY_TTF 1
 
-/* Widgets used by main/export_path. */
+/* Widgets used by ui/JDM. */
 #define LV_USE_ARC 1
 #define LV_USE_BAR 1
 #define LV_USE_BUTTON 1
 #define LV_USE_CANVAS 1
-#define LV_USE_CHART 1
 #define LV_USE_IMAGE 1
 #define LV_USE_LABEL 1
 #define LV_USE_LINE 1
-#define LV_USE_LIST 1
-#define LV_USE_ROLLER 1
-#define LV_USE_SLIDER 1
-#define LV_USE_SPINNER 1
-
-/* Not instantiated by any screen, but ui_helpers.c (SquareLine-generated
- * generic helpers) references dropdown/textarea/keyboard/spinbox — the
- * firmware enables all widgets, and so do we. Keyboard/textarea need
- * buttonmatrix internally. */
-#define LV_USE_DROPDOWN 1
-#define LV_USE_TEXTAREA 1
-#define LV_USE_KEYBOARD 1
-#define LV_USE_SPINBOX 1
-#define LV_USE_BUTTONMATRIX 1
 
 /* Simulator-panel widgets (not used by the firmware UI, but by the second
  * LVGL display that renders the data-adjustment panel). */

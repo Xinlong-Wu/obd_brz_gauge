@@ -24,56 +24,24 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # 每个场景:sim 命令行 + 期望产出的截图文件名列表。
-# 公共参数:固定 seed、虚拟时钟、无面板、跳过开机动画 → 完全确定性。
-COMMON = ["--no-boot", "--no-panel", "--seed", "42", "--clock", "virtual"]
+# 公共参数:固定 seed、虚拟时钟、无面板 → 完全确定性。
+# splash 停 1.2s = 240 虚拟帧;首场景帧数须 > 240 才落到导航页。
+COMMON = ["--no-panel", "--seed", "42", "--clock", "virtual"]
 SCENARIOS = [
-    # 默认页(TEMP)在点火/热机阶段的默认外观
-    ("boot_default", COMMON + ["--bound", "--frames", "500",
-                               "--screenshot", "{out}/boot_default.bmp"],
-     ["boot_default.bmp"]),
-    # 三个编译期主题槽位
-    ("theme_slot_amber", COMMON + ["--bound", "--theme-slot", "1", "--frames", "500",
-                                   "--screenshot", "{out}/theme_slot_amber.bmp"],
-     ["theme_slot_amber.bmp"]),
-    ("theme_slot_ocean", COMMON + ["--bound", "--theme-slot", "2", "--frames", "500",
-                                   "--screenshot", "{out}/theme_slot_ocean.bmp"],
-     ["theme_slot_ocean.bmp"]),
-    # 运行时主题(theme.bin 伪分区)
-    ("theme_runtime_boost_oil", COMMON + ["--bound",
-                                          "--theme", "theme_store/boost_oil_example/theme.bin",
-                                          "--frames", "500",
-                                          "--screenshot", "{out}/theme_runtime_boost_oil.bmp"],
-     ["theme_runtime_boost_oil.bmp"]),
-    # 默认开机路径:BLE 扫描页(2 台假适配器已出现)
-    ("ble_scan_page", COMMON + ["--frames", "700",
-                                "--screenshot", "{out}/ble_scan_page.bmp"],
-     ["ble_scan_page.bmp"]),
-    # 从表配对入口(FIND MASTER 列表)
-    ("slave_role", COMMON + ["--role", "slave", "--frames", "700",
-                             "--screenshot", "{out}/slave_role.bmp"],
-     ["slave_role.bmp"]),
-    # v2 组件编排主题(先打包 themes/example_v2_component 再预览)
-    ("theme_v2_component", COMMON + ["--bound",
-                                     "--theme", "{workdir}/v2demo.bin",
-                                     "--frames", "600",
-                                     "--screenshot", "{out}/theme_v2_component.bmp"],
-     ["theme_v2_component.bmp"]),
-    # 整环巡览:8 次交替滑动,每页一张
-    ("tour", COMMON + ["--bound", "--frames", "0", "--tour", "8",
-                       "--shots-dir", "{out}"],
-     ["tour_%03d.bmp" % i for i in range(8)]),
-    # 脚本化点击:点进设置页滚轮(交互路径冒烟)
-    ("tap_settings", COMMON + ["--bound", "--tap", "180,180,400", "--frames", "900",
-                               "--screenshot", "{out}/tap_settings.bmp"],
-     ["tap_settings.bmp"]),
+    # JDM 骨架首页(splash 已过,导航占位页 + shell)
+    ("jdm_boot", COMMON + ["--frames", "500",
+                           "--screenshot", "{out}/jdm_boot.bmp"],
+     ["jdm_boot.bmp"]),
+    # splash 本身(字体/face 底/标题的长期回归门槛)
+    ("jdm_splash", COMMON + ["--frames", "200",
+                             "--screenshot", "{out}/jdm_splash.bmp"],
+     ["jdm_splash.bmp"]),
     # 非 360 渲染分辨率(720 母版编译期缩放的长期回归门槛):
     # WS128 @240 原生 / WS175 @466 原生;--ui-res 模拟 CONFIG_OBD_UI_RENDER_RES
-    ("render_240", COMMON + ["--bound", "--no-panel", "--ui-res", "240",
-                             "--frames", "500",
+    ("render_240", COMMON + ["--ui-res", "240", "--frames", "500",
                              "--screenshot", "{out}/render_240.bmp"],
      ["render_240.bmp"]),
-    ("render_466", COMMON + ["--bound", "--no-panel", "--ui-res", "466",
-                             "--frames", "500",
+    ("render_466", COMMON + ["--ui-res", "466", "--frames", "500",
                              "--screenshot", "{out}/render_466.bmp"],
      ["render_466.bmp"]),
 ]
@@ -159,16 +127,6 @@ def main():
         shutil.rmtree(args.workdir)
     os.makedirs(args.workdir)
 
-    # v2 组件主题场景依赖打包产物:先离线打包(与固件同一 packer)
-    v2bin = os.path.join(args.workdir, "v2demo.bin")
-    pack = subprocess.run(
-        [sys.executable,
-         os.path.join(REPO_ROOT, "tools", "theme_packer", "pack_theme.py"),
-         os.path.join(REPO_ROOT, "themes", "example_v2_component"), v2bin],
-        cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    if pack.returncode != 0:
-        print("theme packer failed:\n%s" % pack.stderr.decode(errors="replace")[-400:])
-        return 2
     if args.update_goldens:
         os.makedirs(args.goldens, exist_ok=True)
 

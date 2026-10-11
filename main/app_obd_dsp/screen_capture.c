@@ -19,7 +19,7 @@
 #include "lvgl.h"
 
 #include "app_obd_dsp/screen_capture.h"
-#include "export_path/ui_res.h"
+#include "core/jdm_geo.h"
 
 static const char *TAG = "screen_capture";
 

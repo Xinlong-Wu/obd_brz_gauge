@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "export_path/ui.h"
 #include "app_obd_dsp/vehicle_profiles.h"
 #include "espnow_link.h"   // ESPNOW_ROLE_* (device_role default / bounds)
 #include "nvs_error_log_logic.h"
@@ -18,10 +17,7 @@
 #define TAG                   "nvs_storage"
 #define NS_CFG                "cfg"
 #define KEY_CFG               "settings"
-#define KEY_CHART_ALARM       "chartalarm"
-#define CHART_ALARM_N         12   // = DISP_ITEM_COUNT (must stay in sync with disp_item_t in ui.c)
-#define CHART_ALARM_OFF       32767 // "off" sentinel for alarm thresholds (unreachable, avoids false alarms)
-#define KEY_MG_EXTRA          "mgextra"   // multi-gauge boot animation settings
+#define KEY_MG_EXTRA          "mgextra"   // multi-gauge settings (legacy layout kept for blob compat)
 #define KEY_CFG_VERSION       "cfgver"    // config version (missing = v0)
 #define CFG_VERSION_CURRENT   3           // current version; bump on field add/semantic change (migration in nvs_storage_init)
 #define NS_DIAG               "diag"      // diagnostics namespace
@@ -29,38 +25,31 @@
 
 static nvs_user_cfg_t s_cfg =   {
                         .protocol = 0, // OBD protocol select: 0=auto, 1~9=fixed, default auto
-                        .theme_cfg.theme = 0,// UI theme index (0=DEFAULT, registry in ui_theme.c)
-                        .theme_cfg.user_theme_domiant_color = COLOR_DOMIANT_PINK,// legacy, unused (kept for struct layout)
-                        .theme_cfg.user_theme_secondary_color = COLOR_SECONDARY_PINK,// legacy, unused
+                        .theme_cfg.theme = 0,// legacy, unused (JDM UI has no theme slots)
                         .ble_device_name = "", // empty = use default "OBDII"
-                        .temp_display_map = {0, 1, 2}, // CLT, IAT, OIL
-                        .info_display_map = {0, 2, 3, 4, 1}, // CLT, OIL, LOAD, TPS, IAT
+                        .temp_display_map = {0, 1, 2}, // legacy (old TEMP page), unused
+                        .info_display_map = {0, 2, 3, 4, 1}, // legacy (old INFO page), unused
                         .brake_temp_warn_c = 600,
                         .oil_pressure_warn_x10 = 80,
                         .device_role = ESPNOW_ROLE_STANDALONE, // new devices (no cfg in NVS) default to standalone (no WiFi/ESP-NOW); existing devices are overridden by load_blob
                         .rpm_warn_threshold = 6000,
                         .rpm_warn_anim_en = 0,
                         .rpm_warn_linked_en = 0,
+                        .brightness_night = 35, // JDM night brightness (0=unset → runtime default 35)
+                        .night_mode = 0,        // JDM night mode: 0=day, 1=night
                     };
 static nvs_stat_t     s_stat = {0};   // runtime-only stats, not persisted (reset every boot to save flash)
 static SemaphoreHandle_t s_mux;
 // Diagnostics error ring (persisted to NS_DIAG/KEY_ERR_LOG; logic in nvs_error_log_logic.h)
 static nvs_error_log_t s_errlog = { .version = NVS_ERROR_LOG_VERSION };
 
-// Per-item alarm thresholds (raw units), index = disp_item_t: CLT,IAT,OIL,LOD,TPS,RPM,SPD,BAT,OIP,BKT,BST
-// By default only oil pressure (8.0bar = x10 80) and brake temp (600°C = x10 6000) keep an alarm; the rest are off.
-static int16_t s_chart_alarm[CHART_ALARM_N] = {
-    CHART_ALARM_OFF, CHART_ALARM_OFF, CHART_ALARM_OFF, CHART_ALARM_OFF,
-    CHART_ALARM_OFF, CHART_ALARM_OFF, CHART_ALARM_OFF, CHART_ALARM_OFF,
-    80, 6000, CHART_ALARM_OFF
-};
-
-// Multi-gauge boot animation settings (separate blob):
-// intro_enable 0=OFF 1=RACE 2=VIDEO (the single boot_block flashed via the phone app; default)
+// Multi-gauge settings (separate blob; layout frozen — old devices have it in NVS):
+// intro_enable/boot_mode belong to removed UI features and are no longer read;
+// device_position is live (ESP-NOW presence packet).
 static struct __attribute__((packed)) {
-    uint8_t intro_enable;   // 0=OFF 1=RACE 2=VIDEO
-    uint8_t device_position; // 1/2/3
-    uint8_t boot_mode;      // 0=default animation, 1=custom image, 2=video
+    uint8_t intro_enable;   // legacy (boot animation, UI removed)
+    uint8_t device_position; // 1/2/3 (live)
+    uint8_t boot_mode;      // legacy (boot media selection, UI removed)
 } s_mg = { 2, 1, 0 };
 
 /* Forward declarations */
@@ -80,22 +69,13 @@ esp_err_t nvs_storage_init(void)
     load_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));
 
     // Mileage/trip stats are no longer persisted (see s_stat declaration); stay {0} and start fresh each boot.
-    {   // Chart alarm thresholds: load if present in NVS; otherwise keep static defaults (don't overwrite to 0).
-        nvs_handle_t h; size_t sz = sizeof(s_chart_alarm);
-        if (nvs_open(NS_CFG, NVS_READONLY, &h) == ESP_OK) {
-            nvs_get_blob(h, KEY_CHART_ALARM, s_chart_alarm, &sz);
-            nvs_close(h);
-        }
-    }
-    {   // Multi-gauge boot animation settings: same as above, load if present else keep defaults.
+    {   // Multi-gauge settings: load if present else keep defaults (device_position is live).
         nvs_handle_t h; size_t sz = sizeof(s_mg);
         if (nvs_open(NS_CFG, NVS_READONLY, &h) == ESP_OK) {
             nvs_get_blob(h, KEY_MG_EXTRA, &s_mg, &sz);
             nvs_close(h);
         }
         if (s_mg.device_position < 1 || s_mg.device_position > 3) s_mg.device_position = 1;
-        if (s_mg.intro_enable > 2) s_mg.intro_enable = 2;   // legacy REI/SHINJI/ASUKA (3/4) map to VIDEO (2)
-        if (s_mg.boot_mode > 2) s_mg.boot_mode = 0;
         ESP_LOGD("nvs", "mg loaded: intro=%u pos=%u boot=%u (blob_sz=%u)", s_mg.intro_enable, s_mg.device_position, s_mg.boot_mode, (unsigned)sz);
     }
     {   // Diagnostics error log: load (missing → load_blob writes the default), then sanitize
@@ -175,7 +155,7 @@ esp_err_t nvs_storage_init(void)
     if(vehicle_count > 0 && s_cfg.vehicle_profile_idx >= vehicle_count) s_cfg.vehicle_profile_idx = 0;
     if(s_cfg.brake_temp_warn_c < 10 || s_cfg.brake_temp_warn_c > 1200) s_cfg.brake_temp_warn_c = 600;
     if(s_cfg.oil_pressure_warn_x10 > 100) s_cfg.oil_pressure_warn_x10 = 80;
-    // 0=unset/legacy out-of-range -> default 6000; clamped here centrally so callers (ui.c / ui_ScreenPageRpmWarn.c) don't repeat the check
+    // 0=unset/legacy out-of-range -> default 6000; clamped here centrally so callers don't repeat the check
     if(s_cfg.rpm_warn_threshold < 1000) s_cfg.rpm_warn_threshold = 6000;
     // poll mode tier: 0=NORMAL 1=FAST 2=TURBO (0 is also the grow-default for old blobs)
     if(s_cfg.obd_poll_mode >= NVS_OBD_POLL_MODE_COUNT) s_cfg.obd_poll_mode = NVS_OBD_POLL_MODE_NORMAL;
@@ -264,37 +244,12 @@ esp_err_t nvs_cfg_set(const nvs_user_cfg_t *cfg)
     return save_blob(NS_CFG, KEY_CFG, &s_cfg, sizeof(s_cfg));
 }
 
-/* Chart alarm thresholds */
-int16_t nvs_chart_alarm_get(uint8_t item){
-    return (item < CHART_ALARM_N) ? s_chart_alarm[item] : CHART_ALARM_OFF;
-}
-void nvs_chart_alarm_set(uint8_t item, int16_t raw_threshold){
-    if(item >= CHART_ALARM_N) return;
-    if(s_chart_alarm[item] == raw_threshold) return;
-    s_chart_alarm[item] = raw_threshold;
-    save_blob(NS_CFG, KEY_CHART_ALARM, s_chart_alarm, sizeof(s_chart_alarm));
-}
-
-/* Multi-gauge boot animation settings */
-uint8_t nvs_intro_enable_get(void){ return s_mg.intro_enable; }
-void nvs_intro_enable_set(uint8_t en){
-    if(en > 4) return;
-    if(s_mg.intro_enable == en) return;
-    s_mg.intro_enable = en;
-    save_blob(NS_CFG, KEY_MG_EXTRA, &s_mg, sizeof(s_mg));
-}
+/* Multi-gauge settings */
 uint8_t nvs_device_position_get(void){ return s_mg.device_position; }
 void nvs_device_position_set(uint8_t pos){
     if(pos < 1 || pos > 3) return;
     if(s_mg.device_position == pos) return;
     s_mg.device_position = pos;
-    save_blob(NS_CFG, KEY_MG_EXTRA, &s_mg, sizeof(s_mg));
-}
-uint8_t nvs_boot_mode_get(void){ return s_mg.boot_mode; }
-void nvs_boot_mode_set(uint8_t mode){
-    if(mode > 2) return;
-    if(s_mg.boot_mode == mode) return;
-    s_mg.boot_mode = mode;
     save_blob(NS_CFG, KEY_MG_EXTRA, &s_mg, sizeof(s_mg));
 }
 

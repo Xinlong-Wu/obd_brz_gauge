@@ -6,10 +6,10 @@
 //  Producers (ESP-NOW callback / BLE callback): app_event_send()
 //  Consumers (LVGL task / poll task):           app_event_recv()
 //
-//  Migration plan:
-//    1. ESP-NOW recv → ui_showroom_set_page_from_sync(): change to app_event_send()
-//    2. BLE disconnect → directly modifying s_connected: change to app_event_send()
-//    3. Handle all events via app_event_recv() inside the LVGL task my_timerMain
+//  JDM UI note: gauge pages read obd_data_cache directly and poll BLE state,
+//  so most legacy events have no consumer right now. The queue keeps running
+//  (send is non-blocking and drops when full) and stays available for future
+//  pages that need push-style updates.
 // ================================================================
 
 #include <stdint.h>

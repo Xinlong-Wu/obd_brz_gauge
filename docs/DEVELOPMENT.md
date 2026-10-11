@@ -2,7 +2,7 @@
 
 [English](DEVELOPMENT.en.md) | 简体中文
 
-改车型看 [VEHICLES.md](VEHICLES.md)，改主题看 [THEMES.md](THEMES.md)，
+改车型看 [VEHICLES.md](VEHICLES.md)，
 烧录升级看 [FLASH.md](FLASH.md)，App 对接协议看 [APP_PROTOCOL.md](APP_PROTOCOL.md)。
 
 ## 代码架构
