@@ -4,6 +4,8 @@
 //  温度柱(轨道+红区刻度)+ 右侧主读数 + 状态字;"120"/"60" 端标。
 // ================================================================
 
+#include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_geo.h"
@@ -20,6 +22,7 @@
 static jdm_readout_t s_ro;
 static lv_obj_t *s_thermal;
 static lv_obj_t *s_status;
+static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *page)
 {
@@ -34,6 +37,8 @@ static void create(lv_obj_t *page)
     s_status = jdm_text(page, 420, 530, "WAITING", JDM_FONT_LABEL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     jdm_text(page, 112, 208, "120", JDM_FONT_SUPPORT, JDM_ROLE_RED, JDM_TEXT_MIDDLE);
     jdm_text(page, 112, 480, "60", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+
+    jdm_alert_create(page, 0, &s_alert);
 }
 
 static void update(void)
@@ -50,6 +55,7 @@ static void update(void)
         snprintf(buf, sizeof(buf), "\xE2\x80\x94");
     }
     jdm_readout_set_value(&s_ro, buf);
+    jdm_readout_set_warning(&s_ro, valid && raw >= JDM_ALERTS_CLT_HOT);
 
     if (!valid) {
         lv_label_set_text(s_status, "WAITING");
@@ -61,6 +67,15 @@ static void update(void)
         lv_label_set_text(s_status, "STABLE");
         lv_obj_set_style_text_color(s_status, jdm_color(JDM_ROLE_GREEN), 0);
     }
+
+    jdm_alert_item_t item;
+    int n = 0;
+    const char *reason = NULL;
+    if (valid) {
+        jdm_alert_level_t lv = jdm_alerts_logic_clt(raw, &reason);
+        n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
+    }
+    jdm_alert_set(&s_alert, &item, n);
 }
 
 const jdm_page_t page_coolant = {"coolant", create, update, 33};

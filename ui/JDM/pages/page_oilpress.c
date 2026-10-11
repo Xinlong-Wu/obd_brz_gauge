@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -26,6 +27,7 @@ static lv_obj_t *s_arc;
 static lv_obj_t *s_needle;
 static jdm_readout_t s_ro;
 static lv_obj_t *s_status;
+static jdm_alert_widgets_t s_alert;
 
 #define PCX 220   // 表盘圆心(母版)
 #define PCY 355
@@ -47,16 +49,9 @@ static void create(lv_obj_t *page)
     lv_arc_set_bg_angles(track, 130, 390);
     lv_obj_clear_flag(track, LV_OBJ_FLAG_CLICKABLE);
 
-    // 刻度:130° 起每 13° 共 21 根,w3,轨道外缘 r157..180
-    for (int i = 0; i <= 20; i++) {
-        jdm_draw_tick(page, PCX, PCY, 157, 180, 130 + i * 13, 3, JDM_ROLE_LINE);
-    }
-    // 标签 0..6(内圈 r132)
-    for (int v = 0; v <= 6; v++) {
-        jdm_pt_t p = jdm_draw_polar(PCX, PCY, 132, 130 + v * 260 / 6);
-        char txt[4];
-        snprintf(txt, sizeof(txt), "%d", v);
-        jdm_text(page, p.x, p.y - 12, txt, JDM_FONT_LABEL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    // 刻度:130° 起每 10.83°(260/24)共 25 根,w3,轨道外缘 r157..180
+    for (int i = 0; i <= 24; i++) {
+        jdm_draw_tick(page, PCX, PCY, 157, 180, 130 + i * 260 / 24, 3, JDM_ROLE_LINE);
     }
 
     s_arc = jdm_arc_create(page, PCX, PCY, 160, 8);
@@ -69,6 +64,7 @@ static void create(lv_obj_t *page)
     jdm_readout_set_unit(&s_ro, "bar");
 
     s_status = jdm_status_text_create(page, 520, 540, "WAITING");
+    jdm_alert_create(page, 0, &s_alert);
 }
 
 static void update(void)
@@ -95,6 +91,16 @@ static void update(void)
     } else {
         jdm_status_text_set(s_status, "STABLE", JDM_STATUS_NORMAL);
     }
+
+    jdm_alert_item_t item;
+    int n = 0;
+    const char *reason = NULL;
+    if (valid) {
+        jdm_alert_level_t lv = jdm_alerts_logic_oilp(raw, &reason);
+        n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
+    }
+    jdm_readout_set_warning(&s_ro, n > 0);
+    jdm_alert_set(&s_alert, &item, n);
 }
 
 const jdm_page_t page_oilpress = {"oilpress", create, update, 33};

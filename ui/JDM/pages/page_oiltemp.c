@@ -5,6 +5,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -39,21 +40,22 @@ static void create(lv_obj_t *page)
     lv_arc_set_bg_angles(track, 135, 405);
     lv_obj_clear_flag(track, LV_OBJ_FLAG_CLICKABLE);
 
-    // 刻度:135° 起每 27° 共 11 根,major(每 5 根,= 40/90/140°C)w4;
-    // ≥110°C(末 3 根)红,其余 line 色
-    for (int i = 0; i <= 10; i++) {
-        int deg = 135 + i * 27;
+    // 刻度:135° 起每 9° 共 31 根,外端固定 r260;major(每 5 根)向内伸至
+    // r243 w4,minor r253..260 w2;≥130°C(末 4 根)红,其余 line 色
+    for (int i = 0; i <= 30; i++) {
+        int deg = 135 + i * 9;
         bool major = (i % 5 == 0);
-        jdm_color_role_t c = (i >= 8) ? JDM_ROLE_RED : JDM_ROLE_LINE;
-        jdm_draw_tick(page, 360, 360, 250, major ? 262 : 258, deg, major ? 4 : 2, c);
+        int32_t r1 = major ? 243 : 253;
+        jdm_color_role_t c = (i >= 27) ? JDM_ROLE_RED : JDM_ROLE_LINE;
+        jdm_draw_tick(page, 360, 360, r1, 260, deg, major ? 4 : 2, c);
     }
-    // 标签 40/90/140(内圈 r214)
+    // 标签 40/90/140(内圈 r214,support 号)
     static const struct { int deg; const char *txt; } lbls[] = {
         {135, "40"}, {270, "90"}, {405, "140"},
     };
-    for (unsigned i = 0; i < 3; i++) {
+    for (unsigned i = 0; i < sizeof(lbls) / sizeof(lbls[0]); i++) {
         jdm_pt_t p = jdm_draw_polar(360, 360, 214, lbls[i].deg);
-        jdm_text(page, p.x, p.y - 12, lbls[i].txt, JDM_FONT_LABEL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+        jdm_text(page, p.x, p.y - 12, lbls[i].txt, JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     }
 
     s_arc = jdm_arc_create(page, 360, 360, 246, 6);
@@ -98,6 +100,16 @@ static void update(void)
     } else {
         jdm_status_text_set(s_status, "WARM / STABLE", JDM_STATUS_NORMAL);
     }
+
+    jdm_alert_item_t item;
+    int n = 0;
+    const char *reason = NULL;
+    if (valid) {
+        jdm_alert_level_t lv = jdm_alerts_logic_oil(raw, &reason);
+        n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
+    }
+    jdm_readout_set_warning(&s_ro, n > 0);
+    jdm_alert_set(&s_alert, &item, n);
 }
 
 const jdm_page_t page_oiltemp = {"oiltemp", create, update, 33};

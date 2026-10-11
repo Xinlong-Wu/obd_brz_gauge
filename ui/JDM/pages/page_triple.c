@@ -5,6 +5,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -89,6 +90,22 @@ static void update(void)
     jdm_readout_set_value(&s_oil_ro, buf);
     jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_OILP, press, press_ok);
     jdm_readout_set_value(&s_press_ro, buf);
+
+    // 报警:增压 / 油温 / 油压(critical 优先;断连抑制)
+    jdm_alert_item_t items[3];
+    int n = 0;
+    const char *reason = NULL;
+    jdm_alert_level_t lv;
+    lv = boost_ok ? jdm_alerts_logic_boost(boost, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+    jdm_readout_set_warning(&s_boost_ro, lv != JDM_ALERT_NONE);
+    lv = oil_ok ? jdm_alerts_logic_oil(oil, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+    jdm_readout_set_warning(&s_oil_ro, lv != JDM_ALERT_NONE);
+    lv = press_ok ? jdm_alerts_logic_oilp(press, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+    jdm_readout_set_warning(&s_press_ro, lv != JDM_ALERT_NONE);
+    jdm_alert_set(&s_alert, items, n);
 }
 
 const jdm_page_t page_triple = {"triple", create, update, 33};

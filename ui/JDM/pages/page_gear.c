@@ -5,6 +5,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_geo.h"
@@ -24,6 +25,7 @@ static lv_obj_t *s_rpm_text;
 static lv_obj_t *s_oil_text;
 static lv_obj_t *s_press_text;
 static lv_obj_t *s_wait_text;
+static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *page)
 {
@@ -40,8 +42,7 @@ static void create(lv_obj_t *page)
     lv_obj_set_hidden(s_oil_text, true);
     lv_obj_set_hidden(s_press_text, true);
 
-    jdm_alert_widgets_t alert;
-    jdm_alert_create(page, 590, &alert);
+    jdm_alert_create(page, 590, &s_alert);
 }
 
 static void set_texts(int32_t oil, bool oil_ok, int32_t press, bool press_ok)
@@ -87,7 +88,13 @@ static void update(void)
 
     char buf[24];
     if (conn && rpm_ok) {
-        snprintf(buf, sizeof(buf), "%d RPM", (int)rpm);
+        // 千分位(原型 toLocaleString('en-US'),如 4,800 RPM)
+        int v = (int)rpm;
+        if (v >= 1000 && v < 1000000) {
+            snprintf(buf, sizeof(buf), "%d,%03d RPM", v / 1000, v % 1000);
+        } else {
+            snprintf(buf, sizeof(buf), "%d RPM", v);
+        }
         lv_label_set_text(s_rpm_text, buf);
     } else {
         lv_label_set_text(s_rpm_text, "RPM");
@@ -99,6 +106,30 @@ static void update(void)
     if (conn) {
         set_texts(oil, oil_ok, press, press_ok);
     }
+
+    // 报警:转速 / 油温 / 油压(critical 优先;断连抑制)
+    jdm_alert_item_t items[3];
+    int n = 0;
+    const char *reason = NULL;
+    if (conn && rpm_ok) {
+        jdm_alert_level_t lv = jdm_alerts_logic_rpm(rpm, &reason);
+        n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+        lv_obj_set_style_text_color(s_rpm_text,
+                                    jdm_color(lv == JDM_ALERT_NONE ? JDM_ROLE_MUTED
+                                              : lv == JDM_ALERT_ADVISORY ? JDM_ROLE_AMBER
+                                              : JDM_ROLE_RED), 0);
+    } else {
+        lv_obj_set_style_text_color(s_rpm_text, jdm_color(JDM_ROLE_MUTED), 0);
+    }
+    if (conn && oil_ok) {
+        jdm_alert_level_t lv = jdm_alerts_logic_oil(oil, &reason);
+        n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+    }
+    if (conn && press_ok) {
+        jdm_alert_level_t lv = jdm_alerts_logic_oilp(press, &reason);
+        n = jdm_alerts_logic_push(items, n, 3, reason, lv);
+    }
+    jdm_alert_set(&s_alert, items, n);
 }
 
 const jdm_page_t page_gear = {"gear", create, update, 33};

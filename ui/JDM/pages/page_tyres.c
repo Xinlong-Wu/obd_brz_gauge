@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -42,8 +43,11 @@ static struct {
     lv_obj_t *name;
     lv_obj_t *pressure;
     lv_obj_t *temp;
+    lv_obj_t *warn;         // 异常警示横线(y+143,116×3)
     disp_item_t ch;
 } s_wheel[4];
+
+static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *page)
 {
@@ -90,16 +94,29 @@ static void create(lv_obj_t *page)
                                    JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
         s_wheel[i].pressure = jdm_text(page, wheels[i].x, wheels[i].y + 29, "--",
                                        JDM_FONT_TYRE, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
-        // 胎温通道 ZC6 未提供,数据源接入前不显示该行
-        s_wheel[i].temp = jdm_text(page, wheels[i].x, wheels[i].y + 112, "",
+        // 胎温通道 ZC6 未提供,单位行先显示 bar(原型格式 "bar / 35°C")
+        s_wheel[i].temp = jdm_text(page, wheels[i].x, wheels[i].y + 112, "bar",
                                    JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+        // 异常警示横线(原型 y+143,116×3;初始隐藏)
+        jdm_pt_t seg[2] = {{wheels[i].x - 58, wheels[i].y + 143},
+                           {wheels[i].x + 58, wheels[i].y + 143}};
+        lv_obj_t *w = jdm_draw_poly(page, seg, 2, 3, JDM_ROLE_RED);
+        lv_obj_set_hidden(w, true);
+        s_wheel[i].warn = w;
     }
+
+    jdm_alert_create(page, 610, &s_alert);
 }
 
 static void update(void)
 {
+    static const char *const pos[4] = {"FL", "FR", "RL", "RR"};
+    static char reasons[4][24];
+    jdm_alert_item_t alerts[4];
+    uint8_t n = 0;
     bool conn = jdm_conn_active();
     char buf[24];
+
     for (int i = 0; i < 4; i++) {
         int32_t raw = 0;
         bool ok = jdm_data_read_cache(s_wheel[i].ch, &raw) && conn;
@@ -109,7 +126,23 @@ static void update(void)
         } else {
             lv_label_set_text(s_wheel[i].pressure, "\xE2\x80\x94");
         }
+
+        // 阈值判定走共享逻辑(≤0.5 bar critical / ≥3.4 bar warning)
+        jdm_alert_level_t lv = ok ? jdm_alerts_logic_tyre(raw) : JDM_ALERT_NONE;
+        jdm_color_role_t ink = (lv == JDM_ALERT_CRITICAL) ? JDM_ROLE_RED
+                             : (lv == JDM_ALERT_WARNING) ? JDM_ROLE_AMBER
+                             : JDM_ROLE_MUTED;
+        lv_obj_set_style_text_color(s_wheel[i].name, jdm_color(ink), 0);
+        lv_obj_set_style_line_color(s_wheel[i].warn, jdm_color(ink), 0);
+        lv_obj_set_hidden(s_wheel[i].warn, lv == JDM_ALERT_NONE);
+
+        if (lv != JDM_ALERT_NONE) {
+            snprintf(reasons[i], sizeof(reasons[i]), "%s / %s", pos[i],
+                     (lv == JDM_ALERT_CRITICAL) ? "PRESS LOW" : "PRESS HIGH");
+            n = jdm_alerts_logic_push(alerts, n, 4, reasons[i], lv);
+        }
     }
+    jdm_alert_set(&s_alert, alerts, n);
 }
 
 const jdm_page_t page_tyres = {"tyres", create, update, 200};

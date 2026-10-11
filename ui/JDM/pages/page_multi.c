@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -136,6 +137,35 @@ static void update(void)
 
     jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, boost, boost_ok);
     lv_label_set_text(s_boost_big, buf);
+
+    // 报警:油压 / 油温 / 水温 / 电压 / 增压(critical 优先;断连抑制)
+    jdm_alert_item_t items[5];
+    int n = 0;
+    const char *reason = NULL;
+    jdm_alert_level_t lv;
+    lv = press_ok ? jdm_alerts_logic_oilp(press, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 5, reason, lv);
+    jdm_readout_set_warning(&s_press_ro, lv != JDM_ALERT_NONE);
+    lv = oil_ok ? jdm_alerts_logic_oil(oil, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 5, reason, lv);
+    jdm_readout_set_warning(&s_oil_ro, lv != JDM_ALERT_NONE);
+    lv = clt_ok ? jdm_alerts_logic_clt(clt, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 5, reason, lv);
+    jdm_readout_set_warning(&s_clt_ro, lv != JDM_ALERT_NONE);
+    lv = bat_ok ? jdm_alerts_logic_bat(bat, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 5, reason, lv);
+    jdm_readout_set_warning(&s_bat_ro, lv != JDM_ALERT_NONE);
+    lv = boost_ok ? jdm_alerts_logic_boost(boost, &reason) : JDM_ALERT_NONE;
+    n = jdm_alerts_logic_push(items, n, 5, reason, lv);
+    jdm_alert_set(&s_alert, items, n);
+
+    // 左中 BOOST 大值:报警变红,标签换 "BOOST HIGH"(原型 ink/文案切换)
+    jdm_alert_level_t boost_lv = lv;
+    lv_obj_set_style_text_color(s_boost_big,
+                                jdm_color(boost_lv != JDM_ALERT_NONE ? JDM_ROLE_RED
+                                                                       : JDM_ROLE_AMBER), 0);
+    lv_label_set_text(s_boost_lbl,
+                      boost_lv != JDM_ALERT_NONE ? "BOOST HIGH" : "BOOST / bar");
 
     // 切换区:TPS → "38%",B.P → boost 两位小数
     if (s_show_tps) {

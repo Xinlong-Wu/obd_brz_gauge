@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_data_logic.h"
@@ -23,6 +24,7 @@
 static lv_obj_t *s_needle;
 static lv_obj_t *s_hub;
 static lv_obj_t *s_value;
+static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *dial)
 {
@@ -60,8 +62,7 @@ static void create(lv_obj_t *dial)
     s_value = jdm_text(dial, 360, 466, "--", JDM_FONT_ANALOG, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
     jdm_text(dial, 360, 579, "bar", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
-    jdm_alert_widgets_t alert;   // 页脚摘要占位(M2 暂无通道报警规则)
-    jdm_alert_create(dial, 0, &alert);
+    jdm_alert_create(dial, 0, &s_alert);
 }
 
 static void update(void)
@@ -81,8 +82,20 @@ static void update(void)
         jdm_needle_set_angle(s_needle, deg);
     }
     char buf[16];
-    jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, raw, conn && valid);
+    bool valid_conn = conn && valid;
+    jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, raw, valid_conn);
     lv_label_set_text(s_value, buf);
+
+    jdm_alert_item_t item;
+    int n = 0;
+    const char *reason = NULL;
+    if (valid_conn) {
+        jdm_alert_level_t lv = jdm_alerts_logic_boost(raw, &reason);
+        n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
+    }
+    lv_obj_set_style_text_color(s_value,
+                                jdm_color(n > 0 ? JDM_ROLE_RED : JDM_ROLE_TEXT), 0);
+    jdm_alert_set(&s_alert, &item, n);
 }
 
 const jdm_page_t page_analog = {"analog", create, update, 33};

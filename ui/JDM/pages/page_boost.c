@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -40,12 +41,25 @@ static void create(lv_obj_t *page)
     lv_arc_set_bg_angles(track, 135, 405);
     lv_obj_clear_flag(track, LV_OBJ_FLAG_CLICKABLE);
 
-    // 21 根放射刻度(135° 起每 13.5°;major 每 5 根加长;text 色,高压区红)
-    for (int i = 0; i <= 20; i++) {
-        int deg = 135 + i * 27 / 2;   // 13.5°
-        int32_t r2 = (i % 5 == 0) ? 294 : 278;
-        jdm_color_role_t c = (i >= 17) ? JDM_ROLE_RED : JDM_ROLE_TEXT;
-        jdm_draw_tick(page, 360, 365, 267, r2, deg, (i % 5 == 0) ? 4 : 2, c);
+    // 41 根放射刻度(135° 起每 6.75°,外端固定 r290):major 每 5 根向内
+    // 伸至 r263,minor r280..290;三段配色:≤+1.2bar text、+1.3..2.3 line、
+    // ≥2.4 红(与原型 art('boost') 一致)
+    for (int i = 0; i <= 40; i++) {
+        int deg = 135 + i * 27 / 4;   // 6.75°
+        bool major = (i % 5 == 0);
+        int32_t r1 = major ? 263 : 280;
+        jdm_color_role_t c = (i >= 34) ? JDM_ROLE_RED
+                           : (i >= 23) ? JDM_ROLE_LINE : JDM_ROLE_TEXT;
+        jdm_draw_tick(page, 360, 365, r1, 290, deg, major ? 4 : 2, c);
+    }
+    // 刻度数字 −1..3(support 号,muted;坐标取自 art.js)
+    static const struct { int32_t x, y; const char *txt; } lbls[] = {
+        {189, 545, "\xE2\x88\x92" "1"}, {136, 281, "0"}, {360, 132, "1"},
+        {584, 281, "2"}, {531, 545, "3"},
+    };
+    for (unsigned i = 0; i < sizeof(lbls) / sizeof(lbls[0]); i++) {
+        jdm_text(page, lbls[i].x, lbls[i].y, lbls[i].txt,
+                 JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     }
 
     s_arc = jdm_arc_create(page, 360, 365, 274, 12);
@@ -79,6 +93,18 @@ static void update(void)
     char buf[16];
     jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_BOOST, raw, valid);
     jdm_readout_set_value(&s_ro, buf);
+
+    jdm_alert_item_t item;
+    int n = 0;
+    const char *reason = NULL;
+    if (valid) {
+        jdm_alert_level_t lv = jdm_alerts_logic_boost(raw, &reason);
+        n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
+        jdm_readout_set_warning(&s_ro, lv != JDM_ALERT_NONE);
+    } else {
+        jdm_readout_set_warning(&s_ro, false);
+    }
+    jdm_alert_set(&s_alert, &item, n);
 }
 
 const jdm_page_t page_boost = {"boost", create, update, 33};
