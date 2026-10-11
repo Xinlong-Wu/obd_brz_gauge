@@ -31,7 +31,7 @@ static void create(lv_obj_t *dial)
     // 41 根刻度:major(i%10)r250 w5 / mid(i%5)r260 w3 / minor r269 w2;
     // i≥35(≈2.3bar 以上)红,mid 暖白,其余 line 色
     for (int i = 0; i <= 40; i++) {
-        int deg = 135 + i * 270 / 40;
+        float deg = 135.0f + i * 270.0f / 40.0f;
         bool major = (i % 10 == 0), mid = (i % 5 == 0);
         int32_t r2 = major ? 250 : mid ? 260 : 269;
         int32_t w = major ? 5 : mid ? 3 : 2;
@@ -78,7 +78,7 @@ static void update(void)
         lv_obj_set_hidden(s_needle, false);
         lv_obj_set_hidden(s_hub, true);
         // 量程 −1..3 bar:raw 0.1bar → bar×10;角度 = 135+(bar+1)/4×270
-        int deg = 135 + (raw + 10) * 270 / 40;   // raw 0.1bar,量程 −1..3 bar
+        float deg = 135.0f + (raw + 10) * 6.75f;   // raw 0.1bar,量程 −1..3 bar
         jdm_needle_set_angle(s_needle, deg);
     }
     char buf[16];

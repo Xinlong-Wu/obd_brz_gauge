@@ -34,7 +34,9 @@ void jdm_arc_configure(lv_obj_t *arc, int start_deg, int sweep_deg, int range)
     if (sweep_deg <= 0) sweep_deg = 1;
     if (range <= 0) range = 1;
     lv_arc_set_bg_angles(arc, start_deg, start_deg + sweep_deg);
-    lv_arc_set_range(arc, 0, sweep_deg);          // 以"度"为值域,精确到度
+    // 值域 = 数据域(非度域):LV_USE_FLOAT 下 LVGL 把 value→角度
+    // 做浮点映射,每个数据步进都有精确角度,无整度量化
+    lv_arc_set_range(arc, 0, range);
     lv_arc_set_value(arc, 0);
     lv_obj_set_user_data(arc, (void *)(intptr_t)range);   // 记住量程供 set 用
 }
@@ -43,10 +45,9 @@ void jdm_arc_set(lv_obj_t *arc, int value)
 {
     int range = (int)(intptr_t)lv_obj_get_user_data(arc);
     if (range <= 0) range = 1;
-    int sweep = lv_arc_get_max_value(arc);        // = sweep_deg
     if (value < 0) value = 0;
     if (value > range) value = range;
-    lv_arc_set_value(arc, value * sweep / range);
+    lv_arc_set_value(arc, value);
 }
 
 void jdm_arc_set_color(lv_obj_t *arc, jdm_color_role_t role)

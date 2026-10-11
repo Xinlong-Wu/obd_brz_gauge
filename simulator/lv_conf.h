@@ -44,6 +44,7 @@
 
 /* Extra libs: JDM 字体由 TinyTTF 运行时渲染(ui/JDM/core/jdm_fonts.c)。
  * FILE_SUPPORT 保持关(create_data 直读 rodata),cache 走默认 128 字形。 */
+#define LV_USE_FLOAT 1
 #define LV_USE_TINY_TTF 1
 
 /* Widgets used by ui/JDM. */

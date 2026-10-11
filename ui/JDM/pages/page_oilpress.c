@@ -51,7 +51,7 @@ static void create(lv_obj_t *page)
 
     // 刻度:130° 起每 10.83°(260/24)共 25 根,w3,轨道外缘 r157..180
     for (int i = 0; i <= 24; i++) {
-        jdm_draw_tick(page, PCX, PCY, 157, 180, 130 + i * 260 / 24, 3, JDM_ROLE_LINE);
+        jdm_draw_tick(page, PCX, PCY, 157, 180, 130.0f + i * 260.0f / 24.0f, 3, JDM_ROLE_LINE);
     }
 
     s_arc = jdm_arc_create(page, PCX, PCY, 160, 8);
@@ -74,7 +74,7 @@ static void update(void)
 
     if (valid) {
         jdm_arc_set(s_arc, raw);   // 0..60(0.1bar),量程内自动钳
-        int deg = 130 + raw * 260 / 60;
+        float deg = 130.0f + raw * 260.0f / 60.0f;   // 4.333°/0.1bar,无整度跳变
         jdm_needle_set_angle(s_needle, deg);
     } else {
         lv_obj_set_hidden(s_arc, true);

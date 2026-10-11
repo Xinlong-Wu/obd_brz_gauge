@@ -71,8 +71,8 @@ lv_obj_t *jdm_tach_create(lv_obj_t *parent)
 
     for (int i = 0; i < JDM_TACH_SEGMENTS; i++) {
         int seg_w = (i % 6 == 0) ? 18 : 10;
-        int start = jdm_data_logic_tach_segment_start(i);
-        int end = (i == JDM_TACH_SEGMENTS - 1) ? TACH_SWEEP_END : start + 3;
+        float start = jdm_data_logic_tach_segment_start(i);
+        float end = (i == JDM_TACH_SEGMENTS - 1) ? TACH_SWEEP_END : start + 3.0f;
         lv_obj_t *seg = lv_arc_create(s_segs);
         int32_t size = UIS(2 * TACH_RADIUS + seg_w);
         lv_obj_set_size(seg, size, size);

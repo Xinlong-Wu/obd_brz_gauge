@@ -33,6 +33,7 @@
 #define LV_FONT_FMT_TXT_LARGE 1
 
 /* Extra libs: JDM 字体由 TinyTTF 运行时渲染(ui/JDM/core/jdm_fonts.c)。 */
+#define LV_USE_FLOAT 1
 #define LV_USE_TINY_TTF 1
 
 /* Widgets used by ui/JDM. */

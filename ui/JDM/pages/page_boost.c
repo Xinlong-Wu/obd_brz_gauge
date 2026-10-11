@@ -46,7 +46,7 @@ static void create(lv_obj_t *page)
     // 伸至 r263,minor r280..290;三段配色:≤+1.2bar text、+1.3..2.3 line、
     // ≥2.4 红(与原型 art('boost') 一致)
     for (int i = 0; i <= 40; i++) {
-        int deg = 135 + i * 27 / 4;   // 6.75°
+        float deg = 135.0f + i * 27.0f / 4.0f;   // 6.75°
         bool major = (i % 5 == 0);
         int32_t r1 = major ? 263 : 280;
         jdm_color_role_t c = (i >= 34) ? JDM_ROLE_RED
@@ -90,8 +90,8 @@ static void update(void)
     bool valid = jdm_data_read_cache(DISP_ITEM_BOOST, &raw) && jdm_conn_active();
 
     if (valid) {
-        // 量程 −1..3 bar:deg = 135+(raw+10)*270/40(raw 0.1bar)
-        int deg = 135 + (raw + 10) * 270 / 40;
+        // 量程 −1..3 bar:deg = 135+(raw+10)*6.75(浮点,0.1bar 步进精确)
+        float deg = 135.0f + (raw + 10) * 6.75f;
         jdm_arc_set(s_arc, raw + 10);
         jdm_needle_set_angle(s_needle, deg);
     } else {

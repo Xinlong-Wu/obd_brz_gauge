@@ -82,10 +82,7 @@ static void update(void)
 
     if (valid) {
         // 40..140°C:弧 = (temp−40)/100×270
-        int pct = ((raw - 40) * 270) / 100;
-        if (pct < 0) pct = 0;
-        if (pct > 270) pct = 270;
-        jdm_arc_set(s_arc, pct);
+        jdm_arc_set(s_arc, raw - 40);   // 数据域 0..100,LVGL 浮点映射到角度
     } else {
         lv_obj_set_hidden(s_arc, true);
     }

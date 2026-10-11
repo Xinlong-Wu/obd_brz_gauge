@@ -55,6 +55,7 @@ MX-5 NC/JDM 视觉原型位于 `ui-prototype/`；后续原型修改与预览使�
 - 素材/字体可独立快速验证：`python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check`
 - 主机端三层验证（无需开发板）：单测 `ctest --test-dir tests/build -R '^test_'`、截图回归 `python3 tools/sim_regress.py`（有意改 UI 先 `--update-goldens`）、固件 Docker 构建；新代码遵循 `docs/CODE_STYLE.md`（纯逻辑抽 `*_logic.h` 配单测）
 - `sim_regress.py` **不自动构建**：改 UI 后先 `cmake --build simulator/build`（确认链接成功，别只 grep 输出）再跑回归——金图永远来自 `simulator/build/obd_gauge_sim` 现有二进制
+- 三端 LVGL 配置**无公共头需手工同步**：固件 `sdkconfig.defaults`（生成物 sdkconfig 不入库）、`simulator/lv_conf.h`、`tests/lv_conf.h`——改 LVGL 开关（如 LV_USE_FLOAT）三处一起改
 - `build/` 下的二进制是构建产物，普通源码改动不要碰
 - 没有实车/适配器时用 `tools/fake_elm327.py` 模拟 ELM327 调试
 

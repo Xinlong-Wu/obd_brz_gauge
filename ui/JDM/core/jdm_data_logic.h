@@ -55,12 +55,11 @@ static inline int jdm_data_logic_tach_lit(int32_t rpm)
     return (int)((rpm * JDM_TACH_SEGMENTS + JDM_TACH_RPM_MAX - 1) / JDM_TACH_RPM_MAX);
 }
 
-/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(度)。
- *  LVGL 弧角度为整数,四舍五入(而非截断)使节距 4/5° 交替、
- *  误差 ±0.5° 均匀分布,视觉等距;段末角恒 400°。 */
-static inline int jdm_data_logic_tach_segment_start(int i)
+/** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(浮点度,
+ *  精确 4.6429° 节距——LV_USE_FLOAT 下 lv_arc 角度为浮点);段末角恒 400°。 */
+static inline float jdm_data_logic_tach_segment_start(int i)
 {
-    return 140 + (i * 260 + JDM_TACH_SEGMENTS / 2) / JDM_TACH_SEGMENTS;
+    return 140.0f + (float)i * 260.0f / (float)JDM_TACH_SEGMENTS;
 }
 
 /** 第 i 段起始位置对应的转速(段色带判定用)。 */

@@ -20,13 +20,14 @@ typedef struct { int32_t x, y; } jdm_pt_t;
 lv_obj_t *jdm_draw_poly(lv_obj_t *parent, const jdm_pt_t *pts, int n,
                         int32_t width_master, jdm_color_role_t color);
 
-/** 极坐标刻度线:圆 (mcx,mcy) 从 r1 到 r2,角度 deg(度,0°=3 点钟顺时针)。 */
+/** 极坐标刻度线:圆 (mcx,mcy) 从 r1 到 r2,角度 deg(浮点度,0°=3 点钟
+ *  顺时针;LV_USE_FLOAT 下弧/线均支持亚度精度)。 */
 lv_obj_t *jdm_draw_tick(lv_obj_t *parent, int32_t mcx, int32_t mcy,
-                        int32_t r1, int32_t r2, int deg,
+                        int32_t r1, int32_t r2, float deg,
                         int32_t width_master, jdm_color_role_t color);
 
 /** 极坐标点(母版)。 */
-jdm_pt_t jdm_draw_polar(int32_t mcx, int32_t mcy, int32_t r, int deg);
+jdm_pt_t jdm_draw_polar(int32_t mcx, int32_t mcy, int32_t r, float deg);
 
 #ifdef __cplusplus
 }

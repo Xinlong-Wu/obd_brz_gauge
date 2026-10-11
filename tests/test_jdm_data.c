@@ -84,12 +84,13 @@ int main(void)
     TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(9000));  // 超转钳满
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(-100));
 
-    // ---- 纯逻辑:段角度几何(140° 起,扫 260°;四舍五入保证节距均匀) ----
-    TEST_ASSERT_EQ_INT(140, jdm_data_logic_tach_segment_start(0));
-    TEST_ASSERT_EQ_INT(168, jdm_data_logic_tach_segment_start(6));   // 27.86 → 四舍五入 28
-    TEST_ASSERT_EQ_INT(395, jdm_data_logic_tach_segment_start(55));  // 255.36 → 255
+    // ---- 纯逻辑:段角度几何(140° 起,扫 260°;浮点精确节距 4.6429°) ----
+    TEST_ASSERT_NEAR(140.0, jdm_data_logic_tach_segment_start(0), 0.01);
+    TEST_ASSERT_NEAR(167.857, jdm_data_logic_tach_segment_start(6), 0.01);
+    TEST_ASSERT_NEAR(395.357, jdm_data_logic_tach_segment_start(55), 0.01);
     for (int i = 1; i < 56; i++) {
         TEST_ASSERT(jdm_data_logic_tach_segment_start(i) >= jdm_data_logic_tach_segment_start(i - 1));
+        TEST_ASSERT_NEAR(4.6429, jdm_data_logic_tach_segment_start(i) - jdm_data_logic_tach_segment_start(i - 1), 0.01);
     }
 
     // ---- 纯逻辑:段色带(琥珀/红区以段起始转速对齐警戒区) ----

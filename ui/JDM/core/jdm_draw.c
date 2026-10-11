@@ -41,18 +41,18 @@ lv_obj_t *jdm_draw_poly(lv_obj_t *parent, const jdm_pt_t *pts_in, int n,
     return line_create(parent, pts, n, width_master, color);
 }
 
-jdm_pt_t jdm_draw_polar(int32_t mcx, int32_t mcy, int32_t r, int deg)
+jdm_pt_t jdm_draw_polar(int32_t mcx, int32_t mcy, int32_t r, float deg)
 {
-    float rad = (float)deg * 3.14159265f / 180.0f;
+    float rad = deg * 3.14159265f / 180.0f;
     jdm_pt_t p = {
-        .x = mcx + (int32_t)(r * cosf(rad)),
-        .y = mcy + (int32_t)(r * sinf(rad)),
+        .x = mcx + lroundf(r * cosf(rad)),
+        .y = mcy + lroundf(r * sinf(rad)),
     };
     return p;
 }
 
 lv_obj_t *jdm_draw_tick(lv_obj_t *parent, int32_t mcx, int32_t mcy,
-                        int32_t r1, int32_t r2, int deg,
+                        int32_t r1, int32_t r2, float deg,
                         int32_t width_master, jdm_color_role_t color)
 {
     jdm_pt_t pts[2] = {jdm_draw_polar(mcx, mcy, r1, deg),

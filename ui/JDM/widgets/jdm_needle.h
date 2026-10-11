@@ -17,8 +17,8 @@ extern "C" {
 lv_obj_t *jdm_needle_create_group(lv_obj_t *parent, int32_t mcx, int32_t mcy,
                                   int32_t mradius, jdm_color_role_t color);
 
-/** 设角度(度)。单对象;line 与轴心作为同一容器的子级。 */
-void jdm_needle_set_angle(lv_obj_t *needle_group, int angle_deg);
+/** 设角度(浮点度;脏检查精度 0.1°)。单对象;line 与轴心作为同一容器的子级。 */
+void jdm_needle_set_angle(lv_obj_t *needle_group, float angle_deg);
 
 #ifdef __cplusplus
 }
