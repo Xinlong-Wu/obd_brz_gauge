@@ -162,3 +162,36 @@ int16_t oil_formula_parse_resp(const oil_formula_t *f,
 3. **双字节公式**按大端组合：`value = data[byte] * 256 + data[byte+1]`
 4. **迁移状态**：`elm327_ble_client.c` 里的旧 switch/case 解析仍在运行，与数据表通过 `vehicle_profile_get_override()` 桥接，后续逐步迁移到通用解析器
 5. 找未知车型的私有 PID 可以用 [tools 里的伪 ELM327 挖掘流程](DEVELOPMENT.md#工具脚本)，不需要上车
+
+## 附录：私有 DID 挖掘记录（马自达 MX-5 NC，未实车验证）
+
+2026-10-12 用 `tools/one_shot.py`（`fake_elm327.py --probe access`）反推
+Car Scanner **马自达 profile** 的结果。下面的语义和解码式是 **profile 里定义的**，
+MX-5 NC 实车是否支持对应 DID 尚未验证——接真适配器后 `ATSH7E0` 再逐条发
+`22 XX XX` 即可核对，验证通过才允许写进 profile 代码。原始挖掘 CSV
+（probe_log / App 导出等）是会话产物，不入库。
+
+应答头 `7E0`（发动机 ECU，物理寻址）；公式记号与全文一致：
+A=响应第 1 数据字节，B=第 2 字节。单位为 profile 显示推定。
+
+| DID | profile 语义 | 解码式 | 备注 |
+|-----|-------------|--------|------|
+| `22 11 77` | MAF Volts（MAF 传感器电压）| `(A*256+B)/4096` V | |
+| `22 13 40` | Actual Pedal Pos（油门踏板）| `A*100/256` % | 与 ND 已验证的油温 DID `13 10` 同段 |
+| `22 14 10` | Injection pulse width（喷油脉宽）| `(A*256+B)/125` ms | |
+| `22 16 E1` | Wastegate Duty Cycle（废气阀占空比）| `A*100/256` % | 涡轮马自达（Speed3/MPS）语义，NC（NA）预计无此传感器 |
+| `22 17 23` | Boosted Air Temperature（增压空气温度）| `A*0.625-39.4` °C | 同上；系数来自 26 点拟合，profile 原式可能更整 |
+| `22 17 46` | Knock Retard（爆震修正）| `A/10` ° | |
+| `22 17 4F` | Actual AFR（实际空燃比）| `A*0.1148` | NA 车无宽氧，NC 预计不支持 |
+| `22 11 BD` | Transmission temperature（变速箱油温）| `(A*256+B)/16` °C | `7E1`（变速箱 ECU）有同 DID 镜像；AT 车型才有意义 |
+| `22 17 B3` | Transmission temperature（变速箱油温）| `A*0.9333-49.4` °C | 系数来自 21 点拟合（≈14/15），profile 原式待核；7E0/7E1 双应答 |
+| `22 1E 1C` | Transmission temperature（变速箱油温）| `(A*256+B)/16` °C | 同上 |
+
+备注：
+
+1. profile 里没有私有**发动机**油温——它走标准 `01 5C`，与现有通用/BRZ 档案一致；
+   NC 的油温可另与 ND 档案已验证的 `22 13 10` 对照实测。
+2. `Wastegate`/`Boosted Air` 两条是 Car Scanner 马自达库给增压车系（Speed3/MPS）
+   的，NC 为自然吸气，实测大概率 NO DATA——列在这里只为完整。
+3. 挖掘时 App 发的大量 `010C1` 式请求是「末位数字=期望应答数」的 ELM 合法语法，
+   `fake_elm327.py` 现已归一化处理（应答与注入都折到真身 PID 名下）。

@@ -182,3 +182,42 @@ int16_t oil_formula_parse_resp(const oil_formula_t *f,
 5. To discover private PIDs for an unknown car, use the
    [fake-ELM327 hunting workflow in the tools](DEVELOPMENT.en.md#tool-scripts) —
    no car needed
+
+## Appendix: private-DID mining record (Mazda MX-5 NC, not verified on the car)
+
+Result of reverse-engineering the Car Scanner **Mazda profile** on 2026-10-12
+with `tools/one_shot.py` (`fake_elm327.py --probe access`). The semantics and
+decode formulas below are what the **profile defines**; whether the MX-5 NC
+actually supports these DIDs is unverified — hook up a real adapter, send
+`ATSH7E0` then each `22 XX XX` to check, and only after verification may any
+of this go into profile code. The raw mining CSVs (probe log / app export)
+are session artifacts and are not committed.
+
+Responder header `7E0` (engine ECU, physical addressing); formula notation
+matches the rest of the doc: A = 1st data byte of the response, B = 2nd.
+Units are the profile's display units.
+
+| DID | Profile meaning | Decode | Notes |
+|-----|-----------------|--------|-------|
+| `22 11 77` | MAF Volts (MAF sensor voltage) | `(A*256+B)/4096` V | |
+| `22 13 40` | Actual Pedal Pos (accelerator pedal) | `A*100/256` % | Same DID range as the ND-verified oil-temp DID `13 10` |
+| `22 14 10` | Injection pulse width | `(A*256+B)/125` ms | |
+| `22 16 E1` | Wastegate Duty Cycle | `A*100/256` % | Turbo-Mazda (Speed3/MPS) semantics; the NA NC most likely lacks this sensor |
+| `22 17 23` | Boosted Air Temperature | `A*0.625-39.4` °C | Same; coefficients fitted from 26 points, the profile's original form is probably rounder |
+| `22 17 46` | Knock Retard | `A/10` ° | |
+| `22 17 4F` | Actual AFR | `A*0.1148` | NA cars have no wideband; the NC most likely doesn't support it |
+| `22 11 BD` | Transmission temperature | `(A*256+B)/16` °C | Mirrored on `7E1` (transmission ECU); only meaningful on AT cars |
+| `22 17 B3` | Transmission temperature | `A*0.9333-49.4` °C | Coefficients fitted from 21 points (≈14/15); profile's original form unverified; answered on both 7E0 and 7E1 |
+| `22 1E 1C` | Transmission temperature | `(A*256+B)/16` °C | Same |
+
+Notes:
+
+1. The profile has no private **engine** oil temp — it uses standard `01 5C`,
+   consistent with the existing generic/BRZ profiles; for the NC, compare
+   against the ND profile's verified `22 13 10` on the real car.
+2. The `Wastegate`/`Boosted Air` entries come from Car Scanner's Mazda
+   database for turbo models (Speed3/MPS); the NC is naturally aspirated and
+   will most likely answer NO DATA — listed for completeness only.
+3. The many `010C1`-style requests the app sends are legal ELM syntax
+   ("trailing digit = expected response count"); `fake_elm327.py` now
+   normalizes them (response and injection both fold into the base PID).
