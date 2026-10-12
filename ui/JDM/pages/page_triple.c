@@ -6,6 +6,7 @@
 
 #include "widgets/jdm_alert.h"
 #include "core/jdm_alerts_logic.h"
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -96,7 +97,7 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     jdm_alert_level_t lv;
-    lv = boost_ok ? jdm_alerts_logic_boost(boost, &reason) : JDM_ALERT_NONE;
+    lv = boost_ok ? jdm_alerts_logic_boost(boost, vehicle_profile_get_boost_cfg()->red_x10, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     jdm_readout_set_warning(&s_boost_ro, lv != JDM_ALERT_NONE);
     lv = oil_ok ? jdm_alerts_logic_oil(oil, &reason) : JDM_ALERT_NONE;

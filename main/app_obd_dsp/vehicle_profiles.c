@@ -517,3 +517,25 @@ const tach_cfg_t *vehicle_profile_get_tach_cfg(void)
     if (s_tach.shift_rpm >= s_tach.red_rpm) s_tach.shift_rpm = s_tach.red_rpm * 9 / 10;
     return &s_tach;
 }
+
+const boost_cfg_t *vehicle_profile_get_boost_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 min<dim<red≤max 的次序
+    static boost_cfg_t s_boost;
+    const boost_cfg_t d = VEHICLE_BOOST_CFG_DEFAULT;
+    const boost_cfg_t *p = &vehicle_profile_get_active()->boost;
+
+    s_boost.min_x10 = p->min_x10 ? p->min_x10 : d.min_x10;
+    s_boost.max_x10 = p->max_x10 ? p->max_x10 : d.max_x10;
+    if (s_boost.max_x10 <= s_boost.min_x10) {
+        s_boost = d;   // 量程倒挂,整体回退默认
+    } else {
+        s_boost.red_x10 = p->red_x10 ? p->red_x10 : d.red_x10;
+        if (s_boost.red_x10 > s_boost.max_x10) s_boost.red_x10 = s_boost.max_x10;
+        if (s_boost.red_x10 <= s_boost.min_x10) s_boost.red_x10 = s_boost.min_x10 + 1;
+        s_boost.dim_x10 = p->dim_x10 ? p->dim_x10 : d.dim_x10;
+        if (s_boost.dim_x10 <= s_boost.min_x10 || s_boost.dim_x10 >= s_boost.red_x10)
+            s_boost.dim_x10 = s_boost.min_x10 + (s_boost.red_x10 - s_boost.min_x10) / 2;
+    }
+    return &s_boost;
+}

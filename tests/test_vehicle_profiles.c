@@ -85,5 +85,15 @@ int main(void)
     TEST_ASSERT_EQ_INT(7000, tc->red_rpm);
     vehicle_profile_set_active(0);
 
+    // ---- 增压表配置:零字段回退默认(MX-5 NC) ----
+    const boost_cfg_t *bc = vehicle_profile_get_boost_cfg();
+    TEST_ASSERT(bc != NULL);
+    TEST_ASSERT_EQ_INT(-10, bc->min_x10);
+    TEST_ASSERT_EQ_INT(30, bc->max_x10);
+    TEST_ASSERT_EQ_INT(13, bc->dim_x10);
+    TEST_ASSERT_EQ_INT(24, bc->red_x10);
+    TEST_ASSERT(bc->min_x10 < bc->dim_x10 && bc->dim_x10 < bc->red_x10
+                && bc->red_x10 <= bc->max_x10);
+
     return TEST_RESULT();
 }

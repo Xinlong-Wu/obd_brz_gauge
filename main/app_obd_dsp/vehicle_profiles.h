@@ -63,6 +63,29 @@ _Static_assert(VEHICLE_TACH_RED_RPM_DEFAULT <= VEHICLE_TACH_RPM_MAX_DEFAULT,
 _Static_assert(VEHICLE_TACH_SHIFT_RPM_DEFAULT < VEHICLE_TACH_RED_RPM_DEFAULT,
                "tach shift prompt must precede the red zone");
 
+// Boost/vacuum gauge configuration (per vehicle; 0 = fall back to the
+// MX-5 NC defaults below). Values in 0.1 bar (e.g. 30 = 3.0 bar).
+// red_x10 doubles as the BOOST HIGH alarm threshold; dim_x10 is where
+// the scale ticks dim down approaching the red zone.
+typedef struct {
+    int16_t min_x10;   // dial low end (-10 = -1.0 bar vacuum)
+    int16_t max_x10;   // full scale (30 = 3.0 bar)
+    int16_t dim_x10;   // dimmed tick zone start (13 = 1.3 bar)
+    int16_t red_x10;   // red tick zone start = BOOST HIGH threshold (24 = 2.4 bar)
+} boost_cfg_t;
+
+#define VEHICLE_BOOST_MIN_DEFAULT   (-10)
+#define VEHICLE_BOOST_MAX_DEFAULT   30
+#define VEHICLE_BOOST_DIM_DEFAULT   13
+#define VEHICLE_BOOST_RED_DEFAULT   24
+#define VEHICLE_BOOST_CFG_DEFAULT { -10, 30, 13, 24 }
+_Static_assert(VEHICLE_BOOST_MIN_DEFAULT < VEHICLE_BOOST_DIM_DEFAULT,
+               "boost dim zone must follow the dial low end");
+_Static_assert(VEHICLE_BOOST_DIM_DEFAULT < VEHICLE_BOOST_RED_DEFAULT,
+               "boost dim zone must precede the red zone");
+_Static_assert(VEHICLE_BOOST_RED_DEFAULT <= VEHICLE_BOOST_MAX_DEFAULT,
+               "boost red zone must not exceed full scale");
+
 // Oil temp query strategy
 typedef struct {
     oil_temp_query_mode_t primary;     // preferred query mode
@@ -95,6 +118,7 @@ typedef struct {
     uint8_t poll_gap_ms;                 // poll slot interval (ms), 0=use the default OBD_POLL_SLOT_GAP_MS(30ms)
     bool can_broadcast_mode;             // true=read data by listening to CAN broadcast frames via ATMA (currently ZN/C6 CAN only), replacing standard OBD PID polling
     tach_cfg_t tach;                     // tachometer range/zones; zero fields fall back to VEHICLE_TACH_CFG_DEFAULT (MX-5 NC)
+    boost_cfg_t boost;                   // boost/vacuum gauge range/zones (0.1 bar); zero fields fall back to VEHICLE_BOOST_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -125,6 +149,10 @@ const vehicle_override_t *vehicle_profile_get_override(void);
 // Get the tachometer range/zone config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults; relations clamped)
 const tach_cfg_t *vehicle_profile_get_tach_cfg(void);
+
+// Get the boost/vacuum gauge config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults; relations clamped)
+const boost_cfg_t *vehicle_profile_get_boost_cfg(void);
 
 #ifdef __cplusplus
 }

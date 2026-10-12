@@ -6,6 +6,8 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "app_obd_dsp/vehicle_profiles.h"
+#include "widgets/jdm_alert.h"
 #include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
@@ -155,7 +157,7 @@ static void update(void)
     lv = bat_ok ? jdm_alerts_logic_bat(bat, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 5, reason, lv);
     jdm_readout_set_warning(&s_bat_ro, lv != JDM_ALERT_NONE);
-    lv = boost_ok ? jdm_alerts_logic_boost(boost, &reason) : JDM_ALERT_NONE;
+    lv = boost_ok ? jdm_alerts_logic_boost(boost, vehicle_profile_get_boost_cfg()->red_x10, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 5, reason, lv);
     jdm_alert_set(&s_alert, items, n);
 

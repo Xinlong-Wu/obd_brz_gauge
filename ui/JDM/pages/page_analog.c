@@ -9,6 +9,7 @@
 #include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "core/jdm_data_logic.h"
 #include "core/jdm_draw.h"
 #include "core/jdm_geo.h"
@@ -28,21 +29,33 @@ static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *dial)
 {
+    // 车型的量程/红区阈值(与 boost 页同源)
+    const boost_cfg_t *bc = vehicle_profile_get_boost_cfg();
+    int32_t v_lo = bc->min_x10, v_hi = bc->max_x10;
+    int32_t v_range = v_hi - v_lo;
+
     // 41 根刻度:major(i%10)r250 w5 / mid(i%5)r260 w3 / minor r269 w2;
-    // i≥35(≈2.3bar 以上)红,mid 暖白,其余 line 色
+    // 段起始压力 ≥ 红区阈值(红),mid 暖白,其余 line 色
     for (int i = 0; i <= 40; i++) {
         float deg = 135.0f + i * 270.0f / 40.0f;
         bool major = (i % 10 == 0), mid = (i % 5 == 0);
         int32_t r2 = major ? 250 : mid ? 260 : 269;
         int32_t w = major ? 5 : mid ? 3 : 2;
-        jdm_color_role_t c = (i >= 35) ? JDM_ROLE_RED : mid ? JDM_ROLE_TEXT : JDM_ROLE_LINE;
+        int32_t v = v_lo + (int32_t)((int64_t)i * v_range / 40);
+        jdm_color_role_t c = (v >= bc->red_x10) ? JDM_ROLE_RED
+                           : mid ? JDM_ROLE_TEXT : JDM_ROLE_LINE;
         jdm_draw_tick(dial, 360, 360, 280, r2, deg, w, c);
     }
-    // 数值标签 −1..3(内圈 r218,文字顶边 y−14)
-    for (int v = -1; v <= 3; v++) {
-        jdm_pt_t p = jdm_draw_polar(360, 360, 218, 135 + (v + 1) * 270 / 4);
-        char txt[4];
-        snprintf(txt, sizeof(txt), "%d", v);
+    // 数值标签:整 bar 刻度由量程推导(内圈 r218,文字顶边 y−14)
+    for (int32_t v10 = v_lo; v10 <= v_hi; v10 += 10) {
+        float deg = 135.0f + (v10 - v_lo) * 270.0f / v_range;
+        jdm_pt_t p = jdm_draw_polar(360, 360, 218, deg);
+        char txt[8];
+        if (v10 < 0) {
+            snprintf(txt, sizeof(txt), "\xE2\x88\x92" "%d", -v10 / 10);
+        } else {
+            snprintf(txt, sizeof(txt), "%d", v10 / 10);
+        }
         jdm_text(dial, p.x, p.y - 14, txt, JDM_FONT_LABEL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     }
 
@@ -77,8 +90,10 @@ static void update(void)
     } else if (valid) {
         lv_obj_set_hidden(s_needle, false);
         lv_obj_set_hidden(s_hub, true);
-        // 量程 −1..3 bar:raw 0.1bar → bar×10;角度 = 135+(bar+1)/4×270
-        float deg = 135.0f + (raw + 10) * 6.75f;   // raw 0.1bar,量程 −1..3 bar
+        // 角度 = 135+(raw−min)*270/量程跨度(浮点,0.1bar 步进精确)
+        float deg = 135.0f + (raw - vehicle_profile_get_boost_cfg()->min_x10)
+                    * 270.0f / (vehicle_profile_get_boost_cfg()->max_x10
+                                - vehicle_profile_get_boost_cfg()->min_x10);
         jdm_needle_set_angle(s_needle, deg);
     }
     char buf[16];
@@ -90,7 +105,7 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     if (valid_conn) {
-        jdm_alert_level_t lv = jdm_alerts_logic_boost(raw, &reason);
+        jdm_alert_level_t lv = jdm_alerts_logic_boost(raw, vehicle_profile_get_boost_cfg()->red_x10, &reason);
         n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
     }
     lv_obj_set_style_text_color(s_value,

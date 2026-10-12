@@ -34,10 +34,12 @@ int main(void)
     TEST_ASSERT_EQ_STR("OIL PRESS LOW", r);
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oilp(10, &r));
 
-    // ---- 增压:≥2.4 bar(表盘红区起点) ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_boost(23, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_boost(24, &r));
+    // ---- 增压:阈值 = 车型红区起点(默认 2.4 bar) ----
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_boost(23, 24, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_boost(24, 24, &r));
     TEST_ASSERT_EQ_STR("BOOST HIGH", r);
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_boost(19, 20, &r));   // 车型可配
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_boost(20, 20, &r));
 
     // ---- 电压:≤10.8 / ≥16.4 V ----
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_bat(10800, &r));

@@ -79,6 +79,8 @@ Notes:
     .poll_gap_ms = 1,                    // poll gap ms (0=default 30 ms)
     .speed_scale = 1.0f,                 // speed correction factor (0/omitted=1.0)
     .can_broadcast_mode = false,         // true = ATMA CAN monitoring (currently ZN/C6 CAN only)
+    .tach = { 8000, 5700, 7000, 6800 },  // tach: full scale / amber / red (=alarm) / shift prompt
+    .boost = { -10, 30, 13, 24 },        // boost gauge: low end / full scale / dim zone / red zone (=alarm), 0.1 bar
     // Tachometer range/zones (vehicle-specific; 0 = fall back to the MX-5 NC
     // defaults). The red-zone start doubles as the RPM critical alarm line
     // (entering the red band trips the alarm); keep the shift prompt below it:
