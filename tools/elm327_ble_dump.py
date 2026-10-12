@@ -332,7 +332,7 @@ async def main():
     p.add_argument("--init", default="ATZ;ATE0;ATL0;ATS0;ATSP0",
                    help="连上后先发的初始化命令，分号分隔；传空串跳过")
     p.add_argument("--cmd", help="依次执行分号分隔的命令后退出")
-    p.add_argument("--loop", help="轮询一条命令（如 010C），Ctrl-C 停")
+    p.add_argument("--loop", help="轮询命令（分号分隔可轮换多条，如 010C 或 2211BD;2217B3），Ctrl-C 停")
     p.add_argument("--interval", type=float, default=None,
                    help="请求间隔秒数（--loop 默认 1，--all 默认 0.1）")
     p.add_argument("--count", type=int, default=0, help="轮询次数，0=无限（默认 0）")
@@ -408,11 +408,13 @@ async def main():
             await run_cmd_list(client, w_char, sess, args.cmd.split(";"), args.timeout)
         elif args.loop:
             interval = args.interval if args.interval is not None else 1.0
-            print(f"轮询 {args.loop}，间隔 {interval}s，Ctrl-C 停")
+            cmds = [c.strip() for c in args.loop.split(";") if c.strip()]
+            print(f"轮询 {' ; '.join(cmds)}，间隔 {interval}s，Ctrl-C 停")
             n = 0
             while args.count == 0 or n < args.count:
                 try:
-                    await send_command(client, w_char, sess, args.loop, args.timeout)
+                    for c in cmds:
+                        await send_command(client, w_char, sess, c, args.timeout)
                 except Exception as exc:
                     print(f"发送失败: {exc}")
                     return
