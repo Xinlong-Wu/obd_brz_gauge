@@ -127,7 +127,7 @@ static void update(void)
         lv_obj_set_style_text_color(s_rpm_text, jdm_color(JDM_ROLE_MUTED), 0);
     }
     if (conn && oil_ok) {
-        jdm_alert_level_t lv = jdm_alerts_logic_oil(oil, &reason);
+        jdm_alert_level_t lv = jdm_alerts_logic_oil(oil, vehicle_profile_get_oil_cfg()->red_c, &reason);
         n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     }
     if (conn && press_ok) {

@@ -148,7 +148,7 @@ static void update(void)
     lv = press_ok ? jdm_alerts_logic_oilp(press, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 5, reason, lv);
     jdm_readout_set_warning(&s_press_ro, lv != JDM_ALERT_NONE);
-    lv = oil_ok ? jdm_alerts_logic_oil(oil, &reason) : JDM_ALERT_NONE;
+    lv = oil_ok ? jdm_alerts_logic_oil(oil, vehicle_profile_get_oil_cfg()->red_c, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 5, reason, lv);
     jdm_readout_set_warning(&s_oil_ro, lv != JDM_ALERT_NONE);
     lv = clt_ok ? jdm_alerts_logic_clt(clt, vehicle_profile_get_clt_cfg()->red_c, &reason) : JDM_ALERT_NONE;

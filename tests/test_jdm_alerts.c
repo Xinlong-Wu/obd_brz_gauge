@@ -22,8 +22,8 @@ int main(void)
     TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(9000, 8500, 9000, &r));
 
     // ---- 油温/水温:≥110 warning ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oil(109, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_oil(110, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oil(109, 110, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_oil(130, 130, &r));
     TEST_ASSERT_EQ_STR("OIL TEMP HIGH", r);
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_clt(109, 110, &r));
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_clt(112, 110, &r));

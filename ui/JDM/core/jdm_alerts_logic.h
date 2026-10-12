@@ -16,7 +16,6 @@
 // ---- 阈值(原始量纲:°C / 0.1bar / mV / 0.01g)----
 // 转速两档(换挡提示/红区)来自车型配置 tach_cfg_t,由调用方以参数
 // 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
-#define JDM_ALERTS_OIL_HOT     110     // ≥ 油温过高
 #define JDM_ALERTS_OILP_LOW    10      // <  油压过低 critical(<1.0 bar)
 #define JDM_ALERTS_BAT_LOW     10800   // ≤ 电压过低(10.8 V)
 #define JDM_ALERTS_BAT_HIGH    16400   // ≥ 电压过高(16.4 V)
@@ -41,9 +40,11 @@ static inline jdm_alert_level_t jdm_alerts_logic_rpm(int32_t rpm, int shift_rpm,
     return JDM_ALERT_NONE;
 }
 
-static inline jdm_alert_level_t jdm_alerts_logic_oil(int32_t raw, const char **reason)
+/** 油温过高:阈值 = 车型配置 oil_cfg_t.red_c(表盘红区起点)。 */
+static inline jdm_alert_level_t jdm_alerts_logic_oil(int32_t raw, int red_c,
+                                                     const char **reason)
 {
-    if (raw >= JDM_ALERTS_OIL_HOT) { *reason = "OIL TEMP HIGH"; return JDM_ALERT_WARNING; }
+    if (raw >= red_c) { *reason = "OIL TEMP HIGH"; return JDM_ALERT_WARNING; }
     return JDM_ALERT_NONE;
 }
 

@@ -558,3 +558,22 @@ const clt_cfg_t *vehicle_profile_get_clt_cfg(void)
     }
     return &s_clt;
 }
+
+const oil_cfg_t *vehicle_profile_get_oil_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 min<red≤max 的次序
+    static oil_cfg_t s_oil;
+    const oil_cfg_t d = VEHICLE_OIL_CFG_DEFAULT;
+    const oil_cfg_t *p = &vehicle_profile_get_active()->oil;
+
+    s_oil.min_c = p->min_c ? p->min_c : d.min_c;
+    s_oil.max_c = p->max_c ? p->max_c : d.max_c;
+    if (s_oil.max_c <= s_oil.min_c) {
+        s_oil = d;   // 量程倒挂,整体回退默认
+    } else {
+        s_oil.red_c = p->red_c ? p->red_c : d.red_c;
+        if (s_oil.red_c > s_oil.max_c) s_oil.red_c = s_oil.max_c;
+        if (s_oil.red_c <= s_oil.min_c) s_oil.red_c = s_oil.min_c + 1;
+    }
+    return &s_oil;
+}
