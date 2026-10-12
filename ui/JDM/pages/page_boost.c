@@ -29,6 +29,14 @@ static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *page)
 {
+    // 文字与读数垫底(用户约定:指针遮盖文字,与原型层叠相反);
+    // 弧与指针最后建,压在最上层
+    jdm_text(page, 360, 178, "MANIFOLD", JDM_FONT_TITLE, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
+    jdm_text(page, 360, 325, "VACUUM / BOOST", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    jdm_readout_create(page, 360, 375, JDM_RO_PRIMARY, &s_ro);
+    jdm_readout_set_label(&s_ro, "BOOST");
+    jdm_readout_set_unit(&s_ro, "bar");
+
     // 轨道 r274 w30(135°..405°)
     lv_obj_t *track = lv_arc_create(page);
     int32_t size = UIS(2 * 274 + 30);
@@ -74,13 +82,6 @@ static void create(lv_obj_t *page)
     jdm_arc_configure(s_arc, 135, 270, 40);   // bar×10,−1..3
     s_needle = jdm_needle_create_group(page, 360, 365, 205, JDM_ROLE_AMBER);
 
-    jdm_text(page, 360, 178, "MANIFOLD", JDM_FONT_TITLE, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
-    jdm_text(page, 360, 325, "VACUUM / BOOST", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
-
-    jdm_readout_create(page, 360, 375, JDM_RO_PRIMARY, &s_ro);
-    jdm_readout_set_label(&s_ro, "BOOST");
-    jdm_readout_set_unit(&s_ro, "bar");
-
     jdm_alert_create(page, 0, &s_alert);
 }
 
@@ -105,13 +106,16 @@ static void update(void)
     jdm_alert_item_t item;
     int n = 0;
     const char *reason = NULL;
+    jdm_alert_level_t lv = JDM_ALERT_NONE;
     if (valid) {
-        jdm_alert_level_t lv = jdm_alerts_logic_boost(raw, &reason);
+        lv = jdm_alerts_logic_boost(raw, &reason);
         n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
-        jdm_readout_set_warning(&s_ro, lv != JDM_ALERT_NONE);
-    } else {
-        jdm_readout_set_warning(&s_ro, false);
     }
+    bool alarm = lv != JDM_ALERT_NONE;
+    // 弧与指针(原型 ink('boost'))超限同变警告色
+    jdm_arc_set_color(s_arc, alarm ? JDM_ROLE_RED : JDM_ROLE_AMBER);
+    jdm_needle_set_color(s_needle, alarm ? JDM_ROLE_RED : JDM_ROLE_AMBER);
+    jdm_readout_set_warning(&s_ro, alarm);
     jdm_alert_set(&s_alert, &item, n);
 }
 

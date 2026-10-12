@@ -49,6 +49,15 @@ lv_obj_t *jdm_needle_create_group(lv_obj_t *parent, int32_t mcx, int32_t mcy,
     return box;
 }
 
+void jdm_needle_set_color(lv_obj_t *needle_group, jdm_color_role_t color)
+{
+    // line 是容器的第一个子对象(hub 是第二个)
+    lv_obj_t *line = lv_obj_get_child(needle_group, 0);
+    lv_obj_t *hub = lv_obj_get_child(needle_group, 1);
+    lv_obj_set_style_line_color(line, jdm_color(color), 0);
+    lv_obj_set_style_bg_color(hub, jdm_color(color), 0);
+}
+
 void jdm_needle_set_angle(lv_obj_t *needle_group, float angle_deg)
 {
     // 脏检查精度 0.1°(int16 厘度缓存);LV_USE_FLOAT 下端点保留亚像素
