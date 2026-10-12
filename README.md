@@ -20,7 +20,7 @@
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | **使用指南** —— 页面导航、设置、三连表配对、开机动画、App 升级 |
 | [docs/FLASH.md](docs/FLASH.md) | **烧录与升级** —— 分区表、USB 烧录、App OTA 与回滚 |
 | [docs/APP_PROTOCOL.md](docs/APP_PROTOCOL.md) | **App 对接协议** —— BLE 服务与 WiFi HTTP API |
-| [docs/VEHICLES.md](docs/VEHICLES.md) | **车型适配** —— 17 个内置车型、新增车型教程 |
+| [docs/VEHICLES.md](docs/VEHICLES.md) | **车型适配** —— 18 个内置车型、新增车型教程 |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | **故障排查** —— 连不上 / 没数据、协议自动检测 |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | **开发指南** —— 代码架构、编译配置、工具脚本 |
 | [CHANGELOG.md](CHANGELOG.md) | 更新日志 |
@@ -39,7 +39,7 @@ MX-5 NC/JDM 的 16 页浏览器 UI 原型及预览、导出说明见
 | 三连表 | 一块主表读 OBD，其余从表通过 ESP-NOW 零负载同步显示 |
 | 传感器 | RS485 刹车温度（Modbus RTU）、ADS1115 油压 ADC（V1 板，部分车型可用 OBD 直读油压替代）|
 
-## 内置车型（17 个）
+## 内置车型（18 个）
 
 在**设置页 → VEHICLE** 滚轮里选择你的车型（立即生效，不用重启）。
 各车型的协议锁定、油温读取、挡位来源等完整对比见
@@ -47,13 +47,13 @@ MX-5 NC/JDM 的 16 页浏览器 UI 原型及预览、导出说明见
 
 `OBD2 Generic` · `ZN/C6 CAN` · `ZN/C6 PID` · `ZD8 OBD` · `ZD8` · `MX-5 ND` ·
 `BMW F/G` · `Supra A90` · `BMW G OBD` · `BMW E` · `JCW F56` · `MINI R55` ·
-`POS 997.2` · `POS 997.1` · `GIULIA 2.0T` · `jeep` · `Honda Integra`
+`POS 997.2` · `POS 997.1` · `GIULIA 2.0T` · `jeep` · `Honda Integra` · `MX-5 NC`
 
 当前仅在 Subaru BRZ ZN/C6 上完整验证；其余车型已配置，部分仍需上车验证。
 
 ## 核心特性
 
-- **17 个车型配置**：各车型独立的传动比（最高 8 挡）、油温读取策略、协议锁定、功能寻址；挡位优先用 CAN/DID 直读，无效时按传动比估算
+- **18 个车型配置**：各车型独立的传动比（最高 8 挡）、油温读取策略、协议锁定、功能寻址；挡位优先用 CAN/DID 直读，无效时按传动比估算
 - **CAN 广播帧监听**：仅 `ZN/C6 CAN` 走 ATMA 高速通道（0x140 节气门、0x360 油温水温）；其余车型保持单线程 OBD 轮询，避免适配器抢占
 - **厂商油温路径**：丰田/斯巴鲁 Mode 21、马自达 / MINI / BMW Mode 22、FCA UDS 扩展寻址等，主策略失败自动回退
 - **三连表（ESP-NOW）**：主表广播、从表零额外 OBD 负载，走真蓝牙配对（主表广播 `SkyGauge-XXYY`），断电记忆

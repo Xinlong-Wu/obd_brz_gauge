@@ -42,6 +42,7 @@ Settings page):
 | 14 | `GIULIA 2.0T` | 7 locked | **29-bit functional `18DB33F1`** | `22 13 02` @ `18DA10F1` | Ratio estimate | ✓ | Giorgio platform; slow UDS responses, 50 ms poll gap |
 | 15 | `jeep` | 7 locked | 29-bit functional `18DB33F1` | `01 5C` | Ratio estimate (placeholder) | — | Generic placeholder; ratios/tire to be refined |
 | 16 | `Honda Integra` | 7 locked | 29-bit functional `18DB33F1` | `01 5C` attempted | **Disabled** (CVT, `gear_count=0`) | ✓ | 11th-gen Civic platform L15C7; non-Type-R may lack a physical oil-temp sensor |
+| 17 | `MX-5 NC` | auto | physical 7E0 | `01 5C` (factory oil-temp CAN path unconfirmed) | ratio estimate (placeholder ratios, refine per car) | — | **the JDM gauge's own car**: tach range 0-8000 / amber 5700 / red 7000-8000 (entering trips the alarm) / shift prompt 6800 |
 
 Notes:
 
@@ -78,6 +79,10 @@ Notes:
     .poll_gap_ms = 1,                    // poll gap ms (0=default 30 ms)
     .speed_scale = 1.0f,                 // speed correction factor (0/omitted=1.0)
     .can_broadcast_mode = false,         // true = ATMA CAN monitoring (currently ZN/C6 CAN only)
+    // Tachometer range/zones (vehicle-specific; 0 = fall back to the MX-5 NC
+    // defaults). The red-zone start doubles as the RPM critical alarm line
+    // (entering the red band trips the alarm); keep the shift prompt below it:
+    .tach = { 8000, 5700, 7000, 6800 },  // full scale / amber / red / shift prompt
 },
 ```
 

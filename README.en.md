@@ -21,7 +21,7 @@ reads vehicle data, and renders a touch UI with LVGL.
 | [docs/USER_GUIDE.en.md](docs/USER_GUIDE.en.md) | **User guide** — page navigation, settings, triple-gauge pairing, boot animation, app updates |
 | [docs/FLASH.en.md](docs/FLASH.en.md) | **Flash & update** — partition table, USB flashing, App OTA with rollback |
 | [docs/APP_PROTOCOL.en.md](docs/APP_PROTOCOL.en.md) | **App integration protocol** — BLE services, WiFi HTTP API |
-| [docs/VEHICLES.en.md](docs/VEHICLES.en.md) | **Vehicle profiles** — all 17 built-in profiles, adding a new vehicle |
+| [docs/VEHICLES.en.md](docs/VEHICLES.en.md) | **Vehicle profiles** — all 18 built-in profiles, adding a new vehicle |
 | [docs/TROUBLESHOOTING.en.md](docs/TROUBLESHOOTING.en.md) | **Troubleshooting** — no connection / no data, protocol auto-detection |
 | [docs/DEVELOPMENT.en.md](docs/DEVELOPMENT.en.md) | **Development** — architecture, build config, tool scripts |
 | [CHANGELOG.en.md](CHANGELOG.en.md) | Changelog |
@@ -41,7 +41,7 @@ Use the repository files for future prototype changes.
 | Triple gauge | One master reads OBD; slaves mirror it over ESP-NOW with zero extra load |
 | Sensors | RS485 brake temperature (Modbus RTU), ADS1115 oil-pressure ADC (V1 board; cars with an OBD oil-pressure DID read it over OBD instead)|
 
-## Built-in vehicle profiles (17)
+## Built-in vehicle profiles (18)
 
 Pick yours under **Settings → VEHICLE** (applies immediately, no reboot).
 Full comparison of protocol locks, oil-temp paths and gear sources in
@@ -49,14 +49,14 @@ Full comparison of protocol locks, oil-temp paths and gear sources in
 
 `OBD2 Generic` · `ZN/C6 CAN` · `ZN/C6 PID` · `ZD8 OBD` · `ZD8` · `MX-5 ND` ·
 `BMW F/G` · `Supra A90` · `BMW G OBD` · `BMW E` · `JCW F56` · `MINI R55` ·
-`POS 997.2` · `POS 997.1` · `GIULIA 2.0T` · `jeep` · `Honda Integra`
+`POS 997.2` · `POS 997.1` · `GIULIA 2.0T` · `jeep` · `Honda Integra` · `MX-5 NC`
 
 Only the Subaru BRZ ZN/C6 has been fully verified on a real car; the other
 profiles are configured but some still need road testing.
 
 ## Highlights
 
-- **17 vehicle profiles** — per-vehicle gear ratios (up to 8 speeds), oil-temp
+- **18 vehicle profiles** — per-vehicle gear ratios (up to 8 speeds), oil-temp
   strategies, protocol locks and addressing; gear display prefers direct
   CAN/DID reads, falling back to ratio estimation
 - **CAN broadcast monitoring** — only `ZN/C6 CAN` uses the ATMA fast path
