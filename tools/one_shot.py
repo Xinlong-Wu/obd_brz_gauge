@@ -6,7 +6,7 @@ one_shot.py —— 一键全流程：起伪 ELM327 服务器 → 你录一遍 �
     python3 one_shot.py
 
 它会:
-  1. 后台启动 fake_elm327.py --probe prbs --tick 2（单遍采集，无需 basis）
+  1. 后台启动 fake_elm327.py --probe access（按访问计数注入，单遍采集）
   2. 打印手机 Car Scanner 的操作指引
   3. 等你录完、导出 CSV，回来粘贴路径（或直接回车自动找）；中途 Ctrl+C 也会停服务器并尝试分析
   4. 停掉服务器（触发它导出 probe_log / elm_pids）
@@ -35,10 +35,10 @@ def main():
     print("=" * 72)
 
     # 1) 起服务器
-    print("\n[1/4] 启动伪 ELM327 服务器（probe=prbs，单遍采集）...\n")
+    print("\n[1/4] 启动伪 ELM327 服务器（probe=access，按访问计数注入）...\n")
     proc = subprocess.Popen(
         [sys.executable, os.path.join(HERE, "fake_elm327.py"),
-         "--probe", "prbs", "--tick", "2"],
+         "--probe", "access"],
         cwd=HERE,
         start_new_session=True)  # 脱离终端进程组：Ctrl+C 只发给 one_shot，不打断子进程 dump
 

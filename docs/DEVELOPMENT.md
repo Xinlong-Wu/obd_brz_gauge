@@ -277,6 +277,7 @@ python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 | `tools/one_shot.py` | 一键 PID 挖掘：起伪服务器 → 手机录一遍 → 自动出 pids_full.csv |
 | `tools/analyze_proble.py` | 把注入信号与 Car Scanner 录制对上号，反推 PID→仪表映射与解码公式 |
 | `tools/parse_carscanner_backup.py` | 解析 CarScanner 备份目录，导出全车 PID 清单 CSV |
+| `tools/elm327_ble_dump.py` | 主机直连 BLE ELM327 读原始报文（bleak；FFF0/18F0/FF12 自动识别，交互/一次性/轮询，`--all` 全量扫描写 CSV）|
 | `tools/python_quick_rs485_check.py` | RS485/Modbus 直连自检（排障用）|
 | `tools/fix_nvs.py` | 把 NVS 角色重置为独立模式（修 WiFi OOM 崩溃）|
 
@@ -287,7 +288,7 @@ python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 
 ```bash
 python3 tools/one_shot.py
-# 1. 自动起 fake_elm327.py --probe prbs --tick 2（注入已知伪信号）
+# 1. 自动起 fake_elm327.py --probe access（按访问计数注入伪信号，配对只需连续几个样本）
 # 2. 手机 Car Scanner 连 WiFi ELM327（本机 IP:35000），选目标车型 profile，录一段导出 CSV
 # 3. 粘贴 CSV 路径，自动停服务器并跑 analyze → pids_full.csv
 ```

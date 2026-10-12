@@ -10,7 +10,9 @@ SECONDS 是设备开机秒数，本来也没法直接和电脑时钟比。）
 用法：
 
   1) 识别
-       python3 fake_elm327.py --probe prbs --tick 2
+       python3 fake_elm327.py --probe access
+       # 推荐：按访问计数注入，App 录到的是注入序列的连续段，
+       # 少数样本即可锁定绑定；--probe prbs 的旧日志仍可识别。
        # Car Scanner: 选车型 profile → 打开所有仪表页 → 开始记录 → 至少 10 分钟
        python3 analyze_proble.py identify --probe probe_log_*.csv --app scanner01.csv
 
@@ -33,6 +35,7 @@ from datetime import datetime
 
 BASIS_PATTERNS = 9
 MIN_POINTS = 8
+MATCH_MIN = 5   # access 模式序列匹配允许的最少点数（连续段+步长约束下误配率可忽略）
 
 # ----------------------------------------------------------------------------
 # SAE J1979 标准 mode 01 PID 表。这些不用倒推，公式是公开的。
@@ -419,9 +422,9 @@ def load_probe_csv(path):
 # 相关性
 # ----------------------------------------------------------------------------
 
-def pearson(xs, ys):
+def pearson(xs, ys, min_n=MIN_POINTS):
     n = len(xs)
-    if n < MIN_POINTS:
+    if n < min_n:
         return 0.0, n
     mx, my = sum(xs) / n, sum(ys) / n
     vx = sum((x - mx) ** 2 for x in xs)
@@ -521,6 +524,42 @@ def seq_match(inj, vals, max_shift=6):
     return best
 
 
+def seq_match_stride(inj, vals, max_shift=6, max_stride=None):
+    """access 模式专用：App 录到的值序列是该请求注入序列的「连续段」——
+    起点任意，App 跳读时步长恒定。在 (起点偏移, 步长) 网格上找最优对齐。
+    相比 seq_match 的带跳跃子序列，这里要求对齐位置等距递增，
+    少数样本也能唯一锁定绑定。返回 (r, shift, stride, n)。"""
+    if max_stride is None:
+        max_stride = max(1, len(inj) // max(1, len(vals)) + 2)
+    best = (0.0, 0, 1, 0)
+    for sh in range(-max_shift, max_shift + 1):
+        for d in range(1, max_stride + 1):
+            xs, ys = [], []
+            for i in range(len(vals)):
+                j = sh + i * d
+                if 0 <= j < len(inj):
+                    xs.append(inj[j])
+                    ys.append(vals[i])
+            r, n = pearson(xs, ys, MATCH_MIN)
+            if abs(r) > abs(best[0]):
+                best = (r, sh, d, n)
+    return best
+
+
+def is_access_log(by_key):
+    """access 模式日志的标志：每个请求的 slot 恰为 1,2,3,…（按访问次数递增）。"""
+    checked = 0
+    for ev in by_key.values():
+        if len(ev) < 2:
+            continue
+        if any(e["slot"] != i + 1 for i, e in enumerate(ev)):
+            return False
+        checked += 1
+        if checked >= 8:
+            break
+    return True
+
+
 # ----------------------------------------------------------------------------
 # identify
 # ----------------------------------------------------------------------------
@@ -531,7 +570,14 @@ def cmd_identify(a):
     app = load_app_csv(a.app)
 
     inj_seq = {k: [e["byte0"] for e in v] for k, v in by_key.items()}
-    usable = {n: v for n, v in app.items() if len(v[0]) >= MIN_POINTS}
+    access = is_access_log(by_key)
+    if access:
+        print(f"  探测日志为 access 模式（按访问计数注入）："
+              f"连续段对齐匹配，最少 {MATCH_MIN} 个样本即可参与")
+        min_pts = MATCH_MIN
+    else:
+        min_pts = MIN_POINTS
+    usable = {n: v for n, v in app.items() if len(v[0]) >= min_pts}
     print(f"\n采样数够用的传感器: {len(usable)} / {len(app)}")
     if not usable:
         sys.exit("没有任何传感器达到最低配对点数，请录久一点或减少启用的传感器")
@@ -540,23 +586,27 @@ def cmd_identify(a):
     print("第一轮 — 序列配对...")
     prov = {}
     for name, (ts, vs) in usable.items():
-        best = (0.0, None, 0, 0)
+        best = (0.0, None, (0, 1), 0)
         for k, seq in inj_seq.items():
             if not seq or abs(len(seq) - len(vs)) > max(8, 0.6 * max(len(seq), len(vs))):
                 continue
-            r, sh, n = seq_match(seq, vs, a.max_shift)
+            if access:
+                r, sh, d, n = seq_match_stride(seq, vs, a.max_shift)
+            else:
+                r, sh, n = seq_match(seq, vs, a.max_shift)
+                d = 1
             if abs(r) > abs(best[0]):
-                best = (r, k, sh, n)
+                best = (r, k, (sh, d), n)
         if best[1] and abs(best[0]) >= a.min_r:
             prov[name] = best
 
     # 由可信匹配反推时间偏移（比互相关稳，均匀轮询时互相关是平的）
     diffs = []
-    for name, (r, k, sh, n) in prov.items():
+    for name, (r, k, (sh, d), n) in prov.items():
         ts = usable[name][0]
         ev = by_key[k]
         for i in range(len(ts)):
-            j = i + sh
+            j = sh + i * d
             if 0 <= j < len(ev):
                 diffs.append(ts[i] - ev[j]["t"])
     L = statistics.median(diffs) if diffs else 0.0
@@ -567,8 +617,8 @@ def cmd_identify(a):
     for name, (ts, vs) in usable.items():
         best = (0.0, None, "", 0)
         if name in prov:
-            r0, k0, sh0, n0 = prov[name]
-            best = (r0, k0, f"seq{sh0:+d}", n0)
+            r0, k0, (sh0, d0), n0 = prov[name]
+            best = (r0, k0, f"seq{sh0:+d}" + (f"/x{d0}" if d0 > 1 else ""), n0)
         for k, ev in by_key.items():
             if not inj_seq[k]:
                 continue
@@ -729,6 +779,10 @@ def lag_from_mapping(by_key, app, mapping, max_pairs=24):
     atimes = [t for v in app.values() for t in v[0]]
     L0 = min(atimes) - min(ptimes)
     span = max(max(atimes) - min(atimes), max(ptimes) - min(ptimes), 1.0)
+    # access 日志每次注入的 slot 都唯一，group_pairs 的"段内相关"没有意义
+    # （所有配对都被当边界样本丢掉，打分恒为 0，扫描退化回起点差）。
+    # 改为直接对全部配对做相关：L 对了字节和显示值才仿射相关，错了 r2≈0。
+    access = is_access_log(by_key)
 
     def score(L):
         tot = 0.0
@@ -737,6 +791,11 @@ def lag_from_mapping(by_key, app, mapping, max_pairs=24):
             ts, vs = app[sensor]
             pairs = assign_by_time(ev, ts, vs, L, median_gap(ev) * 2.5)
             if len(pairs) < MIN_POINTS:
+                continue
+            if access:
+                r, n = pearson([e["byte0"] for e, _ in pairs],
+                               [v for _, v in pairs])
+                tot += r * r * n
                 continue
             g = group_pairs(pairs)
             for slot, (xs, ys) in g.items():
@@ -807,6 +866,7 @@ def cmd_formula(a):
         r2s = []
         intercepts = []
         base = None
+        g = {}
 
         # ---- 首选：多元回归，一次解出每个字节的系数 ----
         # prbs 独立随机注入（或 basis 逐字节激活）都能直接回归。
@@ -915,7 +975,7 @@ def cmd_formula(a):
             "formula": expr.strip(), "unit": info[3] if info else "",
             "offset": base,
             "coeffs": ";".join("" if c is None else f"{c:.8g}" for c in coeffs),
-            "slots_seen": len(g), "check": check,
+            "slots_seen": len(g) or len(X), "check": check,
         })
 
     out = a.out or "formulas.csv"
@@ -1101,7 +1161,7 @@ def main():
     p = argparse.ArgumentParser(description="把注入信号和 Car Scanner 录制数据对上号")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    i = sub.add_parser("identify", help="认出哪个请求驱动哪个仪表（配合 --probe prbs）")
+    i = sub.add_parser("identify", help="认出哪个请求驱动哪个仪表（配合 --probe access，旧 prbs 日志兼容）")
     i.add_argument("--probe", required=True, help="fake_elm327.py 产出的 probe_log_*.csv")
     i.add_argument("--app", required=True, help="Car Scanner 导出的记录 CSV")
     i.add_argument("--out", help="输出映射表，默认 mapping.csv")

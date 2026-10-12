@@ -28,10 +28,16 @@ reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts
 
 | Script | Purpose |
 |--------|---------|
-| `fake_elm327.py` | Fake WiFi ELM327 TCP server (`:35000`): logs every request the app sends and answers unknown PIDs positively, luring it to poll its whole private PID set |
+| `fake_elm327.py` | Fake WiFi ELM327 TCP server (`:35000`): logs every request the app sends and answers unknown PIDs positively, luring it to poll its whole private PID set. For PID hunting use `--probe access`, which injects per access so a few consecutive samples pin a pairing |
 | `one_shot.py` | One-shot PID mining: start the fake server → record a session with Car Scanner → run the analysis automatically into `pids_full.csv` |
 | `analyze_proble.py` | Pairs injected signals with the Car Scanner recording to infer which PID drives which gauge and its decode formula |
 | `parse_carscanner_backup.py` | Parses a CarScanner app backup directory into a full vehicle PID CSV |
+
+## Raw traffic from a real car (needs a real ELM327 adapter)
+
+| Script | Deps | Purpose |
+|--------|------|---------|
+| `elm327_ble_dump.py` | bleak (`pip3 install bleak`) | Host-side direct BLE ELM327 client for raw data: auto-detects FFF0/18F0/FF12 services with the same priority as the firmware; interactive shell, one-shot `--cmd` script, `--loop` polling, `--all` support-bitmap scan + full PID sweep into a CSV (decodes via the analyze_proble standard table), `--raw` per-packet hex dump |
 
 ## One-off device debug scripts (adjust the serial port as needed)
 

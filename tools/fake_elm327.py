@@ -10,6 +10,7 @@ fake_elm327.py — 假装自己是 WiFi ELM327 的 TCP 服务器。
 
 用法:
     python3 fake_elm327.py                          # 监听 0.0.0.0:35000，VIN 每次随机
+    python3 fake_elm327.py --probe access           # PID 挖掘推荐：按访问计数注入
     python3 fake_elm327.py --vin WVWZZZAUZJW123456  # 固定 VIN（复测同一台"车"用）
     python3 fake_elm327.py --port 35000 -v          # 实时打印每一条
 
@@ -103,6 +104,7 @@ MODE01_LEN = {
 # ----------------------------------------------------------------------------
 
 PROBE_IDX = {}            # (header, request) -> 稳定编号
+PROBE_CNT = {}            # (header, request) -> 已被访问次数（access 模式用）
 PROBE_LOG = []            # 注入记录，退出时写 CSV
 PROBE_LOCK = threading.Lock()
 
@@ -130,6 +132,16 @@ def probe_bytes(cfg, header, req, n, seed=0):
         rnd = Random((idx * 2654435761) ^ (tick * 40503) ^ 0x5BF03635)
         out = [rnd.randrange(0x08, 0xF8) for _ in range(n)]
         slot = tick
+    elif cfg.probe == "access":
+        # 按访问计数推进：第 k 次被问到就回该请求专属随机序列的第 k 个值。
+        # App 录到的值序列因此是指纹的「连续段」（等距跳读时步长恒定），
+        # 少数样本即可唯一锁定绑定，不再依赖录制时长摊薄采样密度。
+        with PROBE_LOCK:
+            cnt = PROBE_CNT.get(key, 0) + 1
+            PROBE_CNT[key] = cnt
+        rnd = Random((idx * 2654435761) ^ (cnt * 40503) ^ 0x5BF03635)
+        out = [rnd.randrange(0x08, 0xF8) for _ in range(n)]
+        slot = cnt
     else:  # basis
         # 只让一个字节动，而且每次注入都换一个新的随机值。
         # 这样每个字节的系数可以用回归解出来（比两点求差准得多），
@@ -158,7 +170,7 @@ def probe_bytes(cfg, header, req, n, seed=0):
             "nbytes": n,
             "hex": "".join("%02X" % b for b in out),
             "value": int.from_bytes(bytes(out[:2] if n >= 2 else out), "big"),
-            "byte0": (out[0] if cfg.probe == "prbs" else v),
+            "byte0": (v if cfg.probe == "basis" else out[0]),
         })
     return out
 
@@ -579,6 +591,12 @@ class Conn:
             req = "".join(parts[:-1]).upper()
         else:
             req = raw
+        # 无空格形式 "010C1" / "2211771"：奇数位十六进制 + 末位数字 = 期望应答数
+        # （ELM 规范，Car Scanner 常发）。归一化成真身请求：应答按真身给
+        # （不再 NO DATA），注入序列折到真身名下（同一 PID 样本变多），
+        # 请求清单也不再多出一堆假 PID。
+        if len(req) % 2 == 1 and req[-1].isdigit() and len(req) > 1:
+            req = req[:-1]
 
         payload = build_obd_response(sess, req, cfg)
         if payload is None:
@@ -714,9 +732,9 @@ def main():
                    help="多少秒没数据就回收这条连接")
     p.add_argument("--selftest", action="store_true",
                    help="启动后自己连自己跑一遍握手，验证服务端本身没问题")
-    p.add_argument("--probe", choices=["off", "prbs", "basis"], default="off",
-                   help="探测模式：prbs=并行识别哪个 PID 驱动哪个仪表；"
-                        "basis=逐字节基向量探测，用来解公式")
+    p.add_argument("--probe", choices=["off", "prbs", "basis", "access"], default="off",
+                   help="探测模式：access=按访问计数注入（推荐，配对只需连续几个样本）；"
+                        "prbs=按时间槽注入（老流程）；basis=逐字节基向量探测，用来解公式")
     p.add_argument("--tick", type=float, default=2.0,
                    help="prbs 模式下信号多久换一次值（秒）")
     p.add_argument("--dwell", type=float, default=8.0,

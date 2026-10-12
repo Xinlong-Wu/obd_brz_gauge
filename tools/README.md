@@ -27,10 +27,16 @@ CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeList
 
 | 脚本 | 用途 |
 |------|------|
-| `fake_elm327.py` | 假装 WiFi ELM327 的 TCP 服务器（`:35000`）：记录 App 发的每条请求，未知 PID 一律返回肯定应答，诱其问完全套私有 PID |
+| `fake_elm327.py` | 假装 WiFi ELM327 的 TCP 服务器（`:35000`）：记录 App 发的每条请求，未知 PID 一律返回肯定应答，诱其问完全套私有 PID。PID 挖掘用 `--probe access` 按访问计数注入，配对只需连续几个样本 |
 | `one_shot.py` | 一键 PID 挖掘：起伪服务器 → 手机 Car Scanner 录一遍 → 自动跑分析出 `pids_full.csv` |
 | `analyze_proble.py` | 把注入信号与 Car Scanner 录制按序配对，反推「哪个 PID 驱动哪个仪表、解码公式是什么」|
 | `parse_carscanner_backup.py` | 解析 CarScanner App 备份目录，导出全车 PID 清单 CSV |
+
+## 实车原始报文（需真实 ELM327 适配器）
+
+| 脚本 | 依赖 | 用途 |
+|------|------|------|
+| `elm327_ble_dump.py` | bleak（`pip3 install bleak`）| 主机直连 BLE ELM327 读原始数据：按固件同款优先级识别 FFF0/18F0/FF12 服务，交互收发、`--cmd` 一次性脚本、`--loop` 轮询、`--all` 查支持位图后全量轮询写 CSV（复用 analyze_proble 标准表解码）、`--raw` 逐包十六进制 |
 
 ## 一次性设备调试脚本（按需改串口）
 

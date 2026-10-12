@@ -314,6 +314,7 @@ python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 | `tools/one_shot.py` | one-shot PID hunting: starts the fake server → you record once → pids_full.csv |
 | `tools/analyze_proble.py` | correlates injected signals with Car Scanner recordings to recover PID mappings and formulas |
 | `tools/parse_carscanner_backup.py` | parses a CarScanner backup directory into a per-car PID CSV |
+| `tools/elm327_ble_dump.py` | host-side direct BLE ELM327 client for raw traffic (bleak; auto-detects FFF0/18F0/FF12, interactive/one-shot/polling, `--all` full scan into CSV) |
 | `tools/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
 | `tools/fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
 
@@ -325,7 +326,7 @@ ships per-car profiles):
 
 ```bash
 python3 tools/one_shot.py
-# 1. starts fake_elm327.py --probe prbs --tick 2 (injects known pseudo-signals)
+# 1. starts fake_elm327.py --probe access (per-access injection; a few consecutive samples pin a binding)
 # 2. on the phone, connect Car Scanner to the WiFi ELM327 (your IP:35000),
 #    pick the target car profile, record a session and export the CSV
 # 3. paste the CSV path; the server stops and the analysis runs → pids_full.csv
