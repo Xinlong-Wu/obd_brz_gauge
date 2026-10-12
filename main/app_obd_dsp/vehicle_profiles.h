@@ -35,6 +35,34 @@ typedef struct {
     enGear gear;
 } gear_ratio_range_t;
 
+// Tachometer range/zone configuration (per vehicle; 0 = fall back to the
+// MX-5 NC defaults below). The red zone start is also the RPM critical
+// threshold (entering the red band trips the alarm), by construction.
+typedef struct {
+    uint16_t rpm_max;     // full scale (dial end)
+    uint16_t amber_rpm;   // amber (warning) zone start
+    uint16_t red_rpm;     // red zone start = RPM critical threshold
+    uint16_t shift_rpm;   // shift prompt (advisory), must be below red
+} tach_cfg_t;
+
+// MX-5 NC defaults (also the fallback for profiles that leave tach zeroed).
+// Sanity-checked at compile time.
+#define VEHICLE_TACH_RPM_MAX_DEFAULT   8000
+#define VEHICLE_TACH_AMBER_RPM_DEFAULT 5700
+#define VEHICLE_TACH_RED_RPM_DEFAULT   7000
+#define VEHICLE_TACH_SHIFT_RPM_DEFAULT 6800
+#define VEHICLE_TACH_CFG_DEFAULT                                              \
+    {                                                                         \
+        VEHICLE_TACH_RPM_MAX_DEFAULT, VEHICLE_TACH_AMBER_RPM_DEFAULT,         \
+        VEHICLE_TACH_RED_RPM_DEFAULT, VEHICLE_TACH_SHIFT_RPM_DEFAULT,         \
+    }
+_Static_assert(VEHICLE_TACH_AMBER_RPM_DEFAULT < VEHICLE_TACH_RED_RPM_DEFAULT,
+               "tach amber zone must precede red zone");
+_Static_assert(VEHICLE_TACH_RED_RPM_DEFAULT <= VEHICLE_TACH_RPM_MAX_DEFAULT,
+               "tach red zone must not exceed full scale");
+_Static_assert(VEHICLE_TACH_SHIFT_RPM_DEFAULT < VEHICLE_TACH_RED_RPM_DEFAULT,
+               "tach shift prompt must precede the red zone");
+
 // Oil temp query strategy
 typedef struct {
     oil_temp_query_mode_t primary;     // preferred query mode
@@ -66,6 +94,7 @@ typedef struct {
     uint8_t obd_timeout;                 // ATST timeout value (ELM327 units, 0=default 0x19); for BMW G OBD fast responses, set 0x0F to reduce NO DATA waits
     uint8_t poll_gap_ms;                 // poll slot interval (ms), 0=use the default OBD_POLL_SLOT_GAP_MS(30ms)
     bool can_broadcast_mode;             // true=read data by listening to CAN broadcast frames via ATMA (currently ZN/C6 CAN only), replacing standard OBD PID polling
+    tach_cfg_t tach;                     // tachometer range/zones; zero fields fall back to VEHICLE_TACH_CFG_DEFAULT (MX-5 NC)
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -92,6 +121,10 @@ const oil_temp_strategy_t *vehicle_profile_get_oil_temp_strategy(void);
 
 // Get the override configuration of the currently active vehicle (NULL = pure OBD2 standard)
 const vehicle_override_t *vehicle_profile_get_override(void);
+
+// Get the tachometer range/zone config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults; relations clamped)
+const tach_cfg_t *vehicle_profile_get_tach_cfg(void);
 
 #ifdef __cplusplus
 }

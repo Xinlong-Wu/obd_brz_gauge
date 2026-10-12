@@ -13,6 +13,7 @@
 #include "core/jdm_text.h"
 #include "core/jdm_theme.h"
 #include "app_obd_dsp/obd_data_cache.h"
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "widgets/jdm_readout.h"
 #include "widgets/jdm_readout_logic.h"
 #include "widgets/jdm_tach.h"
@@ -26,10 +27,13 @@ static lv_obj_t *s_oil_text;
 static lv_obj_t *s_press_text;
 static lv_obj_t *s_wait_text;
 static jdm_alert_widgets_t s_alert;
+static tach_cfg_t s_tach_cfg;   // 当前车型的量程/警戒区(NVS 车型选择)
 
 static void create(lv_obj_t *page)
 {
+    s_tach_cfg = *vehicle_profile_get_tach_cfg();   // 车型的量程/警戒区
     s_tach = jdm_tach_create(page);
+    jdm_tach_apply_zones(s_tach_cfg.rpm_max, s_tach_cfg.amber_rpm, s_tach_cfg.red_rpm);
     jdm_text(page, 360, 172, "MX-5 / NC", JDM_FONT_LABEL, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
 
     jdm_readout_create(page, 360, 240, JDM_RO_PRIMARY, &s_gear);
@@ -112,7 +116,8 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     if (conn && rpm_ok) {
-        jdm_alert_level_t lv = jdm_alerts_logic_rpm(rpm, &reason);
+        jdm_alert_level_t lv = jdm_alerts_logic_rpm(rpm, s_tach_cfg.shift_rpm,
+                                                    s_tach_cfg.red_rpm, &reason);
         n = jdm_alerts_logic_push(items, n, 3, reason, lv);
         lv_obj_set_style_text_color(s_rpm_text,
                                     jdm_color(lv == JDM_ALERT_NONE ? JDM_ROLE_MUTED

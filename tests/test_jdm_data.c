@@ -76,13 +76,14 @@ int main(void)
     TEST_ASSERT_EQ_INT(270, jdm_data_logic_arc270_end(50));
     TEST_ASSERT_EQ_INT(405, jdm_data_logic_arc270_end(100));
 
-    // ---- 纯逻辑:56 段转速点亮数(ceil) ----
-    TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(0));
-    TEST_ASSERT_EQ_INT(1, jdm_data_logic_tach_lit(1));      // >0 保底 1 段
-    TEST_ASSERT_EQ_INT(34, jdm_data_logic_tach_lit(4800));  // ceil(33.6)
-    TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(8000));
-    TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(9000));  // 超转钳满
-    TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(-100));
+    // ---- 纯逻辑:56 段转速点亮数(ceil;量程为车型配置参数) ----
+    TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(0, 8000));
+    TEST_ASSERT_EQ_INT(1, jdm_data_logic_tach_lit(1, 8000));      // >0 保底 1 段
+    TEST_ASSERT_EQ_INT(34, jdm_data_logic_tach_lit(4800, 8000));  // ceil(33.6)
+    TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(8000, 8000));
+    TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(9000, 8000));  // 超转钳满
+    TEST_ASSERT_EQ_INT(0, jdm_data_logic_tach_lit(-100, 8000));
+    TEST_ASSERT_EQ_INT(56, jdm_data_logic_tach_lit(6000, 6000));  // 车型量程=6000
 
     // ---- 纯逻辑:段角度几何(140° 起,扫 260°;浮点精确节距 4.6429°) ----
     TEST_ASSERT_NEAR(140.0, jdm_data_logic_tach_segment_start(0), 0.01);
@@ -93,12 +94,13 @@ int main(void)
         TEST_ASSERT_NEAR(4.6429, jdm_data_logic_tach_segment_start(i) - jdm_data_logic_tach_segment_start(i - 1), 0.01);
     }
 
-    // ---- 纯逻辑:段色带(琥珀/红区以段起始转速对齐警戒区) ----
-    TEST_ASSERT_EQ_INT(5571, jdm_data_logic_tach_seg_rpm(39));  // < AMBER_RPM → 白
-    TEST_ASSERT_EQ_INT(5714, jdm_data_logic_tach_seg_rpm(40));  // ≥ AMBER_RPM → 琥珀
-    TEST_ASSERT_EQ_INT(6857, jdm_data_logic_tach_seg_rpm(48));  // < RED_RPM → 琥珀
-    TEST_ASSERT_EQ_INT(7000, jdm_data_logic_tach_seg_rpm(49));  // ≥ RED_RPM → 红(=RPM critical)
-    TEST_ASSERT_EQ_INT(7857, jdm_data_logic_tach_seg_rpm(55));
+    // ---- 纯逻辑:段色带(段起始转速 vs 车型警戒区;量程为参数) ----
+    TEST_ASSERT_EQ_INT(5571, jdm_data_logic_tach_seg_rpm(39, 8000));  // < 5700 → 白
+    TEST_ASSERT_EQ_INT(5714, jdm_data_logic_tach_seg_rpm(40, 8000));  // ≥ 5700 → 琥珀
+    TEST_ASSERT_EQ_INT(6857, jdm_data_logic_tach_seg_rpm(48, 8000));  // < 7000 → 琥珀
+    TEST_ASSERT_EQ_INT(7000, jdm_data_logic_tach_seg_rpm(49, 8000));  // ≥ 7000 → 红(=RPM critical)
+    TEST_ASSERT_EQ_INT(7857, jdm_data_logic_tach_seg_rpm(55, 8000));
+    TEST_ASSERT_EQ_INT(5357, jdm_data_logic_tach_seg_rpm(50, 6000));  // 车型量程=6000
 
     // ---- 纯逻辑:温度柱 ‰ ----
     TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(50));

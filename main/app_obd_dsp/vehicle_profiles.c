@@ -386,6 +386,28 @@ static const vehicle_profile_t s_profiles[] = {
         .obd_29bit_functional = true,      // 29-bit functional broadcast address (18DB33F1, not 7DF)
         .obd_timeout = 0x19,               // default timeout; adjust if responses are slow
     },
+    {
+        // Mazda MX-5 NC (2005-2015, LF 2.0 / L8 1.8, 6MT) — the JDM gauge's own car.
+        // Tachometer range/zones are the reference values: 0-8000 rpm full scale,
+        // amber from 5700, red band 7000-8000 (entering it trips RPM LIMIT),
+        // shift prompt at 6800. See tach_cfg_t / vehicle_profile_get_tach_cfg().
+        // Drivetrain numbers below are NC2 2.0 6MT placeholders — refine per the actual car.
+        // Oil temp: no confirmed factory CAN oil-temp path on the NC; standard 01 5C first
+        // (cars without the sensor will just report NO DATA).
+        .name = "MX-5 NC",
+        .final_drive_ratio = 3.909f,       // NC 2.0 6MT final drive (placeholder; refine per the actual car)
+        .tire_rolling_radius_m = 0.316f,   // 205/50R17
+        .gear_count = 6,
+        .gear_ratios = {0, 3.545f, 2.045f, 1.381f, 1.000f, 0.813f, 0.645f},  // NC 2.0 6MT (placeholder)
+        .gear_tolerance = 0.15f,
+        .oil_temp_strategy = {
+            .primary = OIL_TEMP_MODE_PID_5C,        // standard 01 5C; NC factory sensor path unconfirmed
+            .secondary = OIL_TEMP_MODE_NONE,
+            .tertiary = OIL_TEMP_MODE_NONE,
+        },
+        .has_boost = false,                // NA
+        .tach = VEHICLE_TACH_CFG_DEFAULT,  // 0-8000, amber 5700, red 7000 (alarm), shift 6800
+    },
 };
 
 #define PROFILE_COUNT (sizeof(s_profiles) / sizeof(s_profiles[0]))
@@ -472,4 +494,26 @@ const vehicle_override_t *vehicle_profile_get_override(void)
     const vehicle_profile_t *p = vehicle_profile_get_active();
     if (!p) return NULL;
     return vehicle_find_override(p->name);
+}
+
+const tach_cfg_t *vehicle_profile_get_tach_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制区间关系(琥珀<红≤满量程,换挡<红)。
+    // 静态缓存:getter 在 UI 刷新循环里高频调用。
+    static tach_cfg_t s_tach;
+    const tach_cfg_t d = {
+        VEHICLE_TACH_RPM_MAX_DEFAULT, VEHICLE_TACH_AMBER_RPM_DEFAULT,
+        VEHICLE_TACH_RED_RPM_DEFAULT, VEHICLE_TACH_SHIFT_RPM_DEFAULT,
+    };
+    const tach_cfg_t *p = &vehicle_profile_get_active()->tach;
+
+    s_tach.rpm_max   = p->rpm_max   ? p->rpm_max   : d.rpm_max;
+    s_tach.red_rpm   = (p->red_rpm && p->red_rpm <= s_tach.rpm_max)
+                           ? p->red_rpm : (p->red_rpm ? p->red_rpm : d.red_rpm);
+    if (s_tach.red_rpm > s_tach.rpm_max) s_tach.red_rpm = s_tach.rpm_max;
+    s_tach.amber_rpm = p->amber_rpm ? p->amber_rpm : d.amber_rpm;
+    if (s_tach.amber_rpm >= s_tach.red_rpm) s_tach.amber_rpm = s_tach.red_rpm * 8 / 10;
+    s_tach.shift_rpm = p->shift_rpm ? p->shift_rpm : d.shift_rpm;
+    if (s_tach.shift_rpm >= s_tach.red_rpm) s_tach.shift_rpm = s_tach.red_rpm * 9 / 10;
+    return &s_tach;
 }

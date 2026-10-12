@@ -11,12 +11,15 @@ int main(void)
     const char *r = NULL;
 
     // ---- 转速:advisory(红区前) / critical(红区起点,进红区即报) ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_rpm(6799, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6800, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_rpm(6799, 6800, 7000, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6800, 6800, 7000, &r));
     TEST_ASSERT_EQ_STR("SHIFT", r);
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6999, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(7000, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_rpm(6999, 6800, 7000, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(7000, 6800, 7000, &r));
     TEST_ASSERT_EQ_STR("RPM LIMIT", r);
+    // 车型可配:换挡/红区随配置平移(例:9000 转高转车型)
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_rpm(8499, 8500, 9000, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_rpm(9000, 8500, 9000, &r));
 
     // ---- 油温/水温:≥110 warning ----
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oil(109, &r));

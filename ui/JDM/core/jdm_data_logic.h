@@ -32,27 +32,17 @@ static inline int jdm_data_logic_arc270_end(int pct)
 }
 
 // ---- 56 段转速弧(page_gear / tachometer)----
-// 量程 / 段数 / 警戒区以转速值定义(改这里即可重排表盘):
-//   琥珀(警告)从 AMBER_RPM 起,红(报警)从 RED_RPM 起到满量程;
-//   RED_RPM 须与 jdm_alerts_logic.h 的 JDM_ALERTS_RPM_LIMIT 一致
-//   (进红区即触发 critical 报警)。
+// 段数是 UI 几何常量;量程/警戒区起点是**车型配置**(tach_cfg_t,见
+// vehicle_profiles.h),以参数贯穿下列纯逻辑函数。
+
 #define JDM_TACH_SEGMENTS   56
-#define JDM_TACH_RPM_MAX    8000
-#define JDM_TACH_AMBER_RPM  5700
-#define JDM_TACH_RED_RPM    7000
 
-/* 编译期校验可配置量之间的关系——改宏时即时报错,不必等渲染或测试 */
-_Static_assert(JDM_TACH_SEGMENTS > 0, "tach needs at least one segment");
-_Static_assert(JDM_TACH_AMBER_RPM < JDM_TACH_RED_RPM, "tach amber zone must precede red zone");
-_Static_assert(JDM_TACH_RED_RPM <= JDM_TACH_RPM_MAX, "tach red zone must not exceed full scale");
-_Static_assert(JDM_TACH_AMBER_RPM >= 0, "tach amber zone start must not be negative");
-
-/** 点亮段数 = ceil(clamp(rpm)/8000 × 56),rpm<8000 保底 1 段显示"活着"。 */
-static inline int jdm_data_logic_tach_lit(int32_t rpm)
+/** 点亮段数 = ceil(clamp(rpm)/rpm_max × 56),rpm>0 保底 1 段显示"活着"。 */
+static inline int jdm_data_logic_tach_lit(int32_t rpm, int32_t rpm_max)
 {
     if (rpm < 0) rpm = 0;
-    if (rpm > JDM_TACH_RPM_MAX) rpm = JDM_TACH_RPM_MAX;
-    return (int)((rpm * JDM_TACH_SEGMENTS + JDM_TACH_RPM_MAX - 1) / JDM_TACH_RPM_MAX);
+    if (rpm > rpm_max) rpm = rpm_max;
+    return (int)((rpm * JDM_TACH_SEGMENTS + rpm_max - 1) / rpm_max);
 }
 
 /** 段角度几何:56 段扫 260°,起始 140°;返回第 i 段的起始角(浮点度,
@@ -63,9 +53,9 @@ static inline float jdm_data_logic_tach_segment_start(int i)
 }
 
 /** 第 i 段起始位置对应的转速(段色带判定用)。 */
-static inline int32_t jdm_data_logic_tach_seg_rpm(int i)
+static inline int32_t jdm_data_logic_tach_seg_rpm(int i, int32_t rpm_max)
 {
-    return i * JDM_TACH_RPM_MAX / JDM_TACH_SEGMENTS;
+    return i * rpm_max / JDM_TACH_SEGMENTS;
 }
 
 /** 温度柱(60–120°C):返回柱内归一化高度 0..1000(‰),钳出界。 */

@@ -17,12 +17,16 @@ int main(void)
     TEST_ASSERT(all != NULL);
     TEST_ASSERT(count > 0);
     // 数量与 VEHICLES.md/README 的车型清单一致:改表请同步文档
-    TEST_ASSERT_EQ_INT(17, count);
+    TEST_ASSERT_EQ_INT(18, count);
 
     // ---- 索引访问:界内返回条目,越界安全 ----
     TEST_ASSERT(vehicle_profile_get(0) != NULL);
     TEST_ASSERT_EQ_STR("OBD2 Generic", vehicle_profile_get(0)->name);
     TEST_ASSERT(vehicle_profile_get(count - 1) != NULL);
+    // 末尾条目 = MX-5 NC(表尾追加,不 shifts NVS 已存索引),自带转速表区间
+    TEST_ASSERT_EQ_STR("MX-5 NC", vehicle_profile_get(count - 1)->name);
+    TEST_ASSERT_EQ_INT(8000, vehicle_profile_get(count - 1)->tach.rpm_max);
+    TEST_ASSERT_EQ_INT(7000, vehicle_profile_get(count - 1)->tach.red_rpm);
 
     // ---- 激活态:set_active 越界钳制到 0(见 vehicle_profiles.c) ----
     vehicle_profile_set_active(count + 5);
@@ -64,6 +68,22 @@ int main(void)
 
     // calc_constant(速度→轮速换算常数)必须为正
     TEST_ASSERT(vehicle_profile_calc_constant(vehicle_profile_get_active()) > 0.0f);
+
+    // ---- 转速表区间配置:零字段回退默认,关系钳制 ----
+    vehicle_profile_set_active(0);   // OBD2 Generic:tach 全零 → 回退 MX-5 NC 默认
+    const tach_cfg_t *tc = vehicle_profile_get_tach_cfg();
+    TEST_ASSERT(tc != NULL);
+    TEST_ASSERT_EQ_INT(8000, tc->rpm_max);
+    TEST_ASSERT_EQ_INT(5700, tc->amber_rpm);
+    TEST_ASSERT_EQ_INT(7000, tc->red_rpm);
+    TEST_ASSERT_EQ_INT(6800, tc->shift_rpm);
+    TEST_ASSERT(tc->amber_rpm < tc->red_rpm && tc->red_rpm <= tc->rpm_max);
+    TEST_ASSERT(tc->shift_rpm < tc->red_rpm);
+    vehicle_profile_set_active(count - 1);   // MX-5 NC:显式配置
+    tc = vehicle_profile_get_tach_cfg();
+    TEST_ASSERT_EQ_INT(8000, tc->rpm_max);
+    TEST_ASSERT_EQ_INT(7000, tc->red_rpm);
+    vehicle_profile_set_active(0);
 
     return TEST_RESULT();
 }

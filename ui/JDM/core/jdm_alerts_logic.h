@@ -11,14 +11,11 @@
 
 #include <stdint.h>
 
-#include "core/jdm_data_logic.h"
 #include "core/jdm_tokens.h"
 
-// ---- 阈值(原始量纲:rpm / °C / 0.1bar / mV / 0.01g)----
-// 转速两档与表盘红区(JDM_TACH_RED_RPM)联动:进红区即 critical,
-// 换挡提示在红区之前。改 JDM_TACH_RED_RPM 时无需动这里。
-#define JDM_ALERTS_RPM_SHIFT   JDM_TACH_RED_RPM - 200  // ≥ advisory 换挡提示
-#define JDM_ALERTS_RPM_LIMIT   JDM_TACH_RED_RPM        // ≥ critical 转速过高(红区起点)
+// ---- 阈值(原始量纲:°C / 0.1bar / mV / 0.01g)----
+// 转速两档(换挡提示/红区)来自车型配置 tach_cfg_t,由调用方以参数
+// 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
 #define JDM_ALERTS_OIL_HOT     110     // ≥ 油温过高
 #define JDM_ALERTS_OILP_LOW    10      // <  油压过低 critical(<1.0 bar)
 #define JDM_ALERTS_BOOST_HIGH  24      // ≥ 增压过高(2.4 bar,表盘红区起点)
@@ -29,19 +26,20 @@
 #define JDM_ALERTS_TYRE_HIGH   34      // ≥ 胎压过高(3.4 bar)
 #define JDM_ALERTS_G_LIMIT     100     // >  G 值提醒(1.0 g)
 
-/* 编译期校验:RPM critical 与表盘红区同源(别名定义已保证),其余
- * 配置对的大小关系在此把关——改宏时即时报错 */
-_Static_assert(JDM_ALERTS_RPM_LIMIT == JDM_TACH_RED_RPM, "rpm critical must trip at the dial red zone");
-_Static_assert(JDM_ALERTS_RPM_SHIFT < JDM_ALERTS_RPM_LIMIT, "shift prompt must precede the rpm critical");
+/* 编译期校验:配置对的大小关系把关——改宏时即时报错
+ * (转速两档来自车型配置,关系由 vehicle_profile_get_tach_cfg() 钳制) */
 _Static_assert(JDM_ALERTS_TYRE_LOW < JDM_ALERTS_TYRE_HIGH, "tyre low threshold must precede high");
 _Static_assert(JDM_ALERTS_BAT_LOW < JDM_ALERTS_BAT_HIGH, "battery low threshold must precede high");
 _Static_assert(JDM_ALERTS_OILP_LOW > 0, "oil pressure low threshold must be positive");
 
-/** 判定一通道;JDM_ALERT_NONE 时 reason 不写,否则置为静态文案。 */
-static inline jdm_alert_level_t jdm_alerts_logic_rpm(int32_t rpm, const char **reason)
+/** 判定转速通道;JDM_ALERT_NONE 时 reason 不写,否则置为静态文案。
+ *  shift_rpm = 换挡提示(advisory,红区之前),limit_rpm = 红区起点
+ *  (critical,= 车型配置 tach_cfg_t.red_rpm,进红区即报)。 */
+static inline jdm_alert_level_t jdm_alerts_logic_rpm(int32_t rpm, int shift_rpm,
+                                                     int limit_rpm, const char **reason)
 {
-    if (rpm >= JDM_ALERTS_RPM_LIMIT) { *reason = "RPM LIMIT"; return JDM_ALERT_CRITICAL; }
-    if (rpm >= JDM_ALERTS_RPM_SHIFT) { *reason = "SHIFT"; return JDM_ALERT_ADVISORY; }
+    if (rpm >= limit_rpm) { *reason = "RPM LIMIT"; return JDM_ALERT_CRITICAL; }
+    if (rpm >= shift_rpm) { *reason = "SHIFT"; return JDM_ALERT_ADVISORY; }
     return JDM_ALERT_NONE;
 }
 

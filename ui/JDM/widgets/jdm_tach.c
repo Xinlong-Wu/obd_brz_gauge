@@ -20,6 +20,20 @@
 #define TACH_SWEEP_END 400 // 140° + 260°
 #define TACH_NUM_RADIUS 248 // 数字环(原型 art.js 数字基线环,数字中心所在)
 
+// 车型配置(车型配置里量程/警戒区的展示缓存;jdm_tach_apply_zones 设置)
+static struct {
+    int32_t rpm_max;
+    int32_t amber;
+    int32_t red;
+} s_cfg = {8000, 5700, 7000};   // 与 VEHICLE_TACH_CFG_DEFAULT 一致
+
+void jdm_tach_apply_zones(int32_t rpm_max, int32_t amber_rpm, int32_t red_rpm)
+{
+    if (rpm_max > 0) s_cfg.rpm_max = rpm_max;
+    if (amber_rpm > 0) s_cfg.amber = amber_rpm;
+    if (red_rpm > 0) s_cfg.red = red_rpm;
+}
+
 static lv_obj_t *s_segs;   // 段容器(update 按其子索引取段,与背景层解耦)
 
 lv_obj_t *jdm_tach_create(lv_obj_t *parent)
@@ -95,15 +109,15 @@ lv_obj_t *jdm_tach_create(lv_obj_t *parent)
 void jdm_tach_update(lv_obj_t *tach, int32_t rpm, bool connected)
 {
     (void)tach;
-    int lit = connected ? jdm_data_logic_tach_lit(rpm) : 0;
+    int lit = connected ? jdm_data_logic_tach_lit(rpm, s_cfg.rpm_max) : 0;
     for (int i = 0; i < JDM_TACH_SEGMENTS; i++) {
         lv_obj_t *seg = lv_obj_get_child(s_segs, i);
         jdm_color_role_t want;
         if (i < lit) {
-            // 段色带按段起始转速对齐警戒区(琥珀/红区阈值见 jdm_data_logic.h)
-            int32_t seg_rpm = jdm_data_logic_tach_seg_rpm(i);
-            want = (seg_rpm >= JDM_TACH_RED_RPM) ? JDM_ROLE_RED
-                 : (seg_rpm >= JDM_TACH_AMBER_RPM) ? JDM_ROLE_AMBER : JDM_ROLE_TEXT;
+            // 段色带按段起始转速对齐车型警戒区(阈值见 tach_cfg_t)
+            int32_t seg_rpm = jdm_data_logic_tach_seg_rpm(i, s_cfg.rpm_max);
+            want = (seg_rpm >= s_cfg.red) ? JDM_ROLE_RED
+                 : (seg_rpm >= s_cfg.amber) ? JDM_ROLE_AMBER : JDM_ROLE_TEXT;
         } else {
             want = JDM_ROLE_LINE;
         }
