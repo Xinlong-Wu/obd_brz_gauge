@@ -102,12 +102,13 @@ int main(void)
     TEST_ASSERT_EQ_INT(7857, jdm_data_logic_tach_seg_rpm(55, 8000));
     TEST_ASSERT_EQ_INT(5357, jdm_data_logic_tach_seg_rpm(50, 6000));  // 车型量程=6000
 
-    // ---- 纯逻辑:温度柱 ‰ ----
-    TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(50));
-    TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(60));
-    TEST_ASSERT_EQ_INT(500, jdm_data_logic_thermal_permille(90));
-    TEST_ASSERT_EQ_INT(1000, jdm_data_logic_thermal_permille(120));
-    TEST_ASSERT_EQ_INT(1000, jdm_data_logic_thermal_permille(130));
+    // ---- 纯逻辑:温度柱 ‰(量程为参数) ----
+    TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(50, 60, 120));
+    TEST_ASSERT_EQ_INT(0, jdm_data_logic_thermal_permille(60, 60, 120));
+    TEST_ASSERT_EQ_INT(500, jdm_data_logic_thermal_permille(90, 60, 120));
+    TEST_ASSERT_EQ_INT(1000, jdm_data_logic_thermal_permille(120, 60, 120));
+    TEST_ASSERT_EQ_INT(1000, jdm_data_logic_thermal_permille(130, 60, 120));
+    TEST_ASSERT_EQ_INT(500, jdm_data_logic_thermal_permille(90, 40, 140));  // 车型量程=40..140
 
     if (t_failed) {
         fprintf(stderr, "%d/%d checks failed\n", t_failed, t_checks);

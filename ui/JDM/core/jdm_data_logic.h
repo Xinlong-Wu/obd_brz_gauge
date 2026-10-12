@@ -58,10 +58,10 @@ static inline int32_t jdm_data_logic_tach_seg_rpm(int i, int32_t rpm_max)
     return i * rpm_max / JDM_TACH_SEGMENTS;
 }
 
-/** 温度柱(60–120°C):返回柱内归一化高度 0..1000(‰),钳出界。 */
-static inline int jdm_data_logic_thermal_permille(int32_t temp_c)
+/** 温度柱:返回柱内归一化高度 0..1000(‰),钳出界;量程 [lo,hi] 为参数。 */
+static inline int jdm_data_logic_thermal_permille(int32_t temp, int32_t lo, int32_t hi)
 {
-    if (temp_c <= 60) return 0;
-    if (temp_c >= 120) return 1000;
-    return (int)((temp_c - 60) * 1000 / 60);
+    if (temp <= lo) return 0;
+    if (temp >= hi) return 1000;
+    return (int)((temp - lo) * 1000 / (hi - lo));
 }

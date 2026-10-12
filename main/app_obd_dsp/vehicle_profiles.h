@@ -86,6 +86,24 @@ _Static_assert(VEHICLE_BOOST_DIM_DEFAULT < VEHICLE_BOOST_RED_DEFAULT,
 _Static_assert(VEHICLE_BOOST_RED_DEFAULT <= VEHICLE_BOOST_MAX_DEFAULT,
                "boost red zone must not exceed full scale");
 
+// Coolant temperature gauge configuration (per vehicle; 0 = fall back to
+// the MX-5 NC defaults below). Values in deg C. red_c doubles as the
+// overheat alarm threshold.
+typedef struct {
+    int16_t min_c;     // dial low end (60)
+    int16_t max_c;     // full scale (120)
+    uint16_t red_c;    // red zone start = overheat alarm threshold (110)
+} clt_cfg_t;
+
+#define VEHICLE_CLT_MIN_DEFAULT   60
+#define VEHICLE_CLT_MAX_DEFAULT   120
+#define VEHICLE_CLT_RED_DEFAULT   110
+#define VEHICLE_CLT_CFG_DEFAULT { 60, 120, 110 }
+_Static_assert(VEHICLE_CLT_MIN_DEFAULT < VEHICLE_CLT_RED_DEFAULT,
+               "coolant red zone must follow the dial low end");
+_Static_assert(VEHICLE_CLT_RED_DEFAULT <= VEHICLE_CLT_MAX_DEFAULT,
+               "coolant red zone must not exceed full scale");
+
 // Oil temp query strategy
 typedef struct {
     oil_temp_query_mode_t primary;     // preferred query mode
@@ -119,6 +137,7 @@ typedef struct {
     bool can_broadcast_mode;             // true=read data by listening to CAN broadcast frames via ATMA (currently ZN/C6 CAN only), replacing standard OBD PID polling
     tach_cfg_t tach;                     // tachometer range/zones; zero fields fall back to VEHICLE_TACH_CFG_DEFAULT (MX-5 NC)
     boost_cfg_t boost;                   // boost/vacuum gauge range/zones (0.1 bar); zero fields fall back to VEHICLE_BOOST_CFG_DEFAULT
+    clt_cfg_t clt;                       // coolant gauge range/red zone (deg C); zero fields fall back to VEHICLE_CLT_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -153,6 +172,10 @@ const tach_cfg_t *vehicle_profile_get_tach_cfg(void);
 // Get the boost/vacuum gauge config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults; relations clamped)
 const boost_cfg_t *vehicle_profile_get_boost_cfg(void);
+
+// Get the coolant gauge config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults; relations clamped)
+const clt_cfg_t *vehicle_profile_get_clt_cfg(void);
 
 #ifdef __cplusplus
 }

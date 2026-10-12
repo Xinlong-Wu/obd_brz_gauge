@@ -18,7 +18,6 @@
 // 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
 #define JDM_ALERTS_OIL_HOT     110     // ≥ 油温过高
 #define JDM_ALERTS_OILP_LOW    10      // <  油压过低 critical(<1.0 bar)
-#define JDM_ALERTS_CLT_HOT     110     // ≥ 水温过高
 #define JDM_ALERTS_BAT_LOW     10800   // ≤ 电压过低(10.8 V)
 #define JDM_ALERTS_BAT_HIGH    16400   // ≥ 电压过高(16.4 V)
 #define JDM_ALERTS_TYRE_LOW    5       // ≤ 胎压过低 critical(0.5 bar)
@@ -62,9 +61,11 @@ static inline jdm_alert_level_t jdm_alerts_logic_boost(int32_t raw, int red_x10,
     return JDM_ALERT_NONE;
 }
 
-static inline jdm_alert_level_t jdm_alerts_logic_clt(int32_t raw, const char **reason)
+/** 水温过高:阈值 = 车型配置 clt_cfg_t.red_c(表盘红区起点)。 */
+static inline jdm_alert_level_t jdm_alerts_logic_clt(int32_t raw, int red_c,
+                                                     const char **reason)
 {
-    if (raw >= JDM_ALERTS_CLT_HOT) { *reason = "COOLANT HIGH"; return JDM_ALERT_WARNING; }
+    if (raw >= red_c) { *reason = "COOLANT HIGH"; return JDM_ALERT_WARNING; }
     return JDM_ALERT_NONE;
 }
 

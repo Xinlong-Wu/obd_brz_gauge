@@ -539,3 +539,22 @@ const boost_cfg_t *vehicle_profile_get_boost_cfg(void)
     }
     return &s_boost;
 }
+
+const clt_cfg_t *vehicle_profile_get_clt_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 min<red≤max 的次序
+    static clt_cfg_t s_clt;
+    const clt_cfg_t d = VEHICLE_CLT_CFG_DEFAULT;
+    const clt_cfg_t *p = &vehicle_profile_get_active()->clt;
+
+    s_clt.min_c = p->min_c ? p->min_c : d.min_c;
+    s_clt.max_c = p->max_c ? p->max_c : d.max_c;
+    if (s_clt.max_c <= s_clt.min_c) {
+        s_clt = d;   // 量程倒挂,整体回退默认
+    } else {
+        s_clt.red_c = p->red_c ? p->red_c : d.red_c;
+        if (s_clt.red_c > s_clt.max_c) s_clt.red_c = s_clt.max_c;
+        if (s_clt.red_c <= s_clt.min_c) s_clt.red_c = s_clt.min_c + 1;
+    }
+    return &s_clt;
+}

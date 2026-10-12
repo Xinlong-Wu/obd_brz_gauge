@@ -25,8 +25,8 @@ int main(void)
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oil(109, &r));
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_oil(110, &r));
     TEST_ASSERT_EQ_STR("OIL TEMP HIGH", r);
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_clt(109, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_clt(112, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_clt(109, 110, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_clt(112, 110, &r));
     TEST_ASSERT_EQ_STR("COOLANT HIGH", r);
 
     // ---- 油压:<1.0 bar critical(10 = 1.0 bar 不告警) ----
