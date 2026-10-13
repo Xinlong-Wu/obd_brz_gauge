@@ -144,9 +144,8 @@ static void update(void)
         if (ok) lv = jdm_alerts_logic_tyre(raw, s_tyre.press_low_x10, s_tyre.press_high_x10, &reason);
         if (lv == JDM_ALERT_NONE && tok && traw >= s_tyre.temp_high_c)
             lv = jdm_alerts_logic_tyre_temp(traw, s_tyre.temp_high_c, &reason);
-        jdm_color_role_t ink = (lv == JDM_ALERT_CRITICAL) ? JDM_ROLE_RED
-                             : (lv == JDM_ALERT_WARNING) ? JDM_ROLE_AMBER
-                             : JDM_ROLE_MUTED;
+        // 轮胎页告警统一红色(低压/高压/胎温高);页脚文案区分具体原因
+        jdm_color_role_t ink = (lv == JDM_ALERT_NONE) ? JDM_ROLE_MUTED : JDM_ROLE_RED;
         // 数值/轮位标签/警示横线统一告警色(低压红,高胎压/胎温琥珀)
         lv_obj_set_style_text_color(s_wheel[i].name, jdm_color(ink), 0);
         lv_obj_set_style_text_color(s_wheel[i].pressure, jdm_color(lv == JDM_ALERT_NONE ? JDM_ROLE_TEXT : ink), 0);
