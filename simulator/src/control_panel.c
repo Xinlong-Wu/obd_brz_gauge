@@ -21,6 +21,8 @@
 typedef enum {
     CH_RPM, CH_SPEED, CH_CLT, CH_OIL, CH_IAT,
     CH_OILP, CH_BOOST, CH_BAT, CH_AFR, CH_TPS, CH_BRAKE,
+    CH_TP_FL, CH_TP_FR, CH_TP_RL, CH_TP_RR,   /* tire pressure, 0.1 bar */
+    CH_GFL, CH_GLN,                            /* G-force, 0.01 g */
     CH_COUNT,
 } ch_id_t;
 
@@ -43,6 +45,12 @@ static const ch_meta_t META[CH_COUNT] = {
     [CH_AFR]   = { "AFR",   "",     800,  2200,  100  },
     [CH_TPS]   = { "TPS",   "%",    0,    100,   1    },
     [CH_BRAKE] = { "BRAKE", "C",    0,    8000,  10   },
+    [CH_TP_FL] = { "TP-FL", "bar",  0,    45,    10   },
+    [CH_TP_FR] = { "TP-FR", "bar",  0,    45,    10   },
+    [CH_TP_RL] = { "TP-RL", "bar",  0,    45,    10   },
+    [CH_TP_RR] = { "TP-RR", "bar",  0,    45,    10   },
+    [CH_GFL]   = { "G-LAT", "g",    -150, 150,   100  },
+    [CH_GLN]   = { "G-LON", "g",    -150, 150,   100  },
 };
 
 static struct {
@@ -73,6 +81,13 @@ static void apply_channel(ch_id_t ch, int val)
     case CH_AFR:   obd_data_set_afr_x100((int16_t)val); break;
     case CH_TPS:   obd_data_set_tps((int16_t)val); break;
     case CH_BRAKE: obd_data_set_brake_temp_x10((int16_t)val); break;
+    case CH_TP_FL: obd_data_set_tpms_bar_x10(0, (int16_t)val); break;
+    case CH_TP_FR: obd_data_set_tpms_bar_x10(1, (int16_t)val); break;
+    case CH_TP_RL: obd_data_set_tpms_bar_x10(2, (int16_t)val); break;
+    case CH_TP_RR: obd_data_set_tpms_bar_x10(3, (int16_t)val); break;
+    /* G 力两轴共用一个 setter:未拖动的轴保持缓存现值 */
+    case CH_GFL:   obd_data_set_gforce_x100((int16_t)val, obd_data_get_gforce_lon_x100()); break;
+    case CH_GLN:   obd_data_set_gforce_x100(obd_data_get_gforce_lat_x100(), (int16_t)val); break;
     default: break;
     }
 }
