@@ -29,10 +29,11 @@ int main(void)
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_clt(112, 110, &r));
     TEST_ASSERT_EQ_STR("COOLANT HIGH", r);
 
-    // ---- 油压:<1.0 bar critical(10 = 1.0 bar 不告警) ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_oilp(5, &r));
+    // ---- 油压:≤阈值 critical(默认 10 = 1.0 bar 不告警) ----
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_oilp(5, 10, &r));
     TEST_ASSERT_EQ_STR("OIL PRESS LOW", r);
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oilp(10, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_oilp(10, 10, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_oilp(15, 20, &r));   // 车型可配
 
     // ---- 增压:阈值 = 车型红区起点(默认 2.4 bar) ----
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_boost(23, 24, &r));

@@ -145,7 +145,7 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     jdm_alert_level_t lv;
-    lv = press_ok ? jdm_alerts_logic_oilp(press, &reason) : JDM_ALERT_NONE;
+    lv = press_ok ? jdm_alerts_logic_oilp(press, vehicle_profile_get_oilp_cfg()->low_x10, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 5, reason, lv);
     jdm_readout_set_warning(&s_press_ro, lv != JDM_ALERT_NONE);
     lv = oil_ok ? jdm_alerts_logic_oil(oil, vehicle_profile_get_oil_cfg()->red_c, &reason) : JDM_ALERT_NONE;

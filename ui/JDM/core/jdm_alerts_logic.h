@@ -16,7 +16,6 @@
 // ---- 阈值(原始量纲:°C / 0.1bar / mV / 0.01g)----
 // 转速两档(换挡提示/红区)来自车型配置 tach_cfg_t,由调用方以参数
 // 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
-#define JDM_ALERTS_OILP_LOW    10      // <  油压过低 critical(<1.0 bar)
 #define JDM_ALERTS_BAT_LOW     10800   // ≤ 电压过低(10.8 V)
 #define JDM_ALERTS_BAT_HIGH    16400   // ≥ 电压过高(16.4 V)
 #define JDM_ALERTS_TYRE_LOW    5       // ≤ 胎压过低 critical(0.5 bar)
@@ -27,7 +26,6 @@
  * (转速两档来自车型配置,关系由 vehicle_profile_get_tach_cfg() 钳制) */
 _Static_assert(JDM_ALERTS_TYRE_LOW < JDM_ALERTS_TYRE_HIGH, "tyre low threshold must precede high");
 _Static_assert(JDM_ALERTS_BAT_LOW < JDM_ALERTS_BAT_HIGH, "battery low threshold must precede high");
-_Static_assert(JDM_ALERTS_OILP_LOW > 0, "oil pressure low threshold must be positive");
 
 /** 判定转速通道;JDM_ALERT_NONE 时 reason 不写,否则置为静态文案。
  *  shift_rpm = 换挡提示(advisory,红区之前),limit_rpm = 红区起点
@@ -48,9 +46,12 @@ static inline jdm_alert_level_t jdm_alerts_logic_oil(int32_t raw, int red_c,
     return JDM_ALERT_NONE;
 }
 
-static inline jdm_alert_level_t jdm_alerts_logic_oilp(int32_t raw, const char **reason)
+/** 油压过低:阈值 = 车型配置 oilp_cfg_t.low_x10(表盘量程下限之上);
+ *  严格小于阈值才告警(= 阈值本身不触发,与既有状态字语义一致)。 */
+static inline jdm_alert_level_t jdm_alerts_logic_oilp(int32_t raw, int low_x10,
+                                                      const char **reason)
 {
-    if (raw < JDM_ALERTS_OILP_LOW) { *reason = "OIL PRESS LOW"; return JDM_ALERT_CRITICAL; }
+    if (raw < low_x10) { *reason = "OIL PRESS LOW"; return JDM_ALERT_CRITICAL; }
     return JDM_ALERT_NONE;
 }
 

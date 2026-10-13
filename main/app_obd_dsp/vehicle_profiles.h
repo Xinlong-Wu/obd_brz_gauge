@@ -122,6 +122,22 @@ _Static_assert(VEHICLE_OIL_MIN_DEFAULT < VEHICLE_OIL_RED_DEFAULT,
 _Static_assert(VEHICLE_OIL_RED_DEFAULT <= VEHICLE_OIL_MAX_DEFAULT,
                "oil red zone must not exceed full scale");
 
+// Oil pressure gauge configuration (per vehicle; 0 = fall back to the
+// MX-5 NC defaults below). Values in 0.1 bar. low_x10 is the low pressure
+// alarm threshold (needle/arc turn red at or below it).
+typedef struct {
+    uint16_t min_x10;   // dial low end (0)
+    uint16_t max_x10;   // full scale (60 = 6 bar)
+    uint16_t low_x10;   // low pressure alarm threshold (10 = 1.0 bar)
+} oilp_cfg_t;
+
+#define VEHICLE_OILP_MAX_DEFAULT   60
+#define VEHICLE_OILP_LOW_DEFAULT   10
+#define VEHICLE_OILP_CFG_DEFAULT { 0, 60, 10 }
+_Static_assert(VEHICLE_OILP_LOW_DEFAULT <= VEHICLE_OILP_MAX_DEFAULT,
+               "oil pressure low threshold must not exceed full scale");
+_Static_assert(VEHICLE_OILP_LOW_DEFAULT > 0, "oil pressure low threshold must be positive");
+
 // Oil temp query strategy
 typedef struct {
     oil_temp_query_mode_t primary;     // preferred query mode
@@ -157,6 +173,7 @@ typedef struct {
     boost_cfg_t boost;                   // boost/vacuum gauge range/zones (0.1 bar); zero fields fall back to VEHICLE_BOOST_CFG_DEFAULT
     clt_cfg_t clt;                       // coolant gauge range/red zone (deg C); zero fields fall back to VEHICLE_CLT_CFG_DEFAULT
     oil_cfg_t oil;                       // oil temp gauge range/red zone (deg C); zero fields fall back to VEHICLE_OIL_CFG_DEFAULT
+    oilp_cfg_t oilp;                     // oil pressure gauge range/low alarm (0.1 bar); zero fields fall back to VEHICLE_OILP_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -199,6 +216,10 @@ const clt_cfg_t *vehicle_profile_get_clt_cfg(void);
 // Get the oil temp gauge config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults; relations clamped)
 const oil_cfg_t *vehicle_profile_get_oil_cfg(void);
+
+// Get the oil pressure gauge config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults)
+const oilp_cfg_t *vehicle_profile_get_oilp_cfg(void);
 
 #ifdef __cplusplus
 }

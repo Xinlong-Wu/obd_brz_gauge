@@ -62,7 +62,7 @@ static void set_texts(int32_t oil, bool oil_ok, int32_t press, bool press_ok)
     if (press_ok) {
         snprintf(buf, sizeof(buf), "PRESS %d.%d bar", (int)(press / 10), (int)(press % 10));
         lv_label_set_text(s_press_text, buf);
-        lv_obj_set_style_text_color(s_press_text, jdm_color(press < 10 ? JDM_ROLE_RED : JDM_ROLE_TEXT), 0);
+        lv_obj_set_style_text_color(s_press_text, jdm_color(press <= vehicle_profile_get_oilp_cfg()->low_x10 ? JDM_ROLE_RED : JDM_ROLE_TEXT), 0);
     } else {
         lv_obj_set_style_text_color(s_press_text, jdm_color(JDM_ROLE_MUTED), 0);
     }
@@ -131,7 +131,7 @@ static void update(void)
         n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     }
     if (conn && press_ok) {
-        jdm_alert_level_t lv = jdm_alerts_logic_oilp(press, &reason);
+        jdm_alert_level_t lv = jdm_alerts_logic_oilp(press, vehicle_profile_get_oilp_cfg()->low_x10, &reason);
         n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     }
     jdm_alert_set(&s_alert, items, n);

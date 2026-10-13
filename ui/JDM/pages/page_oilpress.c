@@ -5,6 +5,7 @@
 //  + 右侧 eccentric 读数区(cx520)。
 // ================================================================
 
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "widgets/jdm_alert.h"
 #include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
@@ -28,12 +29,15 @@ static lv_obj_t *s_needle;
 static jdm_readout_t s_ro;
 static lv_obj_t *s_status;
 static jdm_alert_widgets_t s_alert;
+static oilp_cfg_t s_oilp;   // 当前车型的量程/低压报警(NVS 车型选择)
 
 #define PCX 220   // 表盘圆心(母版)
 #define PCY 355
 
 static void create(lv_obj_t *page)
 {
+    s_oilp = *vehicle_profile_get_oilp_cfg();   // 车型的量程/低压报警
+    int32_t v_range = s_oilp.max_x10 - s_oilp.min_x10;
     jdm_header_create(page, "OIL PRESSURE", "LUBRICATION");
 
     // 轨道 r160 w20(130°..390°)
@@ -55,7 +59,7 @@ static void create(lv_obj_t *page)
     }
 
     s_arc = jdm_arc_create(page, PCX, PCY, 160, 8);
-    jdm_arc_configure(s_arc, 130, 260, 60);   // 0..6 bar → 0..60(0.1bar)
+    jdm_arc_configure(s_arc, 130, 260, v_range);   // 数据域量程(bar×10)
     s_needle = jdm_needle_create_group(page, PCX, PCY, 125, JDM_ROLE_TEXT);
 
     // 右侧读数区(cx = 360+160 = 520)
@@ -70,11 +74,15 @@ static void create(lv_obj_t *page)
 static void update(void)
 {
     int32_t raw = 0;
+    int32_t v_range = s_oilp.max_x10 - s_oilp.min_x10;
     bool valid = jdm_data_read_cache(DISP_ITEM_OILP, &raw) && jdm_conn_active();
+    bool alarm = false;   // ≤低压阈值:指针/弧变红
 
     if (valid) {
-        jdm_arc_set(s_arc, raw);   // 0..60(0.1bar),量程内自动钳
-        float deg = 130.0f + raw * 260.0f / 60.0f;   // 4.333°/0.1bar,无整度跳变
+        jdm_arc_set(s_arc, raw - s_oilp.min_x10);   // 量程内自动钳
+        // 指针钳在表盘扫角内:超量程压力停于满刻度,不再转圈
+        float deg = 130.0f + (raw - s_oilp.min_x10) * 260.0f / v_range;
+        if (deg > 390.0f) deg = 390.0f;
         jdm_needle_set_angle(s_needle, deg);
     } else {
         lv_obj_set_hidden(s_arc, true);
@@ -86,7 +94,8 @@ static void update(void)
 
     if (!valid) {
         jdm_status_text_set(s_status, "WAITING", JDM_STATUS_DISCONNECTED);
-    } else if (raw < 10) {   // <1.0 bar 怠速低压告警
+    } else if (raw < s_oilp.low_x10) {
+        alarm = true;   // <低压阈值:指针/弧变红
         jdm_status_text_set(s_status, "LOW PRESSURE", JDM_STATUS_WARNING);
     } else {
         jdm_status_text_set(s_status, "STABLE", JDM_STATUS_NORMAL);
@@ -96,9 +105,12 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     if (valid) {
-        jdm_alert_level_t lv = jdm_alerts_logic_oilp(raw, &reason);
+        jdm_alert_level_t lv = jdm_alerts_logic_oilp(raw, s_oilp.low_x10, &reason);
         n = jdm_alerts_logic_push(&item, n, 1, reason, lv);
     }
+    // 低压告警:弧与指针 amber/白 → 红(状态字已红)
+    jdm_arc_set_color(s_arc, alarm ? JDM_ROLE_RED : JDM_ROLE_AMBER);
+    jdm_needle_set_color(s_needle, alarm ? JDM_ROLE_RED : JDM_ROLE_TEXT);
     jdm_readout_set_warning(&s_ro, n > 0);
     jdm_alert_set(&s_alert, &item, n);
 }

@@ -20,6 +20,7 @@
 #include <stdio.h>
 
 static lv_obj_t *s_boost_bar;
+static boost_cfg_t s_bc;   // 当前车型的增压量程/红区(NVS 车型选择)
 static jdm_readout_t s_boost_ro;
 static jdm_readout_t s_oil_ro;
 static jdm_readout_t s_press_ro;
@@ -27,6 +28,7 @@ static jdm_alert_widgets_t s_alert;
 
 static void create(lv_obj_t *page)
 {
+    s_bc = *vehicle_profile_get_boost_cfg();   // 车型的增压量程/红区
     jdm_header_create(page, "POWERTRAIN", "THREE CHANNEL VIEW");
 
     // art('triple'):分隔线 + 增压轨道槽
@@ -42,7 +44,7 @@ static void create(lv_obj_t *page)
     lv_obj_set_style_bg_color(slot, jdm_color(JDM_ROLE_PANEL), 0);
     lv_obj_set_style_bg_opa(slot, LV_OPA_COVER, 0);
 
-    // 动态增压条(同槽位,amber,宽度 = (boost+1)/4 × 496)
+    // 动态增压条(同槽位,amber;宽度 = (boost−min)/量程 × 496,超限变红)
     s_boost_bar = lv_obj_create(page);
     lv_obj_remove_style_all(s_boost_bar);
     lv_obj_set_pos(s_boost_bar, UIS(112), UIS(196));
@@ -70,16 +72,17 @@ static void create(lv_obj_t *page)
 static void update(void)
 {
     int32_t boost = 0, oil = 0, press = 0;
+    int32_t v_range = s_bc.max_x10 - s_bc.min_x10;
     bool conn = jdm_conn_active();
     bool boost_ok = jdm_data_read_cache(DISP_ITEM_BOOST, &boost) && conn;
     bool oil_ok = jdm_data_read_cache(DISP_ITEM_OIL, &oil) && conn;
     bool press_ok = jdm_data_read_cache(DISP_ITEM_OILP, &press) && conn;
 
     if (boost_ok) {
-        int32_t frac = boost + 10;          // −1..3 bar → 0..40
+        int32_t frac = boost - s_bc.min_x10;   // 车型量程内归一化
         if (frac < 0) frac = 0;
-        if (frac > 40) frac = 40;
-        lv_obj_set_width(s_boost_bar, UIS(496) * frac / 40);
+        if (frac > v_range) frac = v_range;
+        lv_obj_set_width(s_boost_bar, UIS(496) * frac / v_range);
     } else {
         lv_obj_set_width(s_boost_bar, 0);
     }
@@ -97,13 +100,16 @@ static void update(void)
     int n = 0;
     const char *reason = NULL;
     jdm_alert_level_t lv;
-    lv = boost_ok ? jdm_alerts_logic_boost(boost, vehicle_profile_get_boost_cfg()->red_x10, &reason) : JDM_ALERT_NONE;
+    lv = boost_ok ? jdm_alerts_logic_boost(boost, s_bc.red_x10, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     jdm_readout_set_warning(&s_boost_ro, lv != JDM_ALERT_NONE);
+    // 顶部增压条随告警 amber→red(超限,与读数同色)
+    lv_obj_set_style_bg_color(s_boost_bar,
+                              jdm_color(lv != JDM_ALERT_NONE ? JDM_ROLE_RED : JDM_ROLE_AMBER), 0);
     lv = oil_ok ? jdm_alerts_logic_oil(oil, vehicle_profile_get_oil_cfg()->red_c, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     jdm_readout_set_warning(&s_oil_ro, lv != JDM_ALERT_NONE);
-    lv = press_ok ? jdm_alerts_logic_oilp(press, &reason) : JDM_ALERT_NONE;
+    lv = press_ok ? jdm_alerts_logic_oilp(press, vehicle_profile_get_oilp_cfg()->low_x10, &reason) : JDM_ALERT_NONE;
     n = jdm_alerts_logic_push(items, n, 3, reason, lv);
     jdm_readout_set_warning(&s_press_ro, lv != JDM_ALERT_NONE);
     jdm_alert_set(&s_alert, items, n);
