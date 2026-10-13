@@ -320,6 +320,11 @@ static void engine_apply_tick(lv_timer_t *t)
     obd_data_set_load_pct((int16_t)v.load);
     obd_data_set_afr_x100((int16_t)v.afr_x100);
     obd_data_set_brake_rs485_status(v.brake_ok ? BRAKE_RS485_OK : BRAKE_RS485_IDLE);
+    /* tyre temps: scenario has none; constants so the tyres page shows data */
+    obd_data_set_tpms_temp_c(0, 35);
+    obd_data_set_tpms_temp_c(1, 36);
+    obd_data_set_tpms_temp_c(2, 34);
+    obd_data_set_tpms_temp_c(3, 33);
 }
 
 int main(int argc, char **argv)
