@@ -70,6 +70,12 @@ int16_t  obd_data_get_gforce_lon_x100(void);
 // Tire pressure (ZC6 0x6E2 frame), in 0.1 bar; wheel: 0=FL 1=FR 2=RL 3=RR; -1 = invalid
 void obd_data_set_tpms_bar_x10(uint8_t wheel, int16_t bar_x10);
 int16_t  obd_data_get_tpms_bar_x10(uint8_t wheel);
+
+void obd_data_set_tpms_temp_c(uint8_t wheel, int16_t temp_c);
+int16_t  obd_data_get_tpms_temp_c(uint8_t wheel);
+
+void obd_data_set_tpms_temp_c(uint8_t wheel, int16_t temp_c);
+int16_t  obd_data_get_tpms_temp_c(uint8_t wheel);
 uint16_t obd_data_get_rpm(void);
 uint8_t  obd_data_get_speed(void);
 int16_t  obd_data_get_coolant_temp(void);

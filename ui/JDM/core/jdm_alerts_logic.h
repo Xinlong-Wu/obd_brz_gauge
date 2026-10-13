@@ -18,13 +18,10 @@
 // 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
 #define JDM_ALERTS_BAT_LOW     10800   // ≤ 电压过低(10.8 V)
 #define JDM_ALERTS_BAT_HIGH    16400   // ≥ 电压过高(16.4 V)
-#define JDM_ALERTS_TYRE_LOW    5       // ≤ 胎压过低 critical(0.5 bar)
-#define JDM_ALERTS_TYRE_HIGH   34      // ≥ 胎压过高(3.4 bar)
 #define JDM_ALERTS_G_LIMIT     100     // >  G 值提醒(1.0 g)
 
 /* 编译期校验:配置对的大小关系把关——改宏时即时报错
  * (转速两档来自车型配置,关系由 vehicle_profile_get_tach_cfg() 钳制) */
-_Static_assert(JDM_ALERTS_TYRE_LOW < JDM_ALERTS_TYRE_HIGH, "tyre low threshold must precede high");
 _Static_assert(JDM_ALERTS_BAT_LOW < JDM_ALERTS_BAT_HIGH, "battery low threshold must precede high");
 
 /** 判定转速通道;JDM_ALERT_NONE 时 reason 不写,否则置为静态文案。
@@ -79,10 +76,20 @@ static inline jdm_alert_level_t jdm_alerts_logic_bat(int32_t raw_mv, const char 
 }
 
 /** 单轮胎压(轮位前缀由页面拼装)。 */
-static inline jdm_alert_level_t jdm_alerts_logic_tyre(int32_t raw)
+/** 胎压过低/过高:阈值 = 车型配置 tyre_cfg_t。 */
+static inline jdm_alert_level_t jdm_alerts_logic_tyre(int32_t raw, int press_low,
+                                                      int press_high, const char **reason)
 {
-    if (raw <= JDM_ALERTS_TYRE_LOW) return JDM_ALERT_CRITICAL;
-    if (raw >= JDM_ALERTS_TYRE_HIGH) return JDM_ALERT_WARNING;
+    if (raw <= press_low) { *reason = "PRESS LOW"; return JDM_ALERT_CRITICAL; }
+    if (raw >= press_high) { *reason = "PRESS HIGH"; return JDM_ALERT_WARNING; }
+    return JDM_ALERT_NONE;
+}
+
+/** 胎温过高:阈值 = 车型配置 tyre_cfg_t.temp_high_c。 */
+static inline jdm_alert_level_t jdm_alerts_logic_tyre_temp(int32_t raw, int temp_high,
+                                                           const char **reason)
+{
+    if (raw >= temp_high) { *reason = "TEMP HIGH"; return JDM_ALERT_WARNING; }
     return JDM_ALERT_NONE;
 }
 

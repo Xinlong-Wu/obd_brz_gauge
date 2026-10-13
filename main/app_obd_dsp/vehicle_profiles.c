@@ -603,3 +603,18 @@ const bat_cfg_t *vehicle_profile_get_bat_cfg(void)
     if (s_bat.low_mv >= s_bat.high_mv) s_bat.low_mv = s_bat.high_mv / 2;
     return &s_bat;
 }
+
+const tyre_cfg_t *vehicle_profile_get_tyre_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 low<high 的次序
+    static tyre_cfg_t s_tyre;
+    const tyre_cfg_t d = VEHICLE_TYRE_CFG_DEFAULT;
+    const tyre_cfg_t *p = &vehicle_profile_get_active()->tyre;
+
+    s_tyre.press_low_x10  = p->press_low_x10  ? p->press_low_x10  : d.press_low_x10;
+    s_tyre.press_high_x10 = p->press_high_x10 ? p->press_high_x10 : d.press_high_x10;
+    if (s_tyre.press_low_x10 >= s_tyre.press_high_x10)
+        s_tyre.press_low_x10 = s_tyre.press_high_x10 / 2;
+    s_tyre.temp_high_c    = p->temp_high_c    ? p->temp_high_c    : d.temp_high_c;
+    return &s_tyre;
+}

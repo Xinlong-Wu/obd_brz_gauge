@@ -83,6 +83,10 @@ int main(void)
     tc = vehicle_profile_get_tach_cfg();
     TEST_ASSERT_EQ_INT(8000, tc->rpm_max);
     TEST_ASSERT_EQ_INT(7000, tc->red_rpm);
+    const tyre_cfg_t *ty = vehicle_profile_get_tyre_cfg();
+    TEST_ASSERT_EQ_INT(5, ty->press_low_x10);
+    TEST_ASSERT_EQ_INT(34, ty->press_high_x10);
+    TEST_ASSERT_EQ_INT(85, ty->temp_high_c);
     vehicle_profile_set_active(0);
 
     // ---- 增压表配置:零字段回退默认(MX-5 NC) ----

@@ -37,6 +37,10 @@ typedef enum {
     DISP_ITEM_GFORCE_LAT,  // 0.01 g (ZC6 0x0D0 / IMU)
     DISP_ITEM_GFORCE_LON,
     DISP_ITEM_HEART,       // 心率 bpm(BLE HR 0x180D;数据源接入前恒无效)
+    DISP_ITEM_TT_FL,       /* tyre temp, deg C (sim / ext) */
+    DISP_ITEM_TT_FR,
+    DISP_ITEM_TT_RL,
+    DISP_ITEM_TT_RR,
     DISP_ITEM_COUNT,
 } disp_item_t;
 

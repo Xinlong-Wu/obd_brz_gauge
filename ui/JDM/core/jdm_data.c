@@ -28,6 +28,10 @@ static const jdm_data_meta_t s_meta[DISP_ITEM_COUNT] = {
     [DISP_ITEM_GFORCE_LAT] = {"GFL", "g"},
     [DISP_ITEM_GFORCE_LON] = {"GFN", "g"},
     [DISP_ITEM_HEART] = {"HRT", "bpm"},
+    [DISP_ITEM_TT_FL] = {"TTFL", "C"},
+    [DISP_ITEM_TT_FR] = {"TTFR", "C"},
+    [DISP_ITEM_TT_RL] = {"TTRL", "C"},
+    [DISP_ITEM_TT_RR] = {"TTRR", "C"},
 };
 
 static const jdm_data_range_t s_range[DISP_ITEM_COUNT] = {
@@ -43,6 +47,10 @@ static const jdm_data_range_t s_range[DISP_ITEM_COUNT] = {
     [DISP_ITEM_BKT]   = {0, 800, 10},
     [DISP_ITEM_BOOST] = {-10, 30, 10},   // −1.0 ~ +3.0 bar 表压(raw 0.1bar,含真空)
     [DISP_ITEM_AFR]   = {8, 22, 100},
+    [DISP_ITEM_TT_FL] = {-40, 150, 1},
+    [DISP_ITEM_TT_FR] = {-40, 150, 1},
+    [DISP_ITEM_TT_RL] = {-40, 150, 1},
+    [DISP_ITEM_TT_RR] = {-40, 150, 1},
     [DISP_ITEM_TPMS_FL] = {0, 45, 10},
     [DISP_ITEM_TPMS_FR] = {0, 45, 10},
     [DISP_ITEM_TPMS_RL] = {0, 45, 10},
@@ -78,7 +86,11 @@ bool jdm_data_read_cache(disp_item_t item, int32_t *out)
     case DISP_ITEM_TPMS_RR: v = obd_data_get_tpms_bar_x10(3); present = v >= 0; break;
     case DISP_ITEM_GFORCE_LAT: v = obd_data_get_gforce_lat_x100(); present = v != -32768; break;
     case DISP_ITEM_GFORCE_LON: v = obd_data_get_gforce_lon_x100(); present = v != -32768; break;
-    case DISP_ITEM_HEART: return false;   // 数据源(BLE HR)接入前恒无效
+    case DISP_ITEM_HEART: return false;
+    case DISP_ITEM_TT_FL: v = obd_data_get_tpms_temp_c(0); present = v >= -40; break;
+    case DISP_ITEM_TT_FR: v = obd_data_get_tpms_temp_c(1); present = v >= -40; break;
+    case DISP_ITEM_TT_RL: v = obd_data_get_tpms_temp_c(2); present = v >= -40; break;
+    case DISP_ITEM_TT_RR: v = obd_data_get_tpms_temp_c(3); present = v >= -40; break;   // 数据源(BLE HR)接入前恒无效
     default: return false;
     }
     if (!present) return false;

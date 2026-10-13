@@ -151,6 +151,21 @@ _Static_assert(VEHICLE_BAT_LOW_DEFAULT < VEHICLE_BAT_HIGH_DEFAULT,
                "battery low threshold must precede high");
 _Static_assert(VEHICLE_OILP_LOW_DEFAULT > 0, "oil pressure low threshold must be positive");
 
+// Tire pressure/temperature alarm configuration (per vehicle; 0 = fall
+// back to the MX-5 NC defaults below). Pressures in 0.1 bar, temp in deg C.
+typedef struct {
+    uint16_t press_low_x10;   // low pressure alarm (5 = 0.5 bar)
+    uint16_t press_high_x10;  // high pressure alarm (34 = 3.4 bar)
+    uint16_t temp_high_c;     // tire temp alarm (85 deg C)
+} tyre_cfg_t;
+
+#define VEHICLE_TYRE_PRESS_LOW_DEFAULT   5
+#define VEHICLE_TYRE_PRESS_HIGH_DEFAULT  34
+#define VEHICLE_TYRE_TEMP_HIGH_DEFAULT   85
+#define VEHICLE_TYRE_CFG_DEFAULT { 5, 34, 85 }
+_Static_assert(VEHICLE_TYRE_PRESS_LOW_DEFAULT < VEHICLE_TYRE_PRESS_HIGH_DEFAULT,
+               "tyre low threshold must precede high");
+
 // Oil temp query strategy
 typedef struct {
     oil_temp_query_mode_t primary;     // preferred query mode
@@ -188,6 +203,7 @@ typedef struct {
     oil_cfg_t oil;                       // oil temp gauge range/red zone (deg C); zero fields fall back to VEHICLE_OIL_CFG_DEFAULT
     oilp_cfg_t oilp;                     // oil pressure gauge range/low alarm (0.1 bar); zero fields fall back to VEHICLE_OILP_CFG_DEFAULT
     bat_cfg_t bat;                       // battery voltage alarm (mV); zero fields fall back to VEHICLE_BAT_CFG_DEFAULT
+    tyre_cfg_t tyre;                     // tyre pressure/temp alarms; zero fields fall back to VEHICLE_TYRE_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -238,6 +254,10 @@ const oilp_cfg_t *vehicle_profile_get_oilp_cfg(void);
 // Get the battery alarm thresholds of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults)
 const bat_cfg_t *vehicle_profile_get_bat_cfg(void);
+
+// Get the tyre alarm config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults)
+const tyre_cfg_t *vehicle_profile_get_tyre_cfg(void);
 
 #ifdef __cplusplus
 }

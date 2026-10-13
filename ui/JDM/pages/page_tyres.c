@@ -7,6 +7,7 @@
 
 #include "widgets/jdm_alert.h"
 #include "core/jdm_alerts_logic.h"
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
 #include "core/jdm_draw.h"
@@ -45,7 +46,9 @@ static struct {
     lv_obj_t *temp;
     lv_obj_t *warn;         // 异常警示横线(y+143,116×3)
     disp_item_t ch;
+    disp_item_t tch;
 } s_wheel[4];
+static tyre_cfg_t s_tyre;   // 当前车型的胎压/胎温报警阈值(NVS 车型选择)
 
 static jdm_alert_widgets_t s_alert;
 
@@ -82,14 +85,16 @@ static void create(lv_obj_t *page)
     jdm_draw_poly(page, lamp2, 2, 4, JDM_ROLE_AMBER);
 
     // 四轮数据组:FL/FR/RL/RR
-    static const struct { int32_t x, y; const char *name; disp_item_t ch; } wheels[4] = {
-        {186, 252, "FL", DISP_ITEM_TPMS_FL},
-        {534, 252, "FR", DISP_ITEM_TPMS_FR},
-        {186, 430, "RL", DISP_ITEM_TPMS_RL},
-        {534, 430, "RR", DISP_ITEM_TPMS_RR},
+    static const struct { int32_t x, y; const char *name; disp_item_t ch; disp_item_t tch; } wheels[4] = {
+        {186, 252, "FL", DISP_ITEM_TPMS_FL, DISP_ITEM_TT_FL},
+        {534, 252, "FR", DISP_ITEM_TPMS_FR, DISP_ITEM_TT_FR},
+        {186, 430, "RL", DISP_ITEM_TPMS_RL, DISP_ITEM_TT_RL},
+        {534, 430, "RR", DISP_ITEM_TPMS_RR, DISP_ITEM_TT_RR},
     };
+    s_tyre = *vehicle_profile_get_tyre_cfg();
     for (int i = 0; i < 4; i++) {
         s_wheel[i].ch = wheels[i].ch;
+        s_wheel[i].tch = wheels[i].tch;
         s_wheel[i].name = jdm_text(page, wheels[i].x, wheels[i].y, wheels[i].name,
                                    JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
         s_wheel[i].pressure = jdm_text(page, wheels[i].x, wheels[i].y + 29, "--",
@@ -112,33 +117,46 @@ static void update(void)
 {
     static const char *const pos[4] = {"FL", "FR", "RL", "RR"};
     static char reasons[4][24];
+    const char *reason = NULL;
     jdm_alert_item_t alerts[4];
     uint8_t n = 0;
     bool conn = jdm_conn_active();
     char buf[24];
 
     for (int i = 0; i < 4; i++) {
-        int32_t raw = 0;
+        int32_t raw = 0, traw = 0;
         bool ok = jdm_data_read_cache(s_wheel[i].ch, &raw) && conn;
+        bool tok = jdm_data_read_cache(s_wheel[i].tch, &traw) && conn;
         if (ok) {
             snprintf(buf, sizeof(buf), "%d.%d", (int)(raw / 10), (int)(raw % 10));
             lv_label_set_text(s_wheel[i].pressure, buf);
         } else {
             lv_label_set_text(s_wheel[i].pressure, "\xE2\x80\x94");
         }
+        // 单位行:胎温有效显示 "bar / NN°C",否则只显示 bar
+        if (tok) {
+            snprintf(buf, sizeof(buf), "bar / %d\xC2\xB0" "C", (int)traw);
+            lv_label_set_text(s_wheel[i].temp, buf);
+        }
 
-        // 阈值判定走共享逻辑(≤0.5 bar critical / ≥3.4 bar warning)
-        jdm_alert_level_t lv = ok ? jdm_alerts_logic_tyre(raw) : JDM_ALERT_NONE;
+        // 阈值判定走共享逻辑(胎压:≤low critical / ≥high warning;胎温:≥temp_high)
+        jdm_alert_level_t lv = JDM_ALERT_NONE;
+        if (ok) lv = jdm_alerts_logic_tyre(raw, s_tyre.press_low_x10, s_tyre.press_high_x10, &reason);
+        if (lv == JDM_ALERT_NONE && tok && traw >= s_tyre.temp_high_c)
+            lv = jdm_alerts_logic_tyre_temp(traw, s_tyre.temp_high_c, &reason);
         jdm_color_role_t ink = (lv == JDM_ALERT_CRITICAL) ? JDM_ROLE_RED
                              : (lv == JDM_ALERT_WARNING) ? JDM_ROLE_AMBER
                              : JDM_ROLE_MUTED;
+        // 数值/轮位标签/警示横线统一告警色(低压红,高胎压/胎温琥珀)
         lv_obj_set_style_text_color(s_wheel[i].name, jdm_color(ink), 0);
+        lv_obj_set_style_text_color(s_wheel[i].pressure, jdm_color(lv == JDM_ALERT_NONE ? JDM_ROLE_TEXT : ink), 0);
         lv_obj_set_style_line_color(s_wheel[i].warn, jdm_color(ink), 0);
         lv_obj_set_hidden(s_wheel[i].warn, lv == JDM_ALERT_NONE);
 
         if (lv != JDM_ALERT_NONE) {
             snprintf(reasons[i], sizeof(reasons[i]), "%s / %s", pos[i],
-                     (lv == JDM_ALERT_CRITICAL) ? "PRESS LOW" : "PRESS HIGH");
+                     (lv == JDM_ALERT_CRITICAL) ? "PRESS LOW"
+                     : (lv == JDM_ALERT_WARNING && ok) ? "PRESS HIGH" : "TEMP HIGH");
             n = jdm_alerts_logic_push(alerts, n, 4, reasons[i], lv);
         }
     }
