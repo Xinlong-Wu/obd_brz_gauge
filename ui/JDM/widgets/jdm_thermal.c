@@ -52,7 +52,7 @@ lv_obj_t *jdm_thermal_create(lv_obj_t *parent)
     lv_obj_set_size(bar, UIS(20), 1);
     lv_obj_set_pos(bar, UIS(154), UIS(498));
     lv_obj_set_style_radius(bar, UIS(10), 0);
-    lv_obj_set_style_bg_color(bar, jdm_color(JDM_ROLE_TEXT), 0);
+    lv_obj_set_style_bg_color(bar, jdm_color(JDM_ROLE_AMBER), 0);
     lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
 
     lv_obj_t *cap = lv_obj_create(box);
@@ -107,9 +107,9 @@ void jdm_thermal_update(lv_obj_t *thermal, int32_t temp_c, bool valid, bool warn
     // 报警变色(脏检查:避免每帧重设样式)
     int w = warning ? 1 : 0;
     if (w != THERMAL_WARN(thermal)) {
-        jdm_color_role_t role = warning ? JDM_ROLE_RED : JDM_ROLE_TEXT;
-        lv_obj_set_style_bg_color(bar, jdm_color(role), 0);
-        lv_obj_set_style_bg_color(cap, jdm_color(role), 0);
+        // 柱=琥珀(报警变红,原型 ink('coolant','amber'));帽=暖白恒定
+        lv_obj_set_style_bg_color(bar, jdm_color(warning ? JDM_ROLE_RED : JDM_ROLE_AMBER), 0);
+        lv_obj_set_style_bg_color(cap, jdm_color(JDM_ROLE_TEXT), 0);
         lv_obj_set_user_data(thermal, (void *)(intptr_t)w);
     }
 }
