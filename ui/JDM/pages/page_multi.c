@@ -70,10 +70,12 @@ static void create(lv_obj_t *page)
     s_boost_big = jdm_text(page, 206, 336 + 9 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_BOOST)), "--", JDM_FONT_BOOST, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
     s_boost_lbl = jdm_text(page, 206, 427, "BOOST / bar", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
-    // 右中:TPS / B.P 切换区(整体可点)
-    s_tps_lbl = jdm_text(page, 450, 328, "TPS", JDM_FONT_SUPPORT, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
-    jdm_text(page, 490, 328, "/", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
-    s_bp_lbl = jdm_text(page, 530, 328, "B.P", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    // 右中:TPS / B.P 切换区(整体可点)。文字按字形视觉顶对齐原型
+    // hanging(y+0.1em):盒顶 = my + 0.1em − 行内 leading
+    int32_t sw_top = 328 + 2 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_SUPPORT));
+    s_tps_lbl = jdm_text(page, 450, sw_top, "TPS", JDM_FONT_SUPPORT, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
+    jdm_text(page, 490, sw_top, "/", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    s_bp_lbl = jdm_text(page, 530, sw_top, "B.P", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     // 选中下划线(x±22,y358,w3)
     s_under_tps = lv_obj_create(page);
     lv_obj_remove_style_all(s_under_tps);
@@ -88,8 +90,9 @@ static void create(lv_obj_t *page)
     lv_obj_set_style_bg_color(s_under_bp, jdm_color(JDM_ROLE_AMBER), 0);
     lv_obj_set_style_bg_opa(s_under_bp, LV_OPA_COVER, 0);
 
-    // 切换区大值(490,378,compact 字号)
-    s_switch_val = jdm_text(page, 490, 378, "--", JDM_FONT_COMPACT, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
+    // 切换区大值(490,378,compact 字号,字形顶对齐同上)
+    s_switch_val = jdm_text(page, 490, 378 + 8 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_COMPACT)),
+                            "--", JDM_FONT_COMPACT, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
 
     // 命中区(375,318,230×140)
     lv_obj_t *hit = lv_obj_create(page);
