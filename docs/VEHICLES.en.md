@@ -83,6 +83,7 @@ Notes:
     .boost = { -10, 30, 13, 24 },        // boost gauge: low end / full scale / dim zone / red zone (=alarm), 0.1 bar
     .clt = { 60, 120, 110 },             // coolant gauge: low end / full scale / red zone (=alarm), deg C
     .oilp = { 0, 60, 10 },               // oil pressure gauge: low end / full scale / low-pressure alarm line (<= trips), 0.1 bar
+    .bat = { 10800, 16400 },             // battery alarm: low / high, mV
     // Tachometer range/zones (vehicle-specific; 0 = fall back to the MX-5 NC
     // defaults). The red-zone start doubles as the RPM critical alarm line
     // (entering the red band trips the alarm); keep the shift prompt below it:

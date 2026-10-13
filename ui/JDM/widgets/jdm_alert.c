@@ -45,7 +45,7 @@ void jdm_alert_create(lv_obj_t *parent, int32_t footer_my, jdm_alert_widgets_t *
     lv_obj_remove_style_all(out->rim);
     lv_obj_set_size(out->rim, UIS(720), UIS(720));
     lv_obj_set_pos(out->rim, 0, 0);
-    lv_obj_clear_flag(out->rim, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(out->rim, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);   // 视觉元素,不吞点击
     lv_obj_set_hidden(out->rim, true);
     // 两段外缘弧:左下 145..215,右下 −35..35(SVG 负角 = 360+角)
     rim_segment_create(out->rim, 145, 215);

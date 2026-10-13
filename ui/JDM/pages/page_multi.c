@@ -98,7 +98,6 @@ static void create(lv_obj_t *page)
     lv_obj_set_size(hit, UIS(230), UIS(140));
     lv_obj_add_flag(hit, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(hit, switch_tap_cb, LV_EVENT_CLICKED, NULL);
-
     jdm_alert_create(page, 0, &s_alert);
 }
 
@@ -106,6 +105,7 @@ static void switch_tap_cb(lv_event_t *e)
 {
     (void)e;
     s_show_tps = !s_show_tps;
+    fprintf(stderr, "TEMP_DBG switch tapped -> %d\n", (int)s_show_tps);
 }
 
 static void apply_switch(void)

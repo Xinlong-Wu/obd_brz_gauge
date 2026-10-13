@@ -89,8 +89,44 @@ static void feed_pointer(lv_indev_data_t *data, const sim_pointer_t *p)
     data->state = p->pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
+static void dump_tree(lv_obj_t * obj, int depth, int px, int py)
+{
+    lv_area_t a;
+    lv_obj_get_coords(obj, &a);
+    bool hitp = (px >= a.x1 && px <= a.x2 && py >= a.y1 && py <= a.y2);
+    fprintf(stderr, "TEMP_DUMP %*sobj=%p click=%d area=(%d,%d,%d,%d)%s\n",
+            depth * 2, "", (void *)obj,
+            (int)lv_obj_has_flag(obj, LV_OBJ_FLAG_CLICKABLE),
+            a.x1, a.y1, a.x2, a.y2, hitp ? " <PT>" : "");
+    uint32_t n = lv_obj_get_child_count(obj);
+    for (uint32_t i = 0; i < n; i++) {
+        dump_tree(lv_obj_get_child(obj, i), depth + 1, px, py);
+    }
+}
+
 static void sim_touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
 {
+    if (s_inject_active && s_inject.pressed) {
+        lv_obj_t * scr = lv_display_get_screen_active(lv_indev_get_display(indev));
+        lv_point_t pt = { s_inject.x, s_inject.y };
+        lv_obj_t * f = lv_indev_search_obj(scr, &pt);
+        lv_area_t a;
+        if (f) lv_obj_get_coords(f, &a);
+        fprintf(stderr, "TEMP_SEARCH pt=(%d,%d) found=%p clickable=%d coords=(%d,%d,%d,%d)\n",
+                (int)s_inject.x, (int)s_inject.y, (void *)f,
+                f ? (int)lv_obj_has_flag(f, LV_OBJ_FLAG_CLICKABLE) : -1,
+                f ? (int)a.x1 : -1, f ? (int)a.y1 : -1,
+                f ? (int)a.x2 : -1, f ? (int)a.y2 : -1);
+        {
+            static bool dumped = false;
+            if (!dumped) {
+                dumped = true;
+                lv_obj_t * scr2 = lv_display_get_screen_active(lv_indev_get_display(indev));
+                fprintf(stderr, "TEMP_DUMP tree:\n");
+                dump_tree(scr2, 0, s_inject.x, s_inject.y);
+            }
+        }
+    }
     if (s_inject_active) {
         feed_pointer(data, &s_inject); /* injectors always drive the gauge */
         return;

@@ -590,3 +590,16 @@ const oilp_cfg_t *vehicle_profile_get_oilp_cfg(void)
     if (s_oilp.low_x10 > s_oilp.max_x10) s_oilp.low_x10 = s_oilp.max_x10;
     return &s_oilp;
 }
+
+const bat_cfg_t *vehicle_profile_get_bat_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 low<high 的次序
+    static bat_cfg_t s_bat;
+    const bat_cfg_t d = VEHICLE_BAT_CFG_DEFAULT;
+    const bat_cfg_t *p = &vehicle_profile_get_active()->bat;
+
+    s_bat.low_mv  = p->low_mv  ? p->low_mv  : d.low_mv;
+    s_bat.high_mv = p->high_mv ? p->high_mv : d.high_mv;
+    if (s_bat.low_mv >= s_bat.high_mv) s_bat.low_mv = s_bat.high_mv / 2;
+    return &s_bat;
+}

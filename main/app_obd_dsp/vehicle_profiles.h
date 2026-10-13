@@ -136,6 +136,19 @@ typedef struct {
 #define VEHICLE_OILP_CFG_DEFAULT { 0, 60, 10 }
 _Static_assert(VEHICLE_OILP_LOW_DEFAULT <= VEHICLE_OILP_MAX_DEFAULT,
                "oil pressure low threshold must not exceed full scale");
+
+// Battery voltage alarm thresholds (per vehicle; 0 = fall back to the
+// MX-5 NC defaults below). Values in mV.
+typedef struct {
+    uint16_t low_mv;    // low voltage alarm (10800 = 10.8 V)
+    uint16_t high_mv;   // high voltage alarm (16400 = 16.4 V)
+} bat_cfg_t;
+
+#define VEHICLE_BAT_LOW_DEFAULT   10800
+#define VEHICLE_BAT_HIGH_DEFAULT  16400
+#define VEHICLE_BAT_CFG_DEFAULT { 10800, 16400 }
+_Static_assert(VEHICLE_BAT_LOW_DEFAULT < VEHICLE_BAT_HIGH_DEFAULT,
+               "battery low threshold must precede high");
 _Static_assert(VEHICLE_OILP_LOW_DEFAULT > 0, "oil pressure low threshold must be positive");
 
 // Oil temp query strategy
@@ -174,6 +187,7 @@ typedef struct {
     clt_cfg_t clt;                       // coolant gauge range/red zone (deg C); zero fields fall back to VEHICLE_CLT_CFG_DEFAULT
     oil_cfg_t oil;                       // oil temp gauge range/red zone (deg C); zero fields fall back to VEHICLE_OIL_CFG_DEFAULT
     oilp_cfg_t oilp;                     // oil pressure gauge range/low alarm (0.1 bar); zero fields fall back to VEHICLE_OILP_CFG_DEFAULT
+    bat_cfg_t bat;                       // battery voltage alarm (mV); zero fields fall back to VEHICLE_BAT_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -220,6 +234,10 @@ const oil_cfg_t *vehicle_profile_get_oil_cfg(void);
 // Get the oil pressure gauge config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults)
 const oilp_cfg_t *vehicle_profile_get_oilp_cfg(void);
+
+// Get the battery alarm thresholds of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults)
+const bat_cfg_t *vehicle_profile_get_bat_cfg(void);
 
 #ifdef __cplusplus
 }
