@@ -111,7 +111,8 @@ lv_obj_t *jdm_btn_create_ex(lv_obj_t *parent, int32_t mx, int32_t my, int32_t mw
         }
         b->fill[0] = fills[0];
         b->fill[1] = fills[1];
-        // 描边:切角八边形闭合折线(9 点)
+        // 描边:切角八边形闭合折线(9 点)。右/下边的路径落在容器
+        // 边界像素上,描边会被整体裁掉,内缩 1 渲染像素。
         const jdm_pt_t oct[9] = {
             {cut, 0}, {w - cut, 0}, {w, cut}, {w, h - cut}, {w - cut, h},
             {cut, h}, {0, h - cut}, {0, cut}, {cut, 0},
@@ -120,6 +121,8 @@ lv_obj_t *jdm_btn_create_ex(lv_obj_t *parent, int32_t mx, int32_t my, int32_t mw
         for (int i = 0; i < 9; i++) {
             pts[i].x = UIS(oct[i].x);
             pts[i].y = UIS(oct[i].y);
+            if (oct[i].x == w) pts[i].x -= 1;
+            if (oct[i].y == h) pts[i].y -= 1;
         }
         lv_obj_t *border = lv_line_create(c);
         lv_line_set_points(border, pts, 9);

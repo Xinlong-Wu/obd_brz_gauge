@@ -59,9 +59,11 @@ void jdm_toggle_set(lv_obj_t *toggle, bool on)
     lv_obj_t *thumb = lv_obj_get_child(track, 1);
     lv_obj_t *lbl = lv_obj_get_child(toggle, 1);
 
-    // 拨片 x:on → w−40(贴右),off → 8(贴左);y+15(相对轨道 +5)
+    // 拨片 x:on → w−40(贴右),off → 8(贴左);y 用渲染尺寸现算垂直居中
+    // (母版坐标 ±UIS 折算在不同分辨率下会累积 ±1px,导致拨片压住轨道边)
     lv_obj_align(thumb, on ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT,
-                 on ? -UIS(8) : UIS(8), UIS(5));
+                 on ? -UIS(8) : UIS(8),
+                 (lv_obj_get_height(track) - lv_obj_get_height(thumb)) / 2);
     lv_obj_set_style_bg_color(thumb, jdm_color(on ? JDM_ROLE_AMBER : JDM_ROLE_MUTED), 0);
     lv_label_set_text(lbl, on ? "ON" : "OFF");
     lv_obj_set_style_text_color(lbl, jdm_color(on ? JDM_ROLE_AMBER : JDM_ROLE_MUTED), 0);
