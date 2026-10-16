@@ -4,7 +4,13 @@ English | [简体中文](DESIGN_AUDIT.md)
 
 Audit date: 2026-10-10. The target is the current v16 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
 
-## Conclusion
+## v17 connection-flow addendum (2026-10-16)
+
+New screen 17 discovers / selects / connects OBD; 15 is the connection overview and 16 explicitly handles phone pairing. The current set has 17 screens, 61 scene options (44 additional scenes), and 92 exported artboards; all 20 Node checks pass. The new connection flow was checked at 360×360 in the browser for text, circular boundaries, normal / progress / failure / waiting / disconnected states, and independent forget confirmations, including whole-row click, keyboard operation and progress cancellation. Progress examples in the scenario inspector remain static; actual buttons trigger the automatic demonstration.
+
+This is a focused addendum to the original v16 audit. The 16-screen table below remains historical; the entire vehicle-screen browser tour was not repeated in this pass. See [design-qa.en.md](design-qa.en.md) for the visual comparison.
+
+## v16 conclusion
 
 **The specified warning, advisory, and system scenarios are implemented, and current samples pass the checks.** The 16 screens expose 50 scene options, including 34 abnormal or system scenes. Each of the three single-wheel scenarios on 08 supports FL / FR / RL / RR. Exports include 78 artboards and separate normal / warning overviews.
 
