@@ -139,23 +139,31 @@ static void update(void)
             lv_label_set_text(s_wheel[i].temp, buf);
         }
 
-        // 阈值判定走共享逻辑(胎压:≤low critical / ≥high warning;胎温:≥temp_high)
-        jdm_alert_level_t lv = JDM_ALERT_NONE;
-        if (ok) lv = jdm_alerts_logic_tyre(raw, s_tyre.press_low_x10, s_tyre.press_high_x10, &reason);
-        if (lv == JDM_ALERT_NONE && tok && traw >= s_tyre.temp_high_c)
-            lv = jdm_alerts_logic_tyre_temp(traw, s_tyre.temp_high_c, &reason);
+        // 阈值判定:胎压(≤low critical / ≥high warning)与胎温(≥temp_high)独立
+        jdm_alert_level_t press_lv = ok ? jdm_alerts_logic_tyre(raw, s_tyre.press_low_x10,
+                                              s_tyre.press_high_x10, &reason) : JDM_ALERT_NONE;
+        bool temp_alarm = tok && traw >= s_tyre.temp_high_c;
+        jdm_alert_level_t lv = press_lv;
+        if (lv == JDM_ALERT_NONE && temp_alarm) lv = JDM_ALERT_WARNING;
+
         // 轮胎页告警统一红色(低压/高压/胎温高);页脚文案区分具体原因
         jdm_color_role_t ink = (lv == JDM_ALERT_NONE) ? JDM_ROLE_MUTED : JDM_ROLE_RED;
-        // 数值/轮位标签/警示横线统一告警色(低压红,高胎压/胎温琥珀)
         lv_obj_set_style_text_color(s_wheel[i].name, jdm_color(ink), 0);
-        lv_obj_set_style_text_color(s_wheel[i].pressure, jdm_color(lv == JDM_ALERT_NONE ? JDM_ROLE_TEXT : ink), 0);
         lv_obj_set_style_line_color(s_wheel[i].warn, jdm_color(ink), 0);
         lv_obj_set_hidden(s_wheel[i].warn, lv == JDM_ALERT_NONE);
 
+        // 胎压数值:仅胎压告警着色(胎温告警不改胎压数字色)
+        jdm_color_role_t vink = (press_lv != JDM_ALERT_NONE) ? JDM_ROLE_RED : JDM_ROLE_TEXT;
+        lv_obj_set_style_text_color(s_wheel[i].pressure, jdm_color(vink), 0);
+
+        // 单位行:胎温告警 → 红
+        lv_obj_set_style_text_color(s_wheel[i].temp,
+                                    jdm_color(temp_alarm ? JDM_ROLE_RED : JDM_ROLE_MUTED), 0);
+
         if (lv != JDM_ALERT_NONE) {
             snprintf(reasons[i], sizeof(reasons[i]), "%s / %s", pos[i],
-                     (lv == JDM_ALERT_CRITICAL) ? "PRESS LOW"
-                     : (lv == JDM_ALERT_WARNING && ok) ? "PRESS HIGH" : "TEMP HIGH");
+                     (press_lv == JDM_ALERT_CRITICAL) ? "PRESS LOW"
+                     : (press_lv == JDM_ALERT_WARNING) ? "PRESS HIGH" : "TEMP HIGH");
             n = jdm_alerts_logic_push(alerts, n, 4, reasons[i], lv);
         }
     }
