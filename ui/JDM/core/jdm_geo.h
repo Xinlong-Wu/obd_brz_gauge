@@ -13,6 +13,12 @@
 //    - sim/tests 无 sdkconfig.h 时默认 360(可 -DUI_RENDER_RES 覆盖)
 // ================================================================
 
+// 本文件被固件/sim/主机测试三方编译:sdkconfig.h 在固件为 IDF 真件
+// (否则 CONFIG_OBD_UI_RENDER_RES 判空,ui/JDM 各 TU 几何回退 360,
+// 与经 app_main 显式取值的字体档位(240/466)分裂——真机错位根因);
+// sim/tests 走 simulator/shims/include 的空替身,无 Kconfig。
+#include "sdkconfig.h"
+
 #ifndef UI_RENDER_RES
 #ifdef CONFIG_OBD_UI_RENDER_RES
 #define UI_RENDER_RES CONFIG_OBD_UI_RENDER_RES
