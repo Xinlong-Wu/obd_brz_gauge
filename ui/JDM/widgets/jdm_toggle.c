@@ -9,6 +9,12 @@
 #include "core/jdm_theme.h"
 #include "core/jdm_fonts.h"
 
+// 轨道/拨片几何(create 与 set 共用;set 里按渲染尺寸现算居中,
+// 不读 lv_obj_get_height —— create 首次调用时布局尚未结算,读到 0)
+#define TOGGLE_TRACK_H  38
+#define TOGGLE_THUMB_H  28
+#define TOGGLE_TRACK_W_GAP 8
+
 lv_obj_t *jdm_toggle_create(lv_obj_t *parent, int32_t mx, int32_t my, int32_t mw,
                             bool on)
 {
@@ -21,7 +27,7 @@ lv_obj_t *jdm_toggle_create(lv_obj_t *parent, int32_t mx, int32_t my, int32_t mw
     lv_obj_t *track = lv_obj_create(hit);
     lv_obj_remove_style_all(track);
     lv_obj_set_pos(track, 0, UIS(10));
-    lv_obj_set_size(track, UIS(mw), UIS(38));
+    lv_obj_set_size(track, UIS(mw), UIS(TOGGLE_TRACK_H));
     lv_obj_set_style_radius(track, UIS(4), 0);
     lv_obj_set_style_bg_color(track, jdm_color(JDM_ROLE_PANEL), 0);
     lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
@@ -40,7 +46,7 @@ lv_obj_t *jdm_toggle_create(lv_obj_t *parent, int32_t mx, int32_t my, int32_t mw
     // 拨片 32×28 rx2
     lv_obj_t *thumb = lv_obj_create(track);
     lv_obj_remove_style_all(thumb);
-    lv_obj_set_size(thumb, UIS(32), UIS(28));
+    lv_obj_set_size(thumb, UIS(32), UIS(TOGGLE_THUMB_H));
     lv_obj_set_style_radius(thumb, UIS(2), 0);
     lv_obj_set_style_bg_opa(thumb, LV_OPA_COVER, 0);
 
@@ -59,11 +65,11 @@ void jdm_toggle_set(lv_obj_t *toggle, bool on)
     lv_obj_t *thumb = lv_obj_get_child(track, 1);
     lv_obj_t *lbl = lv_obj_get_child(toggle, 1);
 
-    // 拨片 x:on → w−40(贴右),off → 8(贴左);y 用渲染尺寸现算垂直居中
-    // (母版坐标 ±UIS 折算在不同分辨率下会累积 ±1px,导致拨片压住轨道边)
+    // 拨片 x:on → 贴右留 8,off → 贴左留 8;y = (轨道高−拨片高)/2
+    // 按渲染尺寸确定性地垂直居中(分数缩放下 ±1px 取整误差恒定分配)
     lv_obj_align(thumb, on ? LV_ALIGN_TOP_RIGHT : LV_ALIGN_TOP_LEFT,
-                 on ? -UIS(8) : UIS(8),
-                 (lv_obj_get_height(track) - lv_obj_get_height(thumb)) / 2);
+                 on ? -UIS(TOGGLE_TRACK_W_GAP) : UIS(TOGGLE_TRACK_W_GAP),
+                 (UIS(TOGGLE_TRACK_H) - UIS(TOGGLE_THUMB_H)) / 2);
     lv_obj_set_style_bg_color(thumb, jdm_color(on ? JDM_ROLE_AMBER : JDM_ROLE_MUTED), 0);
     lv_label_set_text(lbl, on ? "ON" : "OFF");
     lv_obj_set_style_text_color(lbl, jdm_color(on ? JDM_ROLE_AMBER : JDM_ROLE_MUTED), 0);
