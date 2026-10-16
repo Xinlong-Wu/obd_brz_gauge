@@ -618,3 +618,15 @@ const tyre_cfg_t *vehicle_profile_get_tyre_cfg(void)
     s_tyre.temp_high_c    = p->temp_high_c    ? p->temp_high_c    : d.temp_high_c;
     return &s_tyre;
 }
+
+const speed_cfg_t *vehicle_profile_get_speed_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认
+    static speed_cfg_t s_speed;
+    const speed_cfg_t d = VEHICLE_SPEED_CFG_DEFAULT;
+    const speed_cfg_t *p = &vehicle_profile_get_active()->speed;
+
+    s_speed.cruise_set   = p->cruise_set   ? p->cruise_set   : d.cruise_set;
+    s_speed.speed_limit  = p->speed_limit  ? p->speed_limit  : d.speed_limit;
+    return &s_speed;
+}

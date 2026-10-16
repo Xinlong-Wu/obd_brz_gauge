@@ -151,6 +151,19 @@ _Static_assert(VEHICLE_BAT_LOW_DEFAULT < VEHICLE_BAT_HIGH_DEFAULT,
                "battery low threshold must precede high");
 _Static_assert(VEHICLE_OILP_LOW_DEFAULT > 0, "oil pressure low threshold must be positive");
 
+// Cruise/speed-limit configuration (per vehicle; 0 = fall back to the
+// MX-5 NC defaults below). Values in km/h.
+typedef struct {
+    uint16_t cruise_set;    // cruise set speed (100)
+    uint16_t speed_limit;   // overspeed alarm threshold (110)
+} speed_cfg_t;
+
+#define VEHICLE_SPEED_CRUISE_DEFAULT   100
+#define VEHICLE_SPEED_LIMIT_DEFAULT    110
+#define VEHICLE_SPEED_CFG_DEFAULT { 100, 110 }
+_Static_assert(VEHICLE_SPEED_LIMIT_DEFAULT > 0, "speed limit must be positive");
+_Static_assert(VEHICLE_SPEED_CRUISE_DEFAULT > 0, "cruise set speed must be positive");
+
 // Tire pressure/temperature alarm configuration (per vehicle; 0 = fall
 // back to the MX-5 NC defaults below). Pressures in 0.1 bar, temp in deg C.
 typedef struct {
@@ -204,6 +217,7 @@ typedef struct {
     oilp_cfg_t oilp;                     // oil pressure gauge range/low alarm (0.1 bar); zero fields fall back to VEHICLE_OILP_CFG_DEFAULT
     bat_cfg_t bat;                       // battery voltage alarm (mV); zero fields fall back to VEHICLE_BAT_CFG_DEFAULT
     tyre_cfg_t tyre;                     // tyre pressure/temp alarms; zero fields fall back to VEHICLE_TYRE_CFG_DEFAULT
+    speed_cfg_t speed;                   // cruise set / speed limit (km/h); zero fields fall back to VEHICLE_SPEED_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -258,6 +272,10 @@ const bat_cfg_t *vehicle_profile_get_bat_cfg(void);
 // Get the tyre alarm config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults)
 const tyre_cfg_t *vehicle_profile_get_tyre_cfg(void);
+
+// Get the cruise/speed-limit config of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults)
+const speed_cfg_t *vehicle_profile_get_speed_cfg(void);
 
 #ifdef __cplusplus
 }

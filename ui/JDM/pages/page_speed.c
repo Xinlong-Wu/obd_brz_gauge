@@ -17,15 +17,19 @@
 #include "widgets/jdm_readout_logic.h"
 #include "widgets/jdm_road_scene.h"
 
+#include "app_obd_dsp/vehicle_profiles.h"
+
 #include <stdio.h>
 
 static lv_obj_t *s_scene;
 static jdm_readout_t s_ro;
 static lv_obj_t *s_chip;
 static lv_obj_t *s_set_text;
+static speed_cfg_t s_speed_cfg;   // 当前车型的巡航设定/限速(NVS 车型选择)
 
 static void create(lv_obj_t *page)
 {
+    s_speed_cfg = *vehicle_profile_get_speed_cfg();   // 车型的巡航设定/限速
     jdm_header_create(page, "SPEED", "ROADSTER / TOURING");
     s_scene = jdm_road_scene_create(page);
 
@@ -66,17 +70,27 @@ static void update(void)
     jdm_readout_logic_format(buf, sizeof(buf), DISP_ITEM_SPEED, speed, conn && speed_ok);
     jdm_readout_set_value(&s_ro, buf);
 
+    bool overspeed = conn && speed_ok && speed > s_speed_cfg.speed_limit;
+
     if (!conn) {
         jdm_chip_set(s_chip, "CRUISE UNAVAILABLE", JDM_ROLE_PANEL);   // 原型断连带为 panel
         lv_label_set_text(s_set_text, "SET \xE2\x80\x94 km/h");
         lv_obj_set_style_text_color(s_set_text, jdm_color(JDM_ROLE_MUTED), 0);
+    } else if (overspeed) {
+        // 超速:限速提示(原型 speed-limit 场景:琥珀 chip + LIMIT 文字)
+        jdm_chip_set(s_chip, "SPEED LIMIT", JDM_ROLE_AMBER);
+        snprintf(buf, sizeof(buf), "LIMIT %d km/h", (int)s_speed_cfg.speed_limit);
+        lv_label_set_text(s_set_text, buf);
+        lv_obj_set_style_text_color(s_set_text, jdm_color(JDM_ROLE_AMBER), 0);
     } else if (speed == 0) {
         jdm_chip_set(s_chip, "CRUISE STANDBY", JDM_ROLE_PANEL);
-        lv_label_set_text(s_set_text, "SET 100 km/h");
+        snprintf(buf, sizeof(buf), "SET %d km/h", (int)s_speed_cfg.cruise_set);
+        lv_label_set_text(s_set_text, buf);
         lv_obj_set_style_text_color(s_set_text, jdm_color(JDM_ROLE_MUTED), 0);
     } else {
         jdm_chip_set(s_chip, "CRUISE ACTIVE", JDM_ROLE_PANEL);
-        lv_label_set_text(s_set_text, "SET 100 km/h");
+        snprintf(buf, sizeof(buf), "SET %d km/h", (int)s_speed_cfg.cruise_set);
+        lv_label_set_text(s_set_text, buf);
         lv_obj_set_style_text_color(s_set_text, jdm_color(JDM_ROLE_GREEN), 0);
     }
 }
