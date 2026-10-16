@@ -655,3 +655,22 @@ const heart_cfg_t *vehicle_profile_get_heart_cfg(void)
     if (s_hr.low_bpm >= s_hr.high_bpm) s_hr.low_bpm = s_hr.high_bpm / 2;
     return &s_hr;
 }
+
+const mech_cfg_t *vehicle_profile_get_mech_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 min<high≤max 的次序
+    static mech_cfg_t s_mech;
+    const mech_cfg_t d = VEHICLE_MECH_CFG_DEFAULT;
+    const mech_cfg_t *p = &vehicle_profile_get_active()->mech;
+
+    s_mech.min_x10 = p->min_x10 ? p->min_x10 : d.min_x10;
+    s_mech.max_x10 = p->max_x10 ? p->max_x10 : d.max_x10;
+    if (s_mech.max_x10 <= s_mech.min_x10) {
+        s_mech = d;   // 量程倒挂,整体回退默认
+    } else {
+        s_mech.high_x10 = p->high_x10 ? p->high_x10 : d.high_x10;
+        if (s_mech.high_x10 > s_mech.max_x10) s_mech.high_x10 = s_mech.max_x10;
+        if (s_mech.high_x10 <= s_mech.min_x10) s_mech.high_x10 = s_mech.min_x10 + 1;
+    }
+    return &s_mech;
+}

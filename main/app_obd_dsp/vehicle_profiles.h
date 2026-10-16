@@ -192,6 +192,26 @@ typedef struct {
 _Static_assert(VEHICLE_HEART_LOW_DEFAULT < VEHICLE_HEART_HIGH_DEFAULT,
                "heart low threshold must precede high");
 
+// Mechanical (analog needle) boost gauge configuration (per vehicle; 0 =
+// fall back to the MX-5 NC defaults below). Values in 0.1 bar. The dial
+// range drives the 41-tick scale and the integer-bar numerals; high_x10 is
+// the over-pressure alarm line (ticks at/above it are red and the needle
+// turns warning red).
+typedef struct {
+    int16_t min_x10;    // dial low end (-10 = -1.0 bar vacuum)
+    uint16_t max_x10;   // full scale (30 = 3.0 bar)
+    uint16_t high_x10;  // over-pressure alarm line (24 = 2.4 bar)
+} mech_cfg_t;
+
+#define VEHICLE_MECH_MIN_DEFAULT   (-10)
+#define VEHICLE_MECH_MAX_DEFAULT   30
+#define VEHICLE_MECH_HIGH_DEFAULT  24
+#define VEHICLE_MECH_CFG_DEFAULT { -10, 30, 24 }
+_Static_assert(VEHICLE_MECH_MIN_DEFAULT < VEHICLE_MECH_HIGH_DEFAULT,
+               "mech dial low end must precede the alarm line");
+_Static_assert(VEHICLE_MECH_HIGH_DEFAULT <= VEHICLE_MECH_MAX_DEFAULT,
+               "mech alarm line must not exceed full scale");
+
 // Tire pressure/temperature alarm configuration (per vehicle; 0 = fall
 // back to the MX-5 NC defaults below). Pressures in 0.1 bar, temp in deg C.
 typedef struct {
@@ -248,6 +268,7 @@ typedef struct {
     speed_cfg_t speed;                   // cruise set / speed limit (km/h); zero fields fall back to VEHICLE_SPEED_CFG_DEFAULT
     gforce_cfg_t gforce;                 // g-force alarm limit (0.01 g); zero fields fall back to VEHICLE_GFORCE_CFG_DEFAULT
     heart_cfg_t heart;                   // heart-rate advisory range (bpm); zero fields fall back to VEHICLE_HEART_CFG_DEFAULT
+    mech_cfg_t mech;                     // mechanical (analog) boost gauge range/alarm (0.1 bar); zero fields fall back to VEHICLE_MECH_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -314,6 +335,10 @@ const gforce_cfg_t *vehicle_profile_get_gforce_cfg(void);
 // Get the heart-rate advisory range of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults)
 const heart_cfg_t *vehicle_profile_get_heart_cfg(void);
+
+// Get the mechanical (analog) boost gauge config of the currently active
+// vehicle (zero fields backfilled from the MX-5 NC defaults; relations clamped)
+const mech_cfg_t *vehicle_profile_get_mech_cfg(void);
 
 #ifdef __cplusplus
 }

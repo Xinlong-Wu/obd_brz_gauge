@@ -112,5 +112,13 @@ int main(void)
     TEST_ASSERT_EQ_INT(150, hc->high_bpm);
     TEST_ASSERT(hc->low_bpm < hc->high_bpm);
 
+    // ---- 机械压力表配置:零字段回退默认,钳制 min<high≤max ----
+    const mech_cfg_t *mc = vehicle_profile_get_mech_cfg();
+    TEST_ASSERT(mc != NULL);
+    TEST_ASSERT_EQ_INT(-10, mc->min_x10);
+    TEST_ASSERT_EQ_INT(30, mc->max_x10);
+    TEST_ASSERT_EQ_INT(24, mc->high_x10);
+    TEST_ASSERT(mc->min_x10 < mc->high_x10 && mc->high_x10 <= mc->max_x10);
+
     return TEST_RESULT();
 }
