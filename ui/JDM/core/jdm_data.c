@@ -86,11 +86,11 @@ bool jdm_data_read_cache(disp_item_t item, int32_t *out)
     case DISP_ITEM_TPMS_RR: v = obd_data_get_tpms_bar_x10(3); present = v >= 0; break;
     case DISP_ITEM_GFORCE_LAT: v = obd_data_get_gforce_lat_x100(); present = v != -32768; break;
     case DISP_ITEM_GFORCE_LON: v = obd_data_get_gforce_lon_x100(); present = v != -32768; break;
-    case DISP_ITEM_HEART: return false;
+    case DISP_ITEM_HEART: v = obd_data_get_heart_bpm();  present = v > 0; break;
     case DISP_ITEM_TT_FL: v = obd_data_get_tpms_temp_c(0); present = v >= -40; break;
     case DISP_ITEM_TT_FR: v = obd_data_get_tpms_temp_c(1); present = v >= -40; break;
     case DISP_ITEM_TT_RL: v = obd_data_get_tpms_temp_c(2); present = v >= -40; break;
-    case DISP_ITEM_TT_RR: v = obd_data_get_tpms_temp_c(3); present = v >= -40; break;   // 数据源(BLE HR)接入前恒无效
+    case DISP_ITEM_TT_RR: v = obd_data_get_tpms_temp_c(3); present = v >= -40; break;
     default: return false;
     }
     if (!present) return false;

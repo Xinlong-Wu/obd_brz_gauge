@@ -65,6 +65,14 @@ int main(void)
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_gforce(120, 0, 121, &r));   // 阈值可配
     TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(120, 0, 119, &r));
 
+    // ---- 心率:出设定范围 advisory(阈值 = 车型配置,bpm) ----
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_heart(49, 50, 150, &r));
+    TEST_ASSERT_EQ_STR("BELOW SET RANGE", r);
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_heart(50, 50, 150, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_heart(150, 50, 150, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_heart(151, 50, 150, &r));
+    TEST_ASSERT_EQ_STR("ABOVE SET RANGE", r);
+
     // ---- push:critical 优先、同级保序、满员/NONE 安全 ----
     jdm_alert_item_t arr[3];
     int n = 0;

@@ -76,6 +76,11 @@ int16_t  obd_data_get_tpms_temp_c(uint8_t wheel);
 
 void obd_data_set_tpms_temp_c(uint8_t wheel, int16_t temp_c);
 int16_t  obd_data_get_tpms_temp_c(uint8_t wheel);
+
+// Heart rate (BLE HR 0x180D), in bpm; 0 = no sensor
+void obd_data_set_heart_bpm(int16_t bpm);
+int16_t  obd_data_get_heart_bpm(void);
+
 uint16_t obd_data_get_rpm(void);
 uint8_t  obd_data_get_speed(void);
 int16_t  obd_data_get_coolant_temp(void);

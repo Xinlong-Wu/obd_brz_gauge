@@ -16,6 +16,11 @@ extern "C" {
  *  (页面想运行时改标题可直接用;不需要则忽略)。 */
 lv_obj_t *jdm_header_create(lv_obj_t *parent, const char *title, const char *sub);
 
+/** 同 create,但经 sub_out 带回副标题 label(无副标题时为 NULL),
+ *  供运行时改写(如心率页 "RANGE 50 / 150 bpm")。 */
+lv_obj_t *jdm_header_create_ex(lv_obj_t *parent, const char *title,
+                               const char *sub, lv_obj_t **sub_out);
+
 #ifdef __cplusplus
 }
 #endif

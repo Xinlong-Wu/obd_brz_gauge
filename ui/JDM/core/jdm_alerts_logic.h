@@ -4,9 +4,8 @@
 //
 //  阈值取值:油温/水温/油压沿用固件状态字既有线(≥110°C、<1.0 bar
 //  critical);转速/增压/电压/胎压/G 值对齐原型 scenarios.js 场景值
-//  与表盘红区(增压红区起点 2.4 bar);文案与原型 alertReason 一致。
-//  心率(HR 0x180D)与限速数据源未接入,对应判定暂缺。边界见
-//  tests/test_jdm_alerts.c。
+//  与表盘红区(增压红区起点 2.4 bar);心率取原型 limits.heartLow/
+//  heartHigh。文案与原型 alertReason 一致。边界见 tests/test_jdm_alerts.c。
 // ================================================================
 
 #include <stdint.h>
@@ -105,6 +104,16 @@ static inline jdm_alert_level_t jdm_alerts_logic_gforce(int32_t lat, int32_t lon
         *reason = "G LIMIT";
         return JDM_ALERT_ADVISORY;
     }
+    return JDM_ALERT_NONE;
+}
+
+/** 心率出设定范围(advisory);阈值 = 车型配置 heart_cfg_t
+ *  (原型 limits.heartLow/heartHigh,文案与原型 alertReason 一致)。 */
+static inline jdm_alert_level_t jdm_alerts_logic_heart(int32_t bpm, int low,
+                                                       int high, const char **reason)
+{
+    if (bpm < low)  { *reason = "BELOW SET RANGE"; return JDM_ALERT_ADVISORY; }
+    if (bpm > high) { *reason = "ABOVE SET RANGE"; return JDM_ALERT_ADVISORY; }
     return JDM_ALERT_NONE;
 }
 

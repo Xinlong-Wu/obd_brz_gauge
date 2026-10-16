@@ -642,3 +642,16 @@ const gforce_cfg_t *vehicle_profile_get_gforce_cfg(void)
     if (s_g.limit_x100 > 150) s_g.limit_x100 = 150;
     return &s_g;
 }
+
+const heart_cfg_t *vehicle_profile_get_heart_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳制 low<high 的次序
+    static heart_cfg_t s_hr;
+    const heart_cfg_t d = VEHICLE_HEART_CFG_DEFAULT;
+    const heart_cfg_t *p = &vehicle_profile_get_active()->heart;
+
+    s_hr.low_bpm  = p->low_bpm  ? p->low_bpm  : d.low_bpm;
+    s_hr.high_bpm = p->high_bpm ? p->high_bpm : d.high_bpm;
+    if (s_hr.low_bpm >= s_hr.high_bpm) s_hr.low_bpm = s_hr.high_bpm / 2;
+    return &s_hr;
+}

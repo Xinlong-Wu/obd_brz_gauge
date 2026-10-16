@@ -87,6 +87,7 @@ Notes:
     .tyre = { 5, 34, 85 },               // tyre: low/high pressure (0.1 bar) and temp-high (deg C) alarm lines
     .speed = { 100, 110 },               // speed page: cruise set point (SET) / overspeed alarm line (trips above), km/h
     .gforce = { 100 },                   // g-force page: per-axis advisory limit, 0.01 g (100 = 1.0 g)
+    .heart = { 50, 150 },                // heart-rate page: advisory range low/high, bpm
     // Tachometer range/zones (vehicle-specific; 0 = fall back to the MX-5 NC
     // defaults). The red-zone start doubles as the RPM critical alarm line
     // (entering the red band trips the alarm); keep the shift prompt below it:

@@ -23,6 +23,7 @@ static int16_t  s_gforce_lat_x100 = -32768;   // 0.01g, ZC6 0x0D0 / IMU
 static int16_t  s_gforce_lon_x100 = -32768;
 static int16_t  s_tpms_bar_x10[4] = {-1, -1, -1, -1};  // 0.1 bar, FL/FR/RL/RR
 static int16_t  s_tpms_temp_c[4]  = {-1000, -1000, -1000, -1000};  /* deg C, sentinel=invalid */
+static int16_t  s_heart_bpm = 0;   // BLE HR 0x180D; 0 = no sensor
 static brake_rs485_status_t s_brake_rs485_status = BRAKE_RS485_IDLE;
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 
@@ -353,6 +354,21 @@ int16_t obd_data_get_tpms_temp_c(uint8_t wheel)
     if (wheel > 3) return val;
     portENTER_CRITICAL(&s_mux);
     val = s_tpms_temp_c[wheel];
+    portEXIT_CRITICAL(&s_mux);
+    return val;
+}
+
+void obd_data_set_heart_bpm(int16_t bpm)
+{
+    portENTER_CRITICAL(&s_mux);
+    s_heart_bpm = bpm;
+    portEXIT_CRITICAL(&s_mux);
+}
+
+int16_t obd_data_get_heart_bpm(void)
+{
+    portENTER_CRITICAL(&s_mux);
+    int16_t val = s_heart_bpm;
     portEXIT_CRITICAL(&s_mux);
     return val;
 }

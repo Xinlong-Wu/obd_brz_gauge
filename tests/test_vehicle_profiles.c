@@ -105,5 +105,12 @@ int main(void)
     TEST_ASSERT_EQ_INT(100, gc->limit_x100);
     TEST_ASSERT(gc->limit_x100 > 0 && gc->limit_x100 <= 150);
 
+    // ---- 心率范围配置:零字段回退默认(MX-5 NC) ----
+    const heart_cfg_t *hc = vehicle_profile_get_heart_cfg();
+    TEST_ASSERT(hc != NULL);
+    TEST_ASSERT_EQ_INT(50, hc->low_bpm);
+    TEST_ASSERT_EQ_INT(150, hc->high_bpm);
+    TEST_ASSERT(hc->low_bpm < hc->high_bpm);
+
     return TEST_RESULT();
 }

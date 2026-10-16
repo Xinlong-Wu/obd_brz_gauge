@@ -178,6 +178,20 @@ _Static_assert(VEHICLE_GFORCE_LIMIT_DEFAULT > 0, "g-force limit must be positive
 _Static_assert(VEHICLE_GFORCE_LIMIT_DEFAULT <= 150,
                "g-force limit must stay inside the +/-1.5 g data range");
 
+// Driver heart-rate alarm range (per vehicle; 0 = fall back to the MX-5 NC
+// defaults below). Values in bpm (prototype limits.heartLow/heartHigh).
+// Either side out of range trips an advisory on the heart-rate page.
+typedef struct {
+    uint16_t low_bpm;    // below-range advisory line (50)
+    uint16_t high_bpm;   // above-range advisory line (150)
+} heart_cfg_t;
+
+#define VEHICLE_HEART_LOW_DEFAULT   50
+#define VEHICLE_HEART_HIGH_DEFAULT  150
+#define VEHICLE_HEART_CFG_DEFAULT { 50, 150 }
+_Static_assert(VEHICLE_HEART_LOW_DEFAULT < VEHICLE_HEART_HIGH_DEFAULT,
+               "heart low threshold must precede high");
+
 // Tire pressure/temperature alarm configuration (per vehicle; 0 = fall
 // back to the MX-5 NC defaults below). Pressures in 0.1 bar, temp in deg C.
 typedef struct {
@@ -233,6 +247,7 @@ typedef struct {
     tyre_cfg_t tyre;                     // tyre pressure/temp alarms; zero fields fall back to VEHICLE_TYRE_CFG_DEFAULT
     speed_cfg_t speed;                   // cruise set / speed limit (km/h); zero fields fall back to VEHICLE_SPEED_CFG_DEFAULT
     gforce_cfg_t gforce;                 // g-force alarm limit (0.01 g); zero fields fall back to VEHICLE_GFORCE_CFG_DEFAULT
+    heart_cfg_t heart;                   // heart-rate advisory range (bpm); zero fields fall back to VEHICLE_HEART_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -295,6 +310,10 @@ const speed_cfg_t *vehicle_profile_get_speed_cfg(void);
 // Get the g-force alarm limit of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults; clamped to the data range)
 const gforce_cfg_t *vehicle_profile_get_gforce_cfg(void);
+
+// Get the heart-rate advisory range of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults)
+const heart_cfg_t *vehicle_profile_get_heart_cfg(void);
 
 #ifdef __cplusplus
 }
