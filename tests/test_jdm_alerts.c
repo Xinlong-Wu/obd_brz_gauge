@@ -51,11 +51,11 @@ int main(void)
     TEST_ASSERT_EQ_STR("VOLTAGE HIGH", r);
 
     // ---- 胎压:≤0.5 critical / ≥3.4 warning ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_tyre(5, 5, 34));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_tyre(6, 5, 34));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_tyre(33, 5, 34));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(34, 5, 34));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(60, 5, 34));   // 车型可配
+    TEST_ASSERT_EQ_INT(JDM_ALERT_CRITICAL, jdm_alerts_logic_tyre(5, 5, 34, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_tyre(6, 5, 34, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_tyre(33, 5, 34, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(34, 5, 34, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(60, 5, 34, &r));   // 车型可配
 
     // ---- G 值:任一轴 >1.0g advisory ----
     TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_gforce(100, -100, &r));
