@@ -16,13 +16,14 @@ const PAGES=[
 {id:'analog',group:'车辆仪表',title:'机械压力表',english:'PRESSURE / ANALOG',desc:'参考 01／02／04 的表盘构图：居中的 270°针式刻度，BOOST 小标识融入表盘内部，下方直接显示压力读数与单位。'},
 {id:'music',group:'媒体与系统',title:'音乐 / 歌词',english:'NOW PLAYING',desc:'圆形主播放键配轻量切歌图标，保留唱片、歌词与进度信息。'},
 {id:'display',group:'媒体与系统',title:'日间 / 夜间亮度',english:'ILLUMINATION',desc:'圆形加减键与精密模式键，分别调节日间和夜间亮度。'},
-{id:'bluetooth',group:'媒体与系统',title:'蓝牙 / 遥控',english:'CONNECTIONS',desc:'拨片式开关配轻量返回与配对操作，保留设备状态和配对管理。'},
-{id:'pair',group:'媒体与系统',title:'配对码',english:'PAIR DEVICE',desc:'分组配对码、配对确认和返回导航。'}
+{id:'bluetooth',group:'媒体与系统',title:'连接总览',english:'CONNECTIONS',desc:'OBD 适配器、手机与遥控分区展示。点击 OBD 管理车辆连接，点击手机管理配对；两种连接互相独立。'},
+{id:'pair',group:'媒体与系统',title:'手机配对',english:'PHONE PAIRING',desc:'仅用于手机连接仪表：显示可发现状态与配对码，提供失败、过期和连接完成示例。'},
+{id:'obd',group:'媒体与系统',title:'OBD 设备',english:'OBD SETUP',desc:'仪表主动搜索 OBD 适配器。选择设备后依次展示连接、读取车辆和数据就绪；支持重试、更换与独立忘记 OBD。'}
 ];
-const defaults={page:'gear',night:false,day:85,dark:35,alarm:false,signal:true,visible:true,keyboard:true,paired:true,playing:true,track:0,progress:69,dialog:false,channel:'TPS',scenarios:{},tyreWheel:'RR',heartSignal:true,pairCode:'1234 5678',previewSpeed:null,limits:{...root.NC_SCENARIOS.limits}};
+const defaults={page:'gear',night:false,day:85,dark:35,alarm:false,signal:true,visible:true,keyboard:true,paired:false,obdBound:true,obdDevice:'OBDLink CX',obdStatus:'connected',connectionDemo:false,playing:true,track:0,progress:69,dialog:false,channel:'TPS',scenarios:{},tyreWheel:'RR',heartSignal:true,pairCode:'1234 5678',previewSpeed:null,limits:{...root.NC_SCENARIOS.limits}};
 const songs=[{title:'Night Drive',artist:'ROADSTER RADIO',lyric:'沿着夜色，驶向下一个弯道',previous:'把城市留在身后',next:'让风穿过自由的方向',duration:189},{title:'Open Sky',artist:'ROADSTER RADIO',lyric:'抬头是星光，前方是远方',previous:'驶过漫长的街灯',next:'把时间交给这条路',duration:205}];
 let state={...defaults,scenarios:{},limits:{...defaults.limits}};
-const {esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene}=root.NC_COMPONENTS;
+const {esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,connectionRow,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene}=root.NC_COMPONENTS;
 const S=root.NC_SCENARIOS;
 function render(id,s=state){
 const m=S.resolve(id,s),v=m.connected,n=m.values,dash='—';
@@ -134,25 +135,57 @@ case 'display':
  a+=t(146,368,'NIGHT',F.typography.sizes.title,'text','start')+t(574,368,s.dark+'%',F.typography.sizes.title,'amber','end')+r(146,422,428,8,'panel',4)+r(146,422,428*s.dark/100,8,'amber',4)+roundButton(146,444,96,'−','night-minus',s.dark<=10)+roundButton(478,444,96,'+','night-plus',s.dark>=100);
  a+=btn(240,552,240,s.night?'NIGHT ACTIVE':'DAY ACTIVE','mode','amber');break;
 case 'bluetooth':{
- const connected=m.paired&&!m.connectionLost;
- a+=header('CONNECTIONS','BLUETOOTH');
- a+=chip(175,176,370,m.connectionLost?'CONNECTION LOST':m.paired?'DEVICE CONNECTED':'NO DEVICE',m.connectionLost?'amber':'panel')+t(360,232,m.connectionLost?'RECONNECT YOUR PHONE':m.paired?'ROADSTER PHONE':'PAIR A NEW DEVICE',F.typography.sizes.label,m.connectionLost?'amber':connected?'green':'muted')+path('M128 270H592');
- a+=t(142,318,'DISCOVERABLE',F.typography.sizes.label,'text','start')+toggleControl(474,286,104,'蓝牙可发现','visible',s.visible);
- a+=t(142,418,'REMOTE KEY',F.typography.sizes.label,'text','start')+toggleControl(474,386,104,'遥控键盘','keyboard',s.keyboard);
- a+=btn(160,502,112,'BACK','back')+btn(292,502,112,'PAIR','pair','amber')+btn(424,502,136,'FORGET\nALL','forget');
- if(m.connectionLost)a+=t(360,615,'SAVED PAIRING RETAINED',F.typography.sizes.small,'muted');break;}
+ const bound=m.obdBound,status=m.obdStatus;
+ a+=header('CONNECTIONS','VEHICLE / PHONE / REMOTE');
+ a+=connectionRow({y:180,label:'OBD ADAPTER',detail:bound?s.obdDevice:'FIND OBD ADAPTER',status:status==='disconnected'?'CONNECTION LOST / RETRY':status==='waiting'?'CONNECTED / WAITING FOR CAR':bound?'CONNECTED / DATA READY':'NOT CONNECTED',act:'obd',selected:bound&&status==='connected'});
+ a+=connectionRow({y:304,label:'PHONE',detail:m.paired?'ROADSTER PHONE':'CONNECT YOUR PHONE',status:m.paired?'CONNECTED':'PAIR WITH A CODE',act:'pair',selected:m.paired});
+ a+=t(158,446,'REMOTE KEY',F.typography.sizes.label,'text','start')+toggleControl(474,422,104,'遥控键盘','keyboard',s.keyboard);
+ a+=btn(248,552,224,'BACK','back');break;}
 case 'pair':{
- const failed=m.pairingFailed,expired=m.scenario==='pair-expired';
- a+=header('PAIR DEVICE','BLUETOOTH')+icon(332,176,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1);
- a+=t(360,278,failed?expired?'CODE EXPIRED':'PAIRING FAILED':'PAIRING CODE',F.typography.sizes.support,failed?'amber':'muted')+t(360,318,expired?'— —':s.pairCode||'1234 5678',F.typography.sizes.pair,failed?'muted':'text','middle',F.typography.number,600);
- a+=t(360,402,failed?expired?'Generate a new code':'Check phone and try again':'Enter this code on your phone',F.typography.sizes.small,failed?'amber':'muted');
- a+=btn(190,440,340,failed?expired?'NEW PAIRING CODE':'RETRY PAIRING':'CONFIRM PAIRING',failed?'retry-pair':'confirm-pair','amber')+btn(248,552,224,'BACK','connections');break;}
+ const failed=m.pairingFailed,expired=m.scenario==='pair-expired',done=m.scenario==='phone-connected',visible=s.visible!==false;
+ a+=header('PHONE PAIRING','PHONE → GAUGE');
+ if(done){
+  a+=icon(332,184,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1)+t(360,288,'PHONE CONNECTED',F.typography.sizes.title,'green')+t(360,336,'ROADSTER PHONE',F.typography.sizes.label,'text')+t(360,382,'App connection is ready',F.typography.sizes.small,'muted');
+  a+=btn(152,438,200,'PAIR NEW','new-pair')+btn(368,438,200,'FORGET','forget-phone');
+ }else{
+  a+=t(158,186,'DISCOVERABLE',F.typography.sizes.small,'muted','start')+toggleControl(474,166,104,'蓝牙可发现','visible',visible);
+  a+=t(360,280,failed?expired?'CODE EXPIRED':'PAIRING FAILED':visible?'PAIRING CODE':'NOT DISCOVERABLE',F.typography.sizes.support,failed?'amber':'muted')+t(360,320,expired||!visible?'— —':s.pairCode||'1234 5678',F.typography.sizes.pair,failed?'muted':'text','middle',F.typography.number,600);
+  a+=t(360,408,failed?expired?'Generate a new code':'Check phone and try again':visible?'Enter this code in the phone app':'Turn on discoverable to pair',F.typography.sizes.small,failed?'amber':'muted');
+  a+=btn(190,450,340,failed?expired?'NEW CODE':'RETRY':'CONFIRM PAIRING',failed?'retry-pair':'confirm-pair','amber',{disabled:!visible});
+ }
+ a+=btn(248,552,224,'BACK','connections');break;}
+case 'obd':{
+ const scene=m.scenario,device=(['connecting','checking','connect-failed'].includes(m.scenario)?s.obdCandidate:null)||s.obdDevice||S.obdDevices[0].name;
+ a+=header('OBD SETUP',scene==='normal'||scene==='scanning'?'SELECT AN ADAPTER':'VEHICLE CONNECTION');
+ if(scene==='normal'){
+  S.obdDevices.forEach((d,i)=>{a+=connectionRow({y:178+i*108,label:d.address+' / '+d.signal,detail:d.name,status:m.obdBound&&d.name===device?'SAVED ADAPTER':'',selected:m.obdBound&&d.name===device,act:'select-obd-'+i});});
+  a+=btn(170,520,170,'BACK','connections')+btn(360,520,190,'RESCAN','scan-obd');
+ }else if(['scanning','connecting','checking'].includes(scene)){
+  const step=scene==='scanning'?0:scene==='connecting'?1:2;
+  a+=icon(332,206,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1);
+  a+=t(360,326,['SEARCHING','CONNECTING','READING VEHICLE'][step],F.typography.sizes.body,'amber')+t(360,377,step===0?'Keep the adapter powered':device,F.typography.sizes.label,'text');
+  a+=t(360,424,step===0?'Looking for nearby OBD adapters':step===1?'Establishing adapter connection':'Adapter connected / checking data',F.typography.sizes.small,'muted');
+  for(let i=0;i<3;i++)a+=r(282+i*56,484,44,4,i<=step?'amber':'line',2);
+  a+=btn(248,552,224,step===0?'BACK':'CANCEL',step===0?'connections':'cancel-obd');
+ }else{
+  const ready=scene==='connected',waiting=scene==='vehicle-off',empty=scene==='no-devices',lost=scene==='disconnected';
+  a+=chip(210,206,300,ready?'DATA READY':waiting?'ADAPTER CONNECTED':empty?'NO ADAPTER FOUND':lost?'CONNECTION LOST':'CONNECTION FAILED',ready?'panel':'amber');
+  a+=t(360,288,empty?'NO OBD DEVICE':device,F.typography.sizes.body,'text');
+  const lines=ready?['Vehicle data is available','This adapter reconnects automatically']:waiting?['Waiting for vehicle data','Switch on the ignition to continue']:empty?['Power the OBD adapter','Then search again']:lost?['Saved adapter retained','Check power and reconnect']:['Keep the adapter close and powered','Then retry the connection'];
+  a+=t(360,350,lines[0],F.typography.sizes.small,'muted')+t(360,386,lines[1],F.typography.sizes.small,'muted');
+  if(ready||waiting)a+=btn(152,446,200,'CHANGE','scan-obd')+btn(368,446,200,'FORGET','forget-obd');
+  else a+=btn(190,446,340,empty?'SEARCH AGAIN':'RETRY',empty?'scan-obd':'retry-obd','amber');
+  a+=btn(248,552,224,'BACK','connections');
+ }break;}
 }
+
 a+=alertRim(m.alerts);
-if(s.dialog&&id==='bluetooth'){
-a='<g aria-hidden="true" pointer-events="none">'+a.replaceAll('tabindex="0"','tabindex="-1"')+'</g>';
-a+='<circle cx="360" cy="360" r="360" fill="'+C.face+'" opacity=".94"/><g role="dialog" aria-label="Clear paired devices">'+r(114,200,492,354,'panel',20)+t(360,240,'CLEAR PAIRED DEVICES?',F.typography.sizes.body,'red')+t(360,299,'PHONE + REMOTE KEYBOARD',F.typography.sizes.small,'muted')+t(360,335,'Saved pairings will be',F.typography.sizes.small,'text')+t(360,367,'removed from this device.',F.typography.sizes.small,'text')+btn(148,434,192,'CANCEL','cancel')+btn(380,434,192,'CLEAR','clear','red')+'</g>';
+if(s.dialog&&['bluetooth','obd','pair'].includes(id)){
+ const phone=s.dialog==='phone';
+ a='<g aria-hidden="true" pointer-events="none">'+a.replaceAll('tabindex="0"','tabindex="-1"')+'</g>';
+ a+='<circle cx="360" cy="360" r="360" fill="'+C.face+'" opacity=".94"/><g role="dialog" aria-label="'+(phone?'Forget phone':'Forget OBD adapter')+'">'+r(114,200,492,354,'panel',20)+t(360,240,phone?'FORGET PHONE?':'FORGET OBD ADAPTER?',F.typography.sizes.body,'red')+t(360,299,phone?'ROADSTER PHONE':s.obdDevice||'OBDLink CX',F.typography.sizes.small,'muted')+t(360,350,phone?'OBD connection is kept.':'Phone pairing is kept.',F.typography.sizes.small,'text')+btn(148,434,192,'CANCEL','cancel')+btn(380,434,192,'FORGET','clear','red')+'</g>';
 }
+
 if(s.night)a='<g class="night-colors">'+a.replaceAll(C.text,C.night)+'</g>';
 return '<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" role="group" aria-label="'+esc(PAGES.find(p=>p.id===id)?.title||id)+'"><defs><clipPath id="round"><circle cx="360" cy="360" r="360"/></clipPath></defs><g clip-path="url(#round)">'+a+'</g></svg>';
 }
@@ -189,7 +222,16 @@ function syncRoadMotion(){
 document.addEventListener('visibilitychange',syncRoadMotion);
 reducedRoadMotion.addEventListener('change',syncRoadMotion);
 function persist(){try{localStorage.setItem('nc-prototype-state',JSON.stringify(state));}catch{}}
+let connectionTimer=0,connectionFlow='';
+function syncConnectionFlow(){
+ const scene=S.selected('obd',state).id;
+ const key=state.connectionDemo&&state.page==='obd'&&!state.dialog&&['scanning','connecting','checking'].includes(scene)?scene:'';
+ if(key===connectionFlow)return;
+ window.clearTimeout(connectionTimer);connectionFlow=key;
+ if(key)connectionTimer=window.setTimeout(()=>{connectionFlow='';state=S.connectionAction(state,'advance-obd');show();},key==='scanning'?1400:1100);
+}
 function show(){
+ syncConnectionFlow();
 face.innerHTML=render(state.page,{...state,roadDistance});
 syncRoadMotion();
 face.style.filter=state.night?'brightness('+(0.48+state.dark*.0052)+')':'brightness('+(0.6+state.day*.004)+')';
@@ -197,14 +239,14 @@ const p=PAGES.find(p=>p.id===state.page);document.getElementById('active-title')
 document.querySelectorAll('[data-page]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.page===state.page)));
 document.getElementById('mode-switch').textContent=state.night?'夜间预览':'日间预览';
 const model=S.resolve(state.page,state),entries=S.pages[state.page],scene=S.selected(state.page,state);
-const alarmSwitch=document.getElementById('alarm-switch'),signalSwitch=document.getElementById('signal-switch');
+const alarmSwitch=document.getElementById('alarm-switch'),signalSwitch=document.getElementById('signal-switch'),connectionPage=['bluetooth','pair','obd'].includes(state.page);
 alarmSwitch.setAttribute('aria-pressed',String(scene.id!=='normal'));
-alarmSwitch.disabled=entries.length===1;alarmSwitch.textContent=scene.id==='normal'?'模拟异常':'恢复正常';
+alarmSwitch.disabled=entries.length===1;alarmSwitch.textContent=connectionPage?(scene.id==='normal'?'切换示例':'默认示例'):scene.id==='normal'?'模拟异常':'恢复正常';
 signalSwitch.disabled=!model.vehicle&&state.page!=='heart';
 signalSwitch.textContent=signalSwitch.disabled?'独立系统状态':model.connected?'数据正常':'模拟断连';
 const select=document.getElementById('scenario-select');
 select.innerHTML=entries.map(entry=>'<option value="'+entry.id+'">'+esc(entry.label)+'</option>').join('');select.value=scene.id;select.disabled=entries.length===1;
-document.getElementById('scenario-description').textContent=!model.connected?'无数据：已隐藏有效指示，越限提醒暂不显示。':state.page==='gforce'?(model.alerts.length?'当前 G 值超过所设提醒阈值；虚线圈表示阈值。':'正常显示当前点；G 值提醒默认关闭。'):model.alerts.length?model.alerts.map(alert=>alert.reason).join(' · '):scene.id!=='normal'?({music:'媒体不可用：保留页面，播放控件禁用。',bluetooth:'连接与配对状态独立于车辆数据。',pair:'保留返回操作，并提供重试。'})[state.page]||scene.label:'正常状态；限值提醒默认关闭，场景数值仅用于设计演示。';
+document.getElementById('scenario-description').textContent=connectionPage?({bluetooth:'点击 OBD 或手机进入各自连接流程；所有连接均为演示。',pair:'手机连接仪表；确认按钮仅模拟配对完成。',obd:'点击操作自动演示 OBD 进度；状态选择器保持静态，方便检查。'})[state.page]:!model.connected?'无数据：已隐藏有效指示，越限提醒暂不显示。':state.page==='gforce'?(model.alerts.length?'当前 G 值超过所设提醒阈值；虚线圈表示阈值。':'正常显示当前点；G 值提醒默认关闭。'):model.alerts.length?model.alerts.map(alert=>alert.reason).join(' · '):scene.id!=='normal'?({music:'媒体不可用：保留页面，播放控件禁用。',bluetooth:'OBD、手机与遥控分别管理；OBD 断连保留已存设备。',pair:'手机向仪表配对；使用演示确认按钮模拟完成。',obd:'仪表主动搜索与连接 OBD；所有设备与进度均为演示。'})[state.page]||scene.label:'正常状态；限值提醒默认关闭，场景数值仅用于设计演示。';
 document.getElementById('wheel-options').hidden=state.page!=='tyres'||['normal','multiple'].includes(scene.id);
 document.getElementById('wheel-select').value=state.tyreWheel;
 document.getElementById('speed-preview').hidden=state.page!=='speed';
@@ -220,14 +262,16 @@ persist();
 nav.innerHTML=PAGES.map(p=>'<button data-page="'+p.id+'" type="button">'+esc(p.title)+'</button>').join('');
 gallery.innerHTML=PAGES.map((p,i)=>'<button class="gallery-item" data-page="'+p.id+'" type="button" aria-label="查看'+p.title+'"><span class="gallery-label"><span>'+String(i+1).padStart(2,'0')+'</span> '+esc(p.title)+'</span><span class="gallery-face" aria-hidden="true">'+render(p.id,defaults).replaceAll('tabindex="0"','tabindex="-1"')+'</span><span class="gallery-caption">'+esc(p.english)+'</span></button>').join('');
 app.addEventListener('click',e=>{
-const page=e.target.closest('[data-page]');if(page){state.page=page.dataset.page;state.dialog=false;show();document.getElementById('live-preview').scrollIntoView({behavior:'smooth',block:'start'});return;}
+const page=e.target.closest('[data-page]');if(page){state.page=page.dataset.page;state.connectionDemo=false;state.dialog=false;show();document.getElementById('live-preview').scrollIntoView({behavior:'smooth',block:'start'});return;}
 const el=e.target.closest('[data-act]');if(!el||el.getAttribute('aria-disabled')==='true')return;action(el.dataset.act);
 });
 app.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.dial-control')&&e.target.getAttribute('aria-disabled')!=='true'){e.preventDefault();action(e.target.dataset.act);}});
 function action(act){
+const connection=S.connectionAction(state,act);
+if(connection){state=connection;show();return;}
 switch(act){
 case 'mode':state.night=!state.night;break;
-case 'alarm':state.scenarios[state.page]=S.selected(state.page,state).id==='normal'?(S.pages[state.page][1]?.id||'normal'):'normal';if(state.page==='speed')state.previewSpeed=null;break;
+case 'alarm':state.connectionDemo=false;state.scenarios[state.page]=S.selected(state.page,state).id==='normal'?(S.pages[state.page][1]?.id||'normal'):'normal';if(state.page==='speed')state.previewSpeed=null;break;
 case 'signal':
  if(state.page==='heart'){
   state.heartSignal=!S.resolve('heart',state).connected;
@@ -240,16 +284,7 @@ case 'night-plus':state.dark=Math.min(100,state.dark+5);break;
 case 'night-minus':state.dark=Math.max(10,state.dark-5);break;
 case 'visible':state.visible=!state.visible;break;
 case 'keyboard':state.keyboard=!state.keyboard;break;
-case 'pair':state.page='pair';break;
-case 'connections':state.page='bluetooth';break;
 case 'back':state.page='gear';break;
-case 'forget':state.dialog=true;break;
-case 'cancel':state.dialog=false;break;
-case 'clear':state.paired=false;state.keyboard=false;state.dialog=false;state.scenarios.bluetooth='normal';break;
-case 'confirm-pair':state.paired=true;state.scenarios.bluetooth='normal';state.page='bluetooth';break;
-case 'retry-pair':
- if(S.selected('pair',state).id==='pair-expired')state.pairCode=state.pairCode==='1234 5678'?'2468 1357':'1234 5678';
- state.scenarios.pair='normal';break;
 case 'play':state.playing=!state.playing;break;
 case 'prev-track':state.track=(state.track+songs.length-1)%songs.length;state.progress=0;break;
 case 'next-track':state.track=(state.track+1)%songs.length;state.progress=0;break;
@@ -261,7 +296,7 @@ show();
 document.getElementById('seek').addEventListener('input',e=>{state.progress=Number(e.target.value)*songs[state.track].duration/100;show();});
 document.getElementById('day-slider').addEventListener('input',e=>{state.day=Number(e.target.value);show();});
 document.getElementById('night-slider').addEventListener('input',e=>{state.dark=Number(e.target.value);show();});
-document.getElementById('scenario-select').addEventListener('change',e=>{state.scenarios[state.page]=e.target.value;if(state.page==='speed')state.previewSpeed=null;show();});
+document.getElementById('scenario-select').addEventListener('change',e=>{state.scenarios[state.page]=e.target.value;state.connectionDemo=false;if(state.page==='speed')state.previewSpeed=null;show();});
 document.getElementById('wheel-select').addEventListener('change',e=>{state.tyreWheel=e.target.value;show();});
 document.getElementById('speed-preview-slider').addEventListener('input',e=>{state.previewSpeed=Number(e.target.value);show();});
 document.querySelectorAll('[data-limit]').forEach(input=>{

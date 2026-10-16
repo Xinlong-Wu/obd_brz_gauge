@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 16 screens, 34 abnormal / system scenario options, and 78 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v16.
+An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 17 screens, 44 abnormal / system scenario options, and 92 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v17.
 
 ## Editing and previewing
 
@@ -45,8 +45,15 @@ python3 ui-prototype/start-preview.py --port 8770
 12. Mechanical pressure gauge: centered needle, 270° graduations, and independent pressure reading.
 13. Music: track, artist, lyrics, progress, previous, play / pause, and next.
 14. Day / night brightness: separate brightness memories, plus / minus, and mode switching.
-15. Bluetooth and remote: connection state, discoverability, remote keyboard, pairing, and clear-pairings confirmation.
-16. Pairing code: grouped code, confirmation, and back navigation.
+15. Connection overview: separate OBD adapter, phone and remote sections; whole rows open their respective management screens.
+16. Phone pairing: discoverability, grouped code, confirmation, failed / expired recovery, and independently forgetting the phone.
+17. OBD devices: discovery, three sample devices, connecting / vehicle-reading progress, data ready, waiting for the vehicle, empty results, failed / disconnected recovery, and independently forgetting OBD.
+
+## Connection flow
+
+Open <http://127.0.0.1:8769/prototype.html?page=bluetooth>. The OBD row on 15 opens the saved adapter status; an unbound gauge starts discovery. On 17, `CHANGE` or `RESCAN` starts discovery and shows the list after about 1.4 seconds. Selecting a device demonstrates `CONNECTING`, `READING VEHICLE`, then `DATA READY`. Leaving the screen or cancelling stops pending progress updates; cancelling a replacement preserves the previous binding.
+
+Screen 16 is only for a phone pairing to the gauge; its code is not used for OBD. Disabling discoverability hides the code and disables confirmation. The confirmation button simulates completion. Phone and OBD have separate `FORGET` confirmations affecting only their own connection; the remote setting is preserved independently. The scenario selector provides static search, connection, failure and waiting examples. These flows are browser-only prototypes, not wired to firmware.
 
 ## Current design constraints
 
@@ -66,9 +73,9 @@ python3 ui-prototype/start-preview.py --port 8770
 - `foundations.js`: foundation definitions; `foundations.css` / `foundations.json`: generated outputs.
 - `components.js` / `components.css`: shared components and states; `components.html`: interactive catalog.
 - `art.js`: base vector artwork; `fonts/`: local fonts and SIL OFL licenses.
-- `vectors-text/`: 78 SVGs with text nodes and embedded fonts.
-- `vectors/`: 78 outlined SVGs suitable for Figma import.
-- `previews/`: 78 PNGs; `overview.png` / `overview.svg`: normal overview; `overview-alerts.png` / `overview-alerts.svg`: warning and system-state overview.
+- `vectors-text/`: 92 SVGs with text nodes and embedded fonts.
+- `vectors/`: 92 outlined SVGs suitable for Figma import.
+- `previews/`: 92 PNGs; `overview.png` / `overview.svg`: normal overview; `overview-alerts.png` / `overview-alerts.svg`: warning and system-state overview.
 - `design-manifest.json`: page, state, color, and font index.
 
 After editing sources, regenerate and commit the corresponding SVGs, PNGs, and overview. Browser preview needs no export dependencies. Exporting requires Node.js 20.9 or newer and Python:
@@ -90,7 +97,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 Check JS syntax, then inspect circular boundaries, digits, labels, and hit areas at 360 actual size. When editing interactions, verify the affected actions and normal / warning / disconnected states.
 
-The 16 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, system-disabled states, motion frequency, and perspective boundaries. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
+The 20 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, system-disabled states, motion frequency, and perspective boundaries. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
 
 ## Figma reference
 

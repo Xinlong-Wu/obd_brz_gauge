@@ -21,9 +21,40 @@ const pages={
  heart:[normal,scenario('heart-high','心率偏高提醒'),scenario('heart-low','心率偏低提醒'),scenario('no-data','心率无数据')],
  music:[normal,scenario('media-unavailable','媒体不可用')],
  display:[normal],
- bluetooth:[normal,scenario('connection-lost','连接丢失'),scenario('no-device','未配对设备')],
- pair:[normal,scenario('pair-failed','配对失败'),scenario('pair-expired','配对码过期')]
+ bluetooth:[normal,scenario('connection-lost','OBD 连接丢失'),scenario('no-device','未绑定 OBD'),scenario('obd-waiting','OBD 已连，等待车辆')],
+ pair:[normal,scenario('pair-failed','配对失败'),scenario('pair-expired','配对码过期'),scenario('phone-connected','手机已连接')],
+ obd:[normal,scenario('scanning','正在搜索'),scenario('connecting','正在连接'),scenario('checking','正在读取车辆'),scenario('connected','车辆数据就绪'),scenario('no-devices','未找到设备'),scenario('connect-failed','连接失败'),scenario('vehicle-off','已连，等待车辆'),scenario('disconnected','连接丢失')]
 };
+const obdDevices=[{name:'OBDLink CX',address:'… A4:7C',signal:'NEARBY'}, {name:'Vgate iCar Pro',address:'… 2B:91',signal:'NEARBY'}, {name:'OBDII',address:'… 8D:03',signal:'WEAK SIGNAL'}];
+function connectionAction(current,act){
+ const s={...current,scenarios:{...current.scenarios}};
+ const scene=selected('obd',s).id;
+ if(act==='obd'){const m=resolve('bluetooth',s);s.page='obd';s.connectionDemo=!m.obdBound;s.scenarios.obd=!m.obdBound?'scanning':m.obdStatus==='disconnected'?'disconnected':m.obdStatus==='waiting'?'vehicle-off':'connected';}
+ else if(act==='scan-obd'){s.page='obd';s.connectionDemo=true;s.obdCandidate=null;s.scenarios.obd='scanning';}
+ else if(/^select-obd-[0-2]$/.test(act)){s.connectionDemo=true;s.obdCandidate=obdDevices[Number(act.slice(-1))].name;s.scenarios.obd='connecting';}
+ else if(act==='advance-obd'){
+  s.scenarios.obd=({scanning:'normal',connecting:'checking',checking:'connected'})[scene]||scene;
+  s.connectionDemo=['scanning','connecting','checking'].includes(s.scenarios.obd);
+  if(scene==='checking'){s.obdBound=true;s.obdDevice=s.obdCandidate||s.obdDevice;s.obdCandidate=null;s.obdStatus='connected';s.scenarios.bluetooth='normal';}
+ }
+ else if(act==='retry-obd'){s.connectionDemo=true;s.scenarios.obd='connecting';}
+ else if(act==='cancel-obd'){s.connectionDemo=false;s.obdCandidate=null;s.scenarios.obd='normal';}
+ else if(act==='forget-obd'){s.connectionDemo=false;s.dialog='obd';}
+ else if(act==='forget-phone'){s.dialog='phone';}
+ else if(act==='cancel'){s.dialog=false;}
+ else if(act==='clear'){
+  if(s.dialog==='obd'){s.obdBound=false;s.connectionDemo=true;s.obdCandidate=null;s.obdStatus='unbound';s.scenarios.bluetooth='normal';s.scenarios.obd='scanning';}
+  if(s.dialog==='phone'){s.paired=false;s.scenarios.pair='normal';}
+  s.dialog=false;
+ }
+ else if(act==='pair'){s.connectionDemo=false;s.page='pair';s.scenarios.pair=s.paired?'phone-connected':'normal';}
+ else if(act==='new-pair'){s.visible=true;s.scenarios.pair='normal';}
+ else if(act==='confirm-pair'){s.paired=true;s.scenarios.pair='phone-connected';}
+ else if(act==='retry-pair'){if(selected('pair',s).id==='pair-expired')s.pairCode=s.pairCode==='1234 5678'?'2468 1357':'1234 5678';s.visible=true;s.scenarios.pair='normal';}
+ else if(act==='connections'){s.connectionDemo=false;s.page='bluetooth';s.dialog=false;}
+ else return null;
+ return s;
+}
 const limits={speed:110,gforce:1.0,heartLow:50,heartHigh:150};
 const baseline={gear:4,rpm:4800,boost:0.68,coolant:92,oiltemp:104,oilpress:3.8,battery:14.2,speed:105,lat:0.52,lon:0.18,heart:105,low:60,peak:165,average:105};
 const wheels=['FL','FR','RL','RR'];
@@ -64,15 +95,18 @@ function resolve(id,s){
   values.heart=Math.max(20,limit.heartLow-10);values.low=values.heart;values.average=46;
   alerts.push(alert('heart','BELOW SET RANGE','advisory'));
  }
- const vehicle=!['heart','music','display','bluetooth','pair'].includes(id);
+ const vehicle=!['heart','music','display','bluetooth','pair','obd'].includes(id);
  const connected=vehicle?s.signal!==false:id==='heart'?s.heartSignal!==false&&entry.id!=='no-data':true;
  const rank={critical:0,warning:1,advisory:2};
  const active=connected?alerts.sort((a,b)=>rank[a.severity]-rank[b.severity]):[];
- return {id,scenario:entry.id,connected,vehicle,values,tyres,limits:limit,alerts:active,
+ const forcedBound=['connection-lost','obd-waiting','connected','vehicle-off','disconnected'].includes(entry.id);
+ const obdBound=forcedBound||s.obdBound!==false&&!(id==='bluetooth'&&entry.id==='no-device');
+ const obdStatus=!obdBound?'unbound':entry.id==='connected'?'connected':entry.id==='connection-lost'||entry.id==='disconnected'?'disconnected':entry.id==='obd-waiting'||entry.id==='vehicle-off'?'waiting':s.obdStatus||'connected';
+ return {id,scenario:entry.id,connected,vehicle,values,tyres,limits:limit,alerts:active,obdBound,obdStatus,
   mediaAvailable:id!=='music'||entry.id!=='media-unavailable',
   connectionLost:id==='bluetooth'&&entry.id==='connection-lost',
-  paired:s.paired!==false&&entry.id!=='no-device',
+  paired:s.paired!==false,
   pairingFailed:id==='pair'&&['pair-failed','pair-expired'].includes(entry.id)};
 }
-root.NC_SCENARIOS={pages,limits,wheels,selected,resolve};
+root.NC_SCENARIOS={pages,limits,wheels,selected,resolve,obdDevices,connectionAction};
 })(typeof window!=='undefined'?window:globalThis);

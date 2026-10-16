@@ -36,12 +36,14 @@ function controls(){
   document.getElementById('adjust-demo').innerHTML=frame(adjust,240,294,240,100,'亮度加减组件');
   document.getElementById('brightness-value').textContent=brightness+'% · 到达边界时加减键不可用';
   document.getElementById('toggle-demo').innerHTML=frame(U.toggleControl(474,286,104,'蓝牙可发现','visible',on),468,280,116,104,'开关组件');
+  document.getElementById('connection-demo').innerHTML=frame(U.connectionRow({y:180,label:'OBD ADAPTER',detail:'OBDLink CX',status:'SAVED ADAPTER',act:'connection-example',selected:true}),130,168,460,124,'连接列表行组件');
   document.getElementById('channel-demo').innerHTML=frame(U.readoutControl(channel,channel==='TPS'?'38%':'21%'),369,312,242,152,'TPS / B.P 整体切换组件');
 }
 const g=F.geometry;
 document.getElementById('geometry-demo').innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" role="group" aria-label="圆屏内容和交互安全区">'+U.shell()+'<circle cx="360" cy="360" r="'+g.interactiveRadius+'" fill="none" stroke="'+C.amber+'" stroke-width="2" stroke-dasharray="8 8"/>'+U.path('M360 200V520M200 360H520','line',2)+U.t(360,250,'CONTENT / R342',F.typography.sizes.title,'muted')+U.t(360,308,'TOUCH / R318',F.typography.sizes.title,'amber')+U.t(360,422,'720 → 360',F.typography.sizes.label,'text')+'</svg>';
 function act(action){
-  if(action==='play')playing=!playing;
+  if(action==='connection-example')document.getElementById('connection-note').textContent='已选择 OBDLink CX · 整行点击与 Enter / Space 使用同一动作';
+  else if(action==='play')playing=!playing;
   else if(action==='prev-track')track=(track+trackNames.length-1)%trackNames.length;
   else if(action==='next-track')track=(track+1)%trackNames.length;
   else if(action==='plus')brightness=Math.min(100,brightness+5);

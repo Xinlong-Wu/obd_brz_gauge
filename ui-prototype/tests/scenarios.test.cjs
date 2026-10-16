@@ -5,7 +5,7 @@ function load(){
  for(const file of ['foundations.js','art.js','components.js','scenarios.js','nc-gauges.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context);
  return context.NC;
 }
-test('all 16 screens expose normal plus their supported preview scenarios',()=>{
+test('all 17 screens expose normal plus their supported preview scenarios',()=>{
  const NC=load();
  for(const p of NC.pages){
   assert.ok(NC.scenarios[p.id],p.id);
@@ -82,6 +82,6 @@ test('system failures preserve recoverable layouts and disable unavailable media
  assert.equal((svg.match(/tabindex="-1"/g)||[]).length,3);
  assert.match(svg,/SOURCE UNAVAILABLE/);assert.doesNotMatch(svg,/Night Drive/);
  const lost=NC.render('bluetooth',{...NC.defaults,scenario:'connection-lost'});
- assert.match(lost,/CONNECTION LOST/);assert.match(lost,/SAVED PAIRING RETAINED/);assert.doesNotMatch(lost,/DEVICE CONNECTED/);
+ assert.match(lost,/CONNECTION LOST/);assert.match(lost,/CONNECTION LOST \/ RETRY/);assert.doesNotMatch(lost,/DEVICE CONNECTED/);
  for(const scenario of ['pair-failed','pair-expired'])assert.match(NC.render('pair',{...NC.defaults,scenario}),/data-act="retry-pair"/);
 });

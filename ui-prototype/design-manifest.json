@@ -106,16 +106,23 @@
     {
       "id": "bluetooth",
       "group": "媒体与系统",
-      "title": "蓝牙 / 遥控",
+      "title": "连接总览",
       "english": "CONNECTIONS",
-      "desc": "拨片式开关配轻量返回与配对操作，保留设备状态和配对管理。"
+      "desc": "OBD 适配器、手机与遥控分区展示。点击 OBD 管理车辆连接，点击手机管理配对；两种连接互相独立。"
     },
     {
       "id": "pair",
       "group": "媒体与系统",
-      "title": "配对码",
-      "english": "PAIR DEVICE",
-      "desc": "分组配对码、配对确认和返回导航。"
+      "title": "手机配对",
+      "english": "PHONE PAIRING",
+      "desc": "仅用于手机连接仪表：显示可发现状态与配对码，提供失败、过期和连接完成示例。"
+    },
+    {
+      "id": "obd",
+      "group": "媒体与系统",
+      "title": "OBD 设备",
+      "english": "OBD SETUP",
+      "desc": "仪表主动搜索 OBD 适配器。选择设备后依次展示连接、读取车辆和数据就绪；支持重试、更换与独立忘记 OBD。"
     }
   ],
   "states": [
@@ -135,6 +142,7 @@
     "display",
     "bluetooth",
     "pair",
+    "obd",
     "gear-shift",
     "gear-rpm-high",
     "gear-oil-hot",
@@ -176,8 +184,18 @@
     "music-media-unavailable",
     "bluetooth-connection-lost",
     "bluetooth-no-device",
+    "bluetooth-obd-waiting",
     "pair-pair-failed",
     "pair-pair-expired",
+    "pair-phone-connected",
+    "obd-scanning",
+    "obd-connecting",
+    "obd-checking",
+    "obd-connected",
+    "obd-no-devices",
+    "obd-connect-failed",
+    "obd-vehicle-off",
+    "obd-disconnected",
     "gear-no-data",
     "boost-no-data",
     "coolant-no-data",
@@ -192,6 +210,9 @@
     "oil-temp-alert",
     "tyre-pressure-alert",
     "clear-devices-confirmation",
+    "obd-forget-confirmation",
+    "phone-forget-confirmation",
+    "pair-not-discoverable",
     "music-paused",
     "multi-bp",
     "gear-night",
@@ -684,13 +705,19 @@
       },
       {
         "id": "connection-lost",
-        "label": "连接丢失",
+        "label": "OBD 连接丢失",
         "values": {},
         "alerts": []
       },
       {
         "id": "no-device",
-        "label": "未配对设备",
+        "label": "未绑定 OBD",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "obd-waiting",
+        "label": "OBD 已连，等待车辆",
         "values": {},
         "alerts": []
       }
@@ -711,6 +738,68 @@
       {
         "id": "pair-expired",
         "label": "配对码过期",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "phone-connected",
+        "label": "手机已连接",
+        "values": {},
+        "alerts": []
+      }
+    ],
+    "obd": [
+      {
+        "id": "normal",
+        "label": "正常",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "scanning",
+        "label": "正在搜索",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "connecting",
+        "label": "正在连接",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "checking",
+        "label": "正在读取车辆",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "connected",
+        "label": "车辆数据就绪",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "no-devices",
+        "label": "未找到设备",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "connect-failed",
+        "label": "连接失败",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "vehicle-off",
+        "label": "已连，等待车辆",
+        "values": {},
+        "alerts": []
+      },
+      {
+        "id": "disconnected",
+        "label": "连接丢失",
         "values": {},
         "alerts": []
       }
@@ -831,6 +920,13 @@
     {
       "name": "pair",
       "page": "pair",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd",
+      "page": "obd",
       "scenario": "normal",
       "connected": true,
       "tyreWheel": "RR"
@@ -1123,6 +1219,13 @@
       "tyreWheel": "RR"
     },
     {
+      "name": "bluetooth-obd-waiting",
+      "page": "bluetooth",
+      "scenario": "obd-waiting",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
       "name": "pair-pair-failed",
       "page": "pair",
       "scenario": "pair-failed",
@@ -1133,6 +1236,69 @@
       "name": "pair-pair-expired",
       "page": "pair",
       "scenario": "pair-expired",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "pair-phone-connected",
+      "page": "pair",
+      "scenario": "phone-connected",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-scanning",
+      "page": "obd",
+      "scenario": "scanning",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-connecting",
+      "page": "obd",
+      "scenario": "connecting",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-checking",
+      "page": "obd",
+      "scenario": "checking",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-connected",
+      "page": "obd",
+      "scenario": "connected",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-no-devices",
+      "page": "obd",
+      "scenario": "no-devices",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-connect-failed",
+      "page": "obd",
+      "scenario": "connect-failed",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-vehicle-off",
+      "page": "obd",
+      "scenario": "vehicle-off",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-disconnected",
+      "page": "obd",
+      "scenario": "disconnected",
       "connected": true,
       "tyreWheel": "RR"
     },
@@ -1230,6 +1396,27 @@
     {
       "name": "clear-devices-confirmation",
       "page": "bluetooth",
+      "scenario": "normal",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "obd-forget-confirmation",
+      "page": "obd",
+      "scenario": "connected",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "phone-forget-confirmation",
+      "page": "pair",
+      "scenario": "phone-connected",
+      "connected": true,
+      "tyreWheel": "RR"
+    },
+    {
+      "name": "pair-not-discoverable",
+      "page": "pair",
       "scenario": "normal",
       "connected": true,
       "tyreWheel": "RR"

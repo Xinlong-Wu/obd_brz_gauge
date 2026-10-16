@@ -70,6 +70,10 @@ through 16 pages —
 - The **DISCOVERABLE / REMOTE KEY** toggles are UI placeholders for now
   (firmware capability pending)
 
+### Connection design in the browser prototype (v17)
+
+The [browser prototype](../ui-prototype/README.en.md#connection-flow) has 17 screens: 15 is the connection overview, 16 handles phone pairing, and new screen 17 discovers / selects / connects OBD. Phone pairing codes and OBD connections are separate, with independent forget confirmations; waiting-for-vehicle and connection-failure states can be previewed. This describes only the prototype. Firmware retains the 16-screen navigation above; the new flow is not wired to the device yet.
+
 ## Data & disconnect
 
 All data flows through the unified channel reading the OBD data cache

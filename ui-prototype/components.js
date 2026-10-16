@@ -115,6 +115,10 @@ const selectedX=label==='TPS'?450:530;
 const labels=t(450,328,'TPS',F.typography.sizes.support,label==='TPS'?'amber':'muted')+t(490,328,'/',F.typography.sizes.support,'muted')+t(530,328,'B.P',F.typography.sizes.support,label==='B.P'?'amber':'muted');
 return '<g class="dial-control precision-key readout-key" role="button" tabindex="0" aria-label="切换 TPS / B.P，当前 '+esc(label)+'" data-act="channel">'+controlHit(375,318,230,140)+labels+path('M'+(selectedX-22)+' 358H'+(selectedX+22),'amber',3,'class="channel-selection" stroke-linecap="round"')+t(490,378,value,F.typography.sizes.compact,'text','middle',F.typography.number)+path('M410 451H570','amber',2,'class="control-focus" opacity="0"')+'</g>';
 }
+function connectionRow({x=142,y,width=436,label,detail,status='',act,selected=false}){
+const ink=selected?'amber':'text';
+return '<g class="dial-control precision-key connection-row" role="button" tabindex="0" aria-label="'+esc([label,detail,status].filter(Boolean).join(', '))+'" data-act="'+esc(act)+'"'+(selected?' aria-current="true"':'')+'>'+controlHit(x,y,width,100)+t(x+16,y+8,label,F.typography.sizes.small,'muted','start')+t(x+16,y+38,detail,F.typography.sizes.label,ink,'start')+(status?t(x+16,y+72,status,F.typography.sizes.small,selected?'green':'muted','start'):'')+path('M'+(x+width-28)+' '+(y+40)+'l10 10-10 10',ink,3,'class="control-symbol" stroke-linecap="round" stroke-linejoin="round"')+path('M'+(x+16)+' '+(y+99)+'H'+(x+width-16),selected?'amber':'line',2,'class="control-focus"')+'</g>';
+}
 function icon(x,y,paths,color='text',scale=1){return '<g transform="translate('+x+' '+y+') scale('+scale+')">'+path(paths,color,2.5,'stroke-linecap="round" stroke-linejoin="round"')+'</g>';}
 function mediaButton(x,y,w,label,act,kind,color='panel',disabled=false){
 const cx=x+w/2,cy=y+44,primary=act==='play',hit=primary?F.controls.musicHit:F.controls.minimumHit;
@@ -126,5 +130,5 @@ const symbol='<path class="music-symbol" d="'+d+'" fill="'+(kind==='play'?C.text
 return '<g class="dial-control music-key '+(primary?'music-primary':'music-secondary')+'" role="button" tabindex="'+(disabled?-1:0)+'" aria-label="'+esc(label)+'"'+(disabled?' aria-disabled="true" opacity="'+F.controls.disabledOpacity+'"':'')+' data-act="'+act+'">'+hitbox+surface+symbol+'</g>';
 }
 function trend(vals,x,y,w,h,color='amber'){const lo=Math.min(...vals),hi=Math.max(...vals);return path(vals.map((v,i)=>(i?'L':'M')+(x+i*w/(vals.length-1)).toFixed(1)+' '+(y+h-(v-lo)/(hi-lo||1)*h).toFixed(1)).join(' '),color,3,'stroke-linecap="round" stroke-linejoin="round"');}
-root.NC_COMPONENTS={esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,icon,mediaButton,trend,readout,actionButton,statusText,validateHitRegion,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene};
+root.NC_COMPONENTS={esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,connectionRow,icon,mediaButton,trend,readout,actionButton,statusText,validateHitRegion,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene};
 })(typeof window!=='undefined'?window:globalThis);

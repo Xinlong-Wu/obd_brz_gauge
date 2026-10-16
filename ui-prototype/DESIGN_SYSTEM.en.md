@@ -10,7 +10,7 @@ This specification uses the current repository prototype as its source of truth.
 - `foundations.css` / `foundations.json`: generated browser variables and readable data; do not edit manually.
 - `components.js` / `components.css`: shared SVG components, properties, states, and feedback.
 - `scenarios.js`: per-screen state scenarios, sample readings, warning reasons and priority, independent heart-rate data state, and optional reminder limits.
-- `nc-gauges.js`: composition and interactions for 16 screens; coordinates define each layout.
+- `nc-gauges.js`: composition and interactions for 17 screens; coordinates define each layout.
 - `art.js`: base vector artwork with semantic color and label-font bindings to the foundations.
 - `components.html` / `catalog.js`: an interactive specification using the actual shared components to inspect sizes and states.
 
@@ -38,7 +38,7 @@ Warnings are part of screen design. Acceptance checks both state visuals and app
 - 06: independent boost, oil-temperature, and oil-pressure warnings. 07: independent oil-pressure, oil-temperature, coolant-temperature, high / low voltage, and boost warnings. TPS / B.P represents control input; a high value alone does not establish a fault.
 - 08: low / high pressure or high temperature at any wheel, identifying the affected wheel through its position, reading, and reason.
 - 09: an optional user-configured speed-limit reminder. 10: optional G-limit advisories, with movement data shown by default. 11: high / low heart-rate reminders outside a user-configured range, with an independent unavailable-data state and no health-diagnosis wording.
-- 13 / 15 / 16: system states such as unavailable media, lost connection, and failed pairing. Brightness settings on 14 need no numeric-threshold warning.
+- 13 / 15 / 16 / 17: system states such as unavailable media, lost connection, and failed pairing. Brightness settings on 14 need no numeric-threshold warning.
 
 Emphasize the abnormal reading together with its corresponding needle / active arc / partition, and provide a short reason. Composite screens identify the affected metric and retain the normal hierarchy elsewhere. Order simultaneous warnings by severity while keeping an identifiable marker for each. Critical states use two thin red arcs at radius 330 while preserving the main reading. Ordinary warnings use local emphasis; advisories use amber. No full-screen flashing is used.
 
@@ -124,6 +124,12 @@ U.actionButton({
 ```
 
 `roundButton`, `mediaButton`, `toggleControl`, and `readoutControl` are specialized controls in the same shared layer. Screens still receive actions through `data-act`; Enter / Space and click invoke the same action.
+
+### Connection Row and connection flow
+
+`connectionRow({x,y,width,label,detail,status,act,selected})` serves screens 15 / 17. Default dimensions are 436×100 master pixels, and the entire row is clickable. A small label sits above the device name, with optional status below. Saved or connected items use amber and an underline; connection state must also be explicit in text. The right chevron indicates navigation; status rows contain no separate small buttons.
+
+Screen 15 separates OBD, phone and remote management; 16 is only for phone pairing, while 17 lets the gauge discover and connect to OBD. Adapter connected and vehicle data ready are distinct states; ignition-off examples wait for the vehicle. Forget confirmations affect each binding independently; cancelling a replacement preserves the previous OBD. Demo progress is cancelled when leaving the screen, opening a confirmation or changing scenes, preventing stale progress from changing other screens. Progress examples selected in the scenario inspector remain static; only actions advance automatically. Brightness remains on 14.
 
 ### Gauge Shell and screen composition
 

@@ -40,7 +40,7 @@ test('disabled actions remove keyboard focus and carry an explicit state',()=>{
 });
 test('all pages and important states obey component geometry contracts',()=>{
   const NC=load().NC;
-  assert.equal(NC.pages.length,16);
+  assert.equal(NC.pages.length,17);
   const states=[NC.defaults,{...NC.defaults,alarm:true},{...NC.defaults,signal:false},{...NC.defaults,night:true},{...NC.defaults,dialog:true},{...NC.defaults,day:100,dark:10}];
   for(const page of NC.pages)for(const state of states){
     const svg=NC.render(page.id,state);

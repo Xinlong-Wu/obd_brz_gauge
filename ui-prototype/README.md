@@ -2,7 +2,7 @@
 
 [English](README.en.md) | 简体中文
 
-MX-5 NC / JDM 圆形车载仪表的视觉与交互原型，包含 16 个界面、34 个异常 / 系统场景选项和 78 张导出画板（含轮位与无数据变体）。720×720 母版，360×360 原尺寸预览；所有数据和连接操作均为演示。导入仓库的设计基线为 v10，当前原型版本为 v16。
+MX-5 NC / JDM 圆形车载仪表的视觉与交互原型，包含 17 个界面、44 个异常 / 系统场景选项和 92 张导出画板（含轮位与无数据变体）。720×720 母版，360×360 原尺寸预览；所有数据和连接操作均为演示。导入仓库的设计基线为 v10，当前原型版本为 v17。
 
 ## 修改与预览
 
@@ -45,8 +45,15 @@ python3 ui-prototype/start-preview.py --port 8770
 12. 机械压力表：居中针轴、270°刻度和独立压力读数。
 13. 音乐：歌曲、歌手、歌词、进度、上一首、播放 / 暂停、下一首。
 14. 日夜亮度：日间和夜间独立亮度、加减和模式切换。
-15. 蓝牙与遥控：连接状态、可发现开关、遥控键盘、配对和清除配对确认。
-16. 配对码：分组配对码、确认和返回。
+15. 连接总览：OBD 适配器、手机与遥控分区；整行点击进入各自管理页面。
+16. 手机配对：可发现开关、分组配对码、确认、失败 / 过期恢复及手机独立忘记。
+17. OBD 设备：搜索、三台示例设备、连接 / 读取车辆进度、数据就绪、等待车辆、空列表、失败 / 断连恢复及 OBD 独立忘记。
+
+## 连接流程
+
+打开 <http://127.0.0.1:8769/prototype.html?page=bluetooth>。15 页的 OBD 行进入已存设备状态；未绑定时直接搜索。17 页点 `CHANGE` 或 `RESCAN` 搜索，约 1.4 秒后显示列表；选择设备后依次演示 `CONNECTING`、`READING VEHICLE` 和 `DATA READY`。离开页面或取消会停止待执行的进度更新，取消更换保留原有绑定。
+
+16 页仅用于手机向仪表配对，配对码不用于 OBD；关闭可发现会隐藏码并禁用确认。确认按钮用于模拟完成。手机与 OBD 分别提供 `FORGET` 确认，只清除对应连接，遥控设置独立保留。状态选择器可静态查看搜索、连接、失败、等待车辆等例子；这些流程仅为浏览器原型，尚未接入固件。
 
 ## 当前设计约束
 
@@ -66,9 +73,9 @@ python3 ui-prototype/start-preview.py --port 8770
 - `foundations.js`：基础定义；`foundations.css` / `foundations.json`：生成物。
 - `components.js` / `components.css`：共享组件及状态；`components.html`：交互规范页。
 - `art.js`：基础矢量图形；`fonts/`：本地字体及 SIL OFL 许可。
-- `vectors-text/`：78 张带文字节点及嵌入字体的 SVG。
-- `vectors/`：78 张文字转轮廓的 SVG，适合导入 Figma。
-- `previews/`：78 张 PNG；`overview.png` / `overview.svg`：正常总览；`overview-alerts.png` / `overview-alerts.svg`：报警与系统状态总览。
+- `vectors-text/`：92 张带文字节点及嵌入字体的 SVG。
+- `vectors/`：92 张文字转轮廓的 SVG，适合导入 Figma。
+- `previews/`：92 张 PNG；`overview.png` / `overview.svg`：正常总览；`overview-alerts.png` / `overview-alerts.svg`：报警与系统状态总览。
 - `design-manifest.json`：页面、状态、色彩与字体索引。
 
 修改源文件后，重新导出并提交对应的 SVG、PNG 和总览。浏览器预览本身不需要安装导出依赖；导出需要 Node.js 20.9 或更高版本及 Python：
@@ -90,7 +97,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 验证 JS 语法后，按 360 原尺寸检查圆边、数字、文字及点击区域；修改交互时验证对应操作与正常 / 报警 / 断连状态。
 
-`npm test` 的 16 项检查覆盖组件尺寸、圆边、场景渲染、断连优先级、多项异常、四轮定位、可选限值、系统禁用、动效频率与透视边界。逐页规范检查结果与当前待修项目见 [DESIGN_AUDIT.md](DESIGN_AUDIT.md)。
+`npm test` 的 20 项检查覆盖组件尺寸、圆边、场景渲染、断连优先级、多项异常、四轮定位、可选限值、系统禁用、动效频率与透视边界。逐页规范检查结果与当前待修项目见 [DESIGN_AUDIT.md](DESIGN_AUDIT.md)。
 
 ## Figma 参考
 
