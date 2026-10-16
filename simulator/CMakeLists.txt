@@ -91,7 +91,12 @@ target_include_directories(obd_gauge_sim PRIVATE
 
 target_compile_definitions(obd_gauge_sim PRIVATE
     OBD_GAUGE_BUILD_TAG="sim"
-    SIM_REPO_ROOT="${REPO_ROOT}")
+    SIM_REPO_ROOT="${REPO_ROOT}"
+    # UIS()/UIM() 跟随 --ui-res 运行时折算(jdm_geo.h 的 #ifndef 守卫让
+    # -D 优先于其编译期回退;固件不经此路径)。声明经 -include 注入。
+    "UI_RENDER_RES=sim_ui_render_res()")
+target_compile_options(obd_gauge_sim PRIVATE
+    "-include${SIM_DIR}/src/ui_res.h")
 
 target_link_libraries(obd_gauge_sim PRIVATE
     lvgl_sim)

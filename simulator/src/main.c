@@ -44,6 +44,9 @@
 static int s_ui_res = 360;
 #define SIM_RES s_ui_res
 
+/* UIS()/UIM() 运行时折算的分辨率来源(见 ui_res.h / CMakeLists -D 覆盖) */
+int sim_ui_render_res(void) { return s_ui_res; }
+
 enum { REGION_NONE = 0, REGION_GAUGE, REGION_PANEL };
 
 static SDL_Window   *s_window;

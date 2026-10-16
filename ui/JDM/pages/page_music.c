@@ -20,7 +20,8 @@ static lv_obj_t *s_hint;
 static void play_fill_cb(lv_event_t *e)
 {
     if (lv_event_get_code(e) != LV_EVENT_DRAW_MAIN) return;
-    static const lv_point_precise_t pts[3] = {
+    // UIS() 按渲染分辨率折算,sim 240/466 档为运行时值,不能静态初始化
+    const lv_point_precise_t pts[3] = {
         {UIS(348), UIS(569)}, {UIS(380), UIS(588)}, {UIS(348), UIS(607)},
     };
     lv_layer_t *layer = lv_event_get_layer(e);
