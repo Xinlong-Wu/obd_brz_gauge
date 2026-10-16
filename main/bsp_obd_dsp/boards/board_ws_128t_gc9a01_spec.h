@@ -52,8 +52,11 @@
 #define BOARD_WS_128T_GC9A01_BL_RESOLUTION    LEDC_TIMER_13_BIT
 #define BOARD_WS_128T_GC9A01_BL_MAX_DUTY      8191
 
-// 触摸方向:触摸报的是玻璃原生坐标,显示端软件镜像了 X(见上 MIRROR_X),
-// 因此触摸也要镜像 X 才与 UI 对齐(esp_lcd_touch 内部做 x = x_max-1-x)。
+// 触摸方向:本板 CST816S 实测上报与显示帧对齐的坐标(传感器原生 ≠
+// 玻璃原生,与 spec 假设相反)——显示端 MADCTL 已镜像 X(上 MIRROR_X),
+// 触摸端不再镜像,两者相抵,按下位置即视觉位置。实测镜像触摸时
+// 按右触发左(可点击区域整体偏左)。方向再不对时的调法:
+// 按左触发右 → 本处 X 置 1;上下反 → 动 MIRROR_Y。
 #define BOARD_WS_128T_TOUCH_SWAP_XY 0
-#define BOARD_WS_128T_TOUCH_MIRROR_X 1
+#define BOARD_WS_128T_TOUCH_MIRROR_X 0
 #define BOARD_WS_128T_TOUCH_MIRROR_Y 0
