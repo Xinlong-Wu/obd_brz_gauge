@@ -108,7 +108,6 @@ static void switch_tap_cb(lv_event_t *e)
 {
     (void)e;
     s_show_tps = !s_show_tps;
-    fprintf(stderr, "TEMP_DBG switch tapped -> %d\n", (int)s_show_tps);
 }
 
 static void apply_switch(void)

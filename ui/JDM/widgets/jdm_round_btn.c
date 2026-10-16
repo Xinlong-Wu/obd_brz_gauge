@@ -22,8 +22,10 @@ lv_obj_t *jdm_round_btn_create(lv_obj_t *parent, int32_t mx, int32_t my, int32_t
     lv_obj_remove_style_all(b);
     int32_t d = UIS(2 * JDM_CTL_ROUND_RADIUS);   // 直径 86
     lv_obj_set_size(b, d, d);
-    // 圆心 (mx+mw/2, my+44);左上角 = 圆心 − r
-    lv_obj_set_pos(b, UIS(mx + mw / 2) - d / 2, UIS(my + 44) - d / 2);
+    // 圆心 (mx+mw/2, my+44):左上角坐标须在母版空间一次折算——
+    // "UIS(圆心) − d/2" 两段各自取整,240 档下累计 +1px 右/下偏移
+    lv_obj_set_pos(b, UIS(mx + mw / 2 - JDM_CTL_ROUND_RADIUS),
+                      UIS(my + 44 - JDM_CTL_ROUND_RADIUS));
     lv_obj_set_style_radius(b, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(b, jdm_color(JDM_ROLE_PANEL), 0);
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
