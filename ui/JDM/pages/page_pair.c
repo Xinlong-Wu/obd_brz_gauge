@@ -26,12 +26,17 @@ static void create(lv_obj_t *page)
 {
     jdm_header_create(page, "PAIR DEVICE", "BLUETOOTH");
 
-    // 蓝牙图标(线稿,blue)
-    static const jdm_pt_t icon[] = {
-        {347, 176}, {347, 248}, {376, 227}, {333, 191},
-        {333, 222}, {376, 199}, {347, 176},
+    // 蓝牙图标(线稿,blue):原型 icon(332,184,'M15 0V72L44 51L0 15M0 57L44 21L15 0',
+    // 'blue',1.1),线宽 2.5×1.1≈3。两条子路径——X 交叉在中央,右缘双峰
+    // (380,207)/(380,240),左端开口 (332,200)/(332,247) 之间无竖线
+    static const jdm_pt_t icon_a[] = {
+        {348, 184}, {348, 263}, {380, 240}, {332, 200},
     };
-    jdm_draw_poly(page, icon, 6, 3, JDM_ROLE_BLUE);
+    static const jdm_pt_t icon_b[] = {
+        {332, 247}, {380, 207}, {348, 184},
+    };
+    jdm_draw_poly(page, icon_a, 4, 3, JDM_ROLE_BLUE);
+    jdm_draw_poly(page, icon_b, 3, 3, JDM_ROLE_BLUE);
 
     jdm_text(page, 360, 278, "PAIRING CODE", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
