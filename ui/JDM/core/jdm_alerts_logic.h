@@ -16,9 +16,9 @@
 // ---- 阈值(原始量纲:°C / 0.1bar / mV / 0.01g)----
 // 转速两档(换挡提示/红区)来自车型配置 tach_cfg_t,由调用方以参数
 // 传入 jdm_alerts_logic_rpm()(红区起点 = RPM critical,进红区即报)。
+// G 值提醒阈值来自车型配置 gforce_cfg_t,同以参数贯穿。
 #define JDM_ALERTS_BAT_LOW     10800   // ≤ 电压过低(10.8 V)
 #define JDM_ALERTS_BAT_HIGH    16400   // ≥ 电压过高(16.4 V)
-#define JDM_ALERTS_G_LIMIT     100     // >  G 值提醒(1.0 g)
 
 /* 编译期校验:配置对的大小关系把关——改宏时即时报错
  * (转速两档来自车型配置,关系由 vehicle_profile_get_tach_cfg() 钳制) */
@@ -93,13 +93,15 @@ static inline jdm_alert_level_t jdm_alerts_logic_tyre_temp(int32_t raw, int temp
     return JDM_ALERT_NONE;
 }
 
-/** G 值提醒:横向或纵向任一越限(原型 limits.gforce,advisory)。 */
+/** G 值提醒:横向或纵向任一越限(advisory);阈值 = 车型配置
+ *  gforce_cfg_t.limit_x100(G 力页虚线阈值圈同源同半径)。 */
 static inline jdm_alert_level_t jdm_alerts_logic_gforce(int32_t lat, int32_t lon,
+                                                        int limit_x100,
                                                         const char **reason)
 {
     int32_t a = lat < 0 ? -lat : lat;
     int32_t b = lon < 0 ? -lon : lon;
-    if (a > JDM_ALERTS_G_LIMIT || b > JDM_ALERTS_G_LIMIT) {
+    if (a > limit_x100 || b > limit_x100) {
         *reason = "G LIMIT";
         return JDM_ALERT_ADVISORY;
     }

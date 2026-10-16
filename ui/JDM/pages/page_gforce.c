@@ -6,6 +6,7 @@
 // ================================================================
 
 #include "widgets/jdm_alert.h"
+#include "app_obd_dsp/vehicle_profiles.h"
 #include "core/jdm_alerts_logic.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_data.h"
@@ -21,7 +22,7 @@
 
 #define GF_RADIUS 238
 #define GF_1G (GF_RADIUS / 2)   // 119
-// 提醒阈值 1.0 g 走共享逻辑(0.01g);虚线圈与页脚同源
+// 提醒阈值(0.01g,车型配置)走共享逻辑;虚线圈与页脚同源
 
 static lv_obj_t *s_ring1;
 static lv_obj_t *s_ring2;
@@ -29,6 +30,7 @@ static lv_obj_t *s_point_ring;
 static lv_obj_t *s_point;
 static lv_obj_t *s_limit;       // 越限虚线阈值圈(draw 回调画短弧段)
 static jdm_alert_widgets_t s_alert;
+static gforce_cfg_t s_g;        // 创建时取车型配置(阈值圈半径 + 判定同源)
 
 static lv_obj_t *ring_create(lv_obj_t *parent, int32_t mr, int32_t bw, jdm_color_role_t c)
 {
@@ -51,7 +53,7 @@ static void limit_draw_cb(lv_event_t *e)
     if (lv_event_get_code(e) != LV_EVENT_DRAW_MAIN) return;
     lv_layer_t *layer = lv_event_get_layer(e);
 
-    float r = (float)UIS(JDM_ALERTS_G_LIMIT * GF_1G / 100);
+    float r = (float)UIS(s_g.limit_x100 * GF_1G / 100);
     float dash = (float)UIS(6);
     float step_px = (float)(UIS(6) + UIS(8));
     float circ = 6.2831853f * r;
@@ -76,6 +78,8 @@ static void limit_draw_cb(lv_event_t *e)
 
 static void create(lv_obj_t *page)
 {
+    s_g = *vehicle_profile_get_gforce_cfg();
+
     jdm_header_create(page, "G-FORCE", NULL);
 
     s_ring2 = ring_create(page, GF_RADIUS, 3, JDM_ROLE_AMBER);
@@ -147,7 +151,7 @@ static void update(void)
     bool alert = false;
     const char *reason = NULL;
     if (ok) {
-        alert = jdm_alerts_logic_gforce(lat, lon, &reason) != JDM_ALERT_NONE;
+        alert = jdm_alerts_logic_gforce(lat, lon, s_g.limit_x100, &reason) != JDM_ALERT_NONE;
     }
     lv_obj_set_hidden(s_point, false);
     lv_obj_set_hidden(s_point_ring, false);

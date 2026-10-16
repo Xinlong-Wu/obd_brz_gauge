@@ -630,3 +630,15 @@ const speed_cfg_t *vehicle_profile_get_speed_cfg(void)
     s_speed.speed_limit  = p->speed_limit  ? p->speed_limit  : d.speed_limit;
     return &s_speed;
 }
+
+const gforce_cfg_t *vehicle_profile_get_gforce_cfg(void)
+{
+    // 零字段回退 MX-5 NC 默认,并钳进 ±1.5 g 数据域(阈值圈须落在盘内)
+    static gforce_cfg_t s_g;
+    const gforce_cfg_t d = VEHICLE_GFORCE_CFG_DEFAULT;
+    const gforce_cfg_t *p = &vehicle_profile_get_active()->gforce;
+
+    s_g.limit_x100 = p->limit_x100 ? p->limit_x100 : d.limit_x100;
+    if (s_g.limit_x100 > 150) s_g.limit_x100 = 150;
+    return &s_g;
+}

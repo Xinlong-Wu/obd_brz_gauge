@@ -164,6 +164,20 @@ typedef struct {
 _Static_assert(VEHICLE_SPEED_LIMIT_DEFAULT > 0, "speed limit must be positive");
 _Static_assert(VEHICLE_SPEED_CRUISE_DEFAULT > 0, "cruise set speed must be positive");
 
+// G-force alarm threshold (per vehicle; 0 = fall back to the MX-5 NC default
+// below). Values in 0.01 g. limit_x100 is the advisory "G LIMIT" line on
+// either axis; the G-force page draws its dashed threshold ring at the same
+// radius. Must stay inside the +/-1.5 g data range of the G channels.
+typedef struct {
+    uint16_t limit_x100;   // |g| threshold (100 = 1.00 g)
+} gforce_cfg_t;
+
+#define VEHICLE_GFORCE_LIMIT_DEFAULT 100
+#define VEHICLE_GFORCE_CFG_DEFAULT { 100 }
+_Static_assert(VEHICLE_GFORCE_LIMIT_DEFAULT > 0, "g-force limit must be positive");
+_Static_assert(VEHICLE_GFORCE_LIMIT_DEFAULT <= 150,
+               "g-force limit must stay inside the +/-1.5 g data range");
+
 // Tire pressure/temperature alarm configuration (per vehicle; 0 = fall
 // back to the MX-5 NC defaults below). Pressures in 0.1 bar, temp in deg C.
 typedef struct {
@@ -218,6 +232,7 @@ typedef struct {
     bat_cfg_t bat;                       // battery voltage alarm (mV); zero fields fall back to VEHICLE_BAT_CFG_DEFAULT
     tyre_cfg_t tyre;                     // tyre pressure/temp alarms; zero fields fall back to VEHICLE_TYRE_CFG_DEFAULT
     speed_cfg_t speed;                   // cruise set / speed limit (km/h); zero fields fall back to VEHICLE_SPEED_CFG_DEFAULT
+    gforce_cfg_t gforce;                 // g-force alarm limit (0.01 g); zero fields fall back to VEHICLE_GFORCE_CFG_DEFAULT
 } vehicle_profile_t;
 
 // Get all predefined vehicle profiles
@@ -276,6 +291,10 @@ const tyre_cfg_t *vehicle_profile_get_tyre_cfg(void);
 // Get the cruise/speed-limit config of the currently active vehicle
 // (zero fields backfilled from the MX-5 NC defaults)
 const speed_cfg_t *vehicle_profile_get_speed_cfg(void);
+
+// Get the g-force alarm limit of the currently active vehicle
+// (zero fields backfilled from the MX-5 NC defaults; clamped to the data range)
+const gforce_cfg_t *vehicle_profile_get_gforce_cfg(void);
 
 #ifdef __cplusplus
 }

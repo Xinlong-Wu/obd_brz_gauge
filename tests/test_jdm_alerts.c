@@ -57,11 +57,13 @@ int main(void)
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(34, 5, 34, &r));
     TEST_ASSERT_EQ_INT(JDM_ALERT_WARNING, jdm_alerts_logic_tyre(60, 5, 34, &r));   // 车型可配
 
-    // ---- G 值:任一轴 >1.0g advisory ----
-    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_gforce(100, -100, &r));
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(101, 0, &r));
+    // ---- G 值:任一轴 > 阈值 advisory(阈值 = 车型配置,0.01g) ----
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_gforce(100, -100, 100, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(101, 0, 100, &r));
     TEST_ASSERT_EQ_STR("G LIMIT", r);
-    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(0, -190, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(0, -190, 100, &r));
+    TEST_ASSERT_EQ_INT(JDM_ALERT_NONE, jdm_alerts_logic_gforce(120, 0, 121, &r));   // 阈值可配
+    TEST_ASSERT_EQ_INT(JDM_ALERT_ADVISORY, jdm_alerts_logic_gforce(120, 0, 119, &r));
 
     // ---- push:critical 优先、同级保序、满员/NONE 安全 ----
     jdm_alert_item_t arr[3];

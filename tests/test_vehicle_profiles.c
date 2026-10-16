@@ -99,5 +99,11 @@ int main(void)
     TEST_ASSERT(bc->min_x10 < bc->dim_x10 && bc->dim_x10 < bc->red_x10
                 && bc->red_x10 <= bc->max_x10);
 
+    // ---- G 力阈值配置:零字段回退默认,钳进 ±1.5 g 数据域 ----
+    const gforce_cfg_t *gc = vehicle_profile_get_gforce_cfg();
+    TEST_ASSERT(gc != NULL);
+    TEST_ASSERT_EQ_INT(100, gc->limit_x100);
+    TEST_ASSERT(gc->limit_x100 > 0 && gc->limit_x100 <= 150);
+
     return TEST_RESULT();
 }
