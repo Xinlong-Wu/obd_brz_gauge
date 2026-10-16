@@ -25,6 +25,8 @@ typedef struct {
     int  tps;        /* % */
     int  load;       /* % */
     int  afr_x100;   /* x100 (1470 = 14.7:1) */
+    int  heart;      /* bpm (BLE HR 0x180D), valid only when heart_valid */
+    bool heart_valid;
     bool brake_ok;   /* RS485 link status OK */
 } fake_values_t;
 

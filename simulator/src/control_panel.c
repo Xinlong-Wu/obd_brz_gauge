@@ -24,6 +24,7 @@ typedef enum {
     CH_TP_FL, CH_TP_FR, CH_TP_RL, CH_TP_RR,   /* tire pressure, 0.1 bar */
     CH_TT_FL, CH_TT_FR, CH_TT_RL, CH_TT_RR,   /* tire temp, deg C */
     CH_GFL, CH_GLN,                            /* G-force, 0.01 g */
+    CH_HRT,                                    /* heart rate, bpm; 0 = no sensor */
     CH_COUNT,
 } ch_id_t;
 
@@ -52,6 +53,7 @@ static const ch_meta_t META[CH_COUNT] = {
     [CH_TP_RR] = { "TP-RR", "bar",  0,    45,    10   },
     [CH_GFL]   = { "G-LAT", "g",    -150, 150,   100  },
     [CH_GLN]   = { "G-LON", "g",    -150, 150,   100  },
+    [CH_HRT]   = { "HR",    "bpm",  0,    220,   1    },
     [CH_TT_FL] = { "TT-FL", "C",    -40,  120,   1    },
     [CH_TT_FR] = { "TT-FR", "C",    -40,  120,   1    },
     [CH_TT_RL] = { "TT-RL", "C",    -40,  120,   1    },
@@ -93,6 +95,7 @@ static void apply_channel(ch_id_t ch, int val)
     /* G 力两轴共用一个 setter:未拖动的轴保持缓存现值 */
     case CH_GFL:   obd_data_set_gforce_x100((int16_t)val, obd_data_get_gforce_lon_x100()); break;
     case CH_GLN:   obd_data_set_gforce_x100(obd_data_get_gforce_lat_x100(), (int16_t)val); break;
+    case CH_HRT:   obd_data_set_heart_bpm((int16_t)val); break;
     case CH_TT_FL: obd_data_set_tpms_temp_c(0, (int16_t)val); break;
     case CH_TT_FR: obd_data_set_tpms_temp_c(1, (int16_t)val); break;
     case CH_TT_RL: obd_data_set_tpms_temp_c(2, (int16_t)val); break;
@@ -116,6 +119,7 @@ static bool engine_value(ch_id_t ch, const fake_values_t *v, int *out)
     case CH_BAT:   *out = v->bat_mv;    return true;
     case CH_AFR:   *out = v->afr_x100;  return true;
     case CH_TPS:   *out = v->tps;       return true;
+    case CH_HRT:   *out = v->heart;     return v->heart_valid;
     case CH_BRAKE: *out = v->brake_x10; return true;
     default:       return false;
     }

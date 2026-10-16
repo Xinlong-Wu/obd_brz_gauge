@@ -189,6 +189,10 @@ void fake_data_compute(int dt_ms, fake_values_t *out)
 {
     memset(out, 0, sizeof(*out));
     out->brake_ok = true;
+    /* 心率:场景不含该通道,给基线附近的确定性缓摆(104..108)。
+     * 不用 jitter():会挪动主随机流,导致其余通道数据相位漂移。 */
+    out->heart = 104 + (int32_t)((s_st.phase_ms / 500) % 5);
+    out->heart_valid = true;
 
     s_st.phase_ms += dt_ms;
 

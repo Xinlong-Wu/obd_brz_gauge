@@ -319,6 +319,7 @@ static void engine_apply_tick(lv_timer_t *t)
     obd_data_set_tps((int16_t)v.tps);
     obd_data_set_load_pct((int16_t)v.load);
     obd_data_set_afr_x100((int16_t)v.afr_x100);
+    if (v.heart_valid) obd_data_set_heart_bpm((int16_t)v.heart);
     obd_data_set_brake_rs485_status(v.brake_ok ? BRAKE_RS485_OK : BRAKE_RS485_IDLE);
     /* tyre temps: scenario has none; constants so the tyres page shows data */
     obd_data_set_tpms_temp_c(0, 35);
