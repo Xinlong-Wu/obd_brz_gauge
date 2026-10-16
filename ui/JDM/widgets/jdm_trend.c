@@ -62,7 +62,7 @@ void jdm_trend_set(jdm_trend_t *t, const int32_t *vals, uint16_t n)
         // 原型:x = mx + i*mw/(n-1);y = my+mh − (v−lo)/(hi−lo||1)*mh
         pts[i].x = UIS(t->mx) + (int32_t)((int64_t)i * UIS(t->mw) / (n - 1));
         int32_t h = UIS(t->mh);
-        int32_t off = span ? (int32_t)((int64_t)(vals[i] - lo) * h / span) : 0;
+        int32_t off = span ? (int32_t)((int64_t)(vals[i] - lo) * h / span) : h;   // 全等值 = 顶线
         pts[i].y = UIS(t->my) + h - off;
     }
     lv_line_set_points(t->line, pts, n);
