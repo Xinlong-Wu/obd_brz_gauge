@@ -1,13 +1,16 @@
 // ================================================================
 //  page_obd.c — OBD 设备(原型 17 页 OBD SETUP)
 //
-//  三态:列表(SELECT AN ADAPTER,3 行示例设备)/ 进度(SEARCHING →
-//  CONNECTING → READING VEHICLE,定时推进)/ 结果(DATA READY 与
-//  CONNECTION LOST)。绑定来源:NVS 适配器绑定(创建时读入 RAM);
-//  FORGET 走真实 NVS 清除;列表点选为演示进度,不写 NVS。
-//  BACK/CANCEL 回连接总览页(14)。
+//  真实数据流:RESCAN/进入列表起 elm327 BLE 真扫描(5s,全部设备按
+//  信号强度排序,列表可上下滑动);点选行 → elm327_connect_by_addr
+//  真连接,进度由真实事件驱动(BLE 链路建立 → READING VEHICLE,数据
+//  就绪 → DATA READY 并写入 NVS 绑定);超时/连不上 → CONNECTION
+//  LOST(RETRY)。FORGET 真实清除 NVS 绑定并断开。BACK/CANCEL 回连
+//  接总览页(14)。
 // ================================================================
 
+#include "widgets/jdm_chip.h"
+#include "bsp_obd_dsp/elm327_ble_client.h"
 #include "core/jdm_conn.h"
 #include "core/jdm_draw.h"
 #include "core/jdm_nav.h"
@@ -15,42 +18,42 @@
 #include "core/jdm_theme.h"
 #include "bsp_obd_dsp/nvs_storage.h"
 #include "widgets/jdm_btn.h"
-#include "widgets/jdm_chip.h"
 #include "widgets/jdm_header.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#define PAGE_BLUETOOTH  14      // 连接总览(见 jdm_ui.c 页表)
+#define PAGE_BLUETOOTH   14     // 连接总览(见 jdm_ui.c 页表)
+#define SCAN_DURATION_S  5      // 单轮扫描时长(elm327 客户端上限 20 台)
+#define SCAN_SETTLE_MS   1500   // 扫描结束后等尾包再排序出表
+#define CONNECT_TIMEOUT_MS 15000
 
 typedef enum {
-    SC_LIST,                    // 设备列表
-    SC_PROGRESS,                // 扫描/连接/读车进度(s_step 0..2)
+    SC_LIST,                    // 扫描列表
+    SC_PROGRESS,                // 连接进度(s_step 1=CONNECTING 2=READING)
     SC_CONNECTED,               // DATA READY
     SC_DISCONNECTED,            // CONNECTION LOST
 } obd_scene_t;
 
-// 原型示例设备(scenarios.js obdDevices)
-static const struct {
-    const char *addr;
-    const char *signal;
-    const char *name;
-} DEVS[3] = {
-    {"\xE2\x80\xA6 A4:7C", "NEARBY", "OBDLink CX"},
-    {"\xE2\x80\xA6 2B:91", "NEARBY", "Vgate iCar Pro"},
-    {"\xE2\x80\xA6 8D:03", "WEAK SIGNAL", "OBDII"},
-};
-
 static obd_scene_t s_scene;
-static int s_step;                      // PROGRESS:0=SEARCHING 1=CONNECTING 2=READING
-static bool s_ram_bound;                // 绑定态(创建时取 NVS;演示选中只改 RAM)
-static char s_ram_device[32];           // 当前绑定设备名(同上)
-static char s_candidate[32];            // 进度中的目标设备名
-static lv_timer_t *s_timer;             // 进度演示推进
+static int s_step;
+static lv_timer_t *s_timer;         // 扫描收尾(排序出表)
+static uint32_t s_deadline;         // 连接超时(lv_tick)
 static bool s_dialog;
 static lv_obj_t *s_dialog_obj;
 
+// 扫描结果快照(settle 时从 elm327 客户端拷入,仅 LVGL 线程访问)
+static ble_scan_result_t s_devs[BLE_SCAN_MAX_DEVICES];
+static int s_dev_count;
+static bool s_scanning;
+
+static char s_sel_name[32];         // 正在连接/已绑定的设备
+static uint8_t s_sel_mac[6];
+
 static lv_obj_t *s_list;
+static lv_obj_t *s_scan_hint;       // SEARCHING… n devices
+static lv_obj_t *s_rows_box;        // 可滚动行容器
+static lv_obj_t *s_rows[BLE_SCAN_MAX_DEVICES];
 static lv_obj_t *s_progress;
 static lv_obj_t *s_step_lbl;
 static lv_obj_t *s_step_sub;
@@ -67,91 +70,166 @@ static lv_obj_t *s_res_forget;
 static lv_obj_t *s_res_retry;
 
 static void scene_apply(void);
-static void start_progress(int step, const char *candidate);
+static void scan_start(void);
+static void row_cb(lv_event_t *e);
 
-// ---- 场景推进 ----
-
-static void timer_cb(lv_timer_t *t)
+// 扫描收尾(LVGL 线程):停扫、按信号强度排序、重建行
+static void scan_settle_cb(lv_timer_t *t)
 {
     (void)t;
+    fprintf(stderr, "[sim] scan settle: %d devices\n", s_dev_count);
     s_timer = NULL;
-    if (s_scene != SC_PROGRESS) return;
-    if (s_step == 0) {                  // 扫描完 → 回列表(原型 scanning→normal)
-        s_scene = SC_LIST;
-    } else if (s_step == 1) {
-        s_step = 2;                     // connecting → checking
-        start_progress(2, s_candidate);
-        return;
-    } else {                            // checking → connected(演示绑定,不写 NVS)
-        s_ram_bound = true;
-        strncpy(s_ram_device, s_candidate, sizeof(s_ram_device) - 1);
-        s_ram_device[sizeof(s_ram_device) - 1] = '\0';
-        s_scene = SC_CONNECTED;
+    elm327_ble_scan_only_stop();
+    int n = elm327_ble_scan_results_get(s_devs);
+    ble_scan_result_t tmp[BLE_SCAN_MAX_DEVICES];
+    memcpy(tmp, s_devs, sizeof(ble_scan_result_t) * n);
+
+    // RSSI 降序(简单插入排序,n≤20)
+    for (int i = 1; i < n; i++) {
+        ble_scan_result_t v = tmp[i];
+        int j = i - 1;
+        while (j >= 0 && tmp[j].rssi < v.rssi) { tmp[j + 1] = tmp[j]; j--; }
+        tmp[j + 1] = v;
     }
+    memcpy(s_devs, tmp, sizeof(ble_scan_result_t) * n);
+    s_dev_count = n;
+
+    // 旧行清掉重建
+    for (int i = 0; i < BLE_SCAN_MAX_DEVICES; i++) s_rows[i] = NULL;
+    lv_obj_clean(s_rows_box);
+    for (int i = 0; i < n; i++) {
+        char addr[20];
+        const uint8_t *m = s_devs[i].addr;
+        snprintf(addr, sizeof(addr), "%02X:%02X:%02X", m[3], m[4], m[5]);
+        char label[40];
+        snprintf(label, sizeof(label), "%s / %d dBm", addr, s_devs[i].rssi);
+
+        lv_obj_t *hit = lv_obj_create(s_rows_box);
+        lv_obj_remove_style_all(hit);
+        lv_obj_set_pos(hit, 0, UIS(i * 108));
+        lv_obj_set_size(hit, UIS(436), UIS(100));
+        lv_obj_add_flag(hit, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_clear_flag(hit, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_user_data(hit, (void *)(intptr_t)i);
+        lv_obj_add_event_cb(hit, row_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+
+        const char *nm = s_devs[i].name[0] ? s_devs[i].name : "(unnamed)";
+        jdm_text(hit, 16, 8, label, JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_START);
+        jdm_text(hit, 16, 38, nm, JDM_FONT_LABEL, JDM_ROLE_TEXT, JDM_TEXT_START);
+        static jdm_pt_t chev[3];
+        chev[0] = (jdm_pt_t){408, 40};
+        chev[1] = (jdm_pt_t){418, 50};
+        chev[2] = (jdm_pt_t){408, 60};
+        jdm_draw_poly(hit, chev, 3, 3, JDM_ROLE_TEXT);
+        static jdm_pt_t base[2];
+        base[0] = (jdm_pt_t){16, 99};
+        base[1] = (jdm_pt_t){420, 99};
+        jdm_draw_poly(hit, base, 2, 2, JDM_ROLE_LINE);
+        s_rows[i] = hit;
+    }
+    s_scanning = false;
     scene_apply();
 }
 
-static void start_progress(int step, const char *candidate)
+static void scan_start(void)
 {
-    if (candidate) {
-        strncpy(s_candidate, candidate, sizeof(s_candidate) - 1);
-        s_candidate[sizeof(s_candidate) - 1] = '\0';
+    s_dev_count = 0;
+    s_scanning = true;
+    lv_obj_clean(s_rows_box);           // 清旧行
+    for (int i = 0; i < BLE_SCAN_MAX_DEVICES; i++) s_rows[i] = NULL;
+    elm327_ble_scan_only_start(SCAN_DURATION_S, NULL);   // 收集在客户端内部
+    if (s_timer) lv_timer_del(s_timer);
+    s_timer = lv_timer_create(scan_settle_cb, SCAN_DURATION_S * 1000 + SCAN_SETTLE_MS, NULL);
+    lv_timer_set_repeat_count(s_timer, 1);
+    scene_apply();
+}
+
+// ---- 绑定(NVS 真写) ----
+
+static void adapter_bind_nv(const uint8_t mac[6], const char *name)
+{
+    nvs_user_cfg_t *cfg = (nvs_user_cfg_t *)nvs_cfg_get();
+    memcpy(cfg->ble_obd_mac, mac, 6);
+    snprintf(cfg->ble_device_name, sizeof(cfg->ble_device_name), "%s", name);
+    nvs_cfg_set(cfg);
+}
+
+static void adapter_forget_nv(void)
+{
+    nvs_user_cfg_t *cfg = (nvs_user_cfg_t *)nvs_cfg_get();
+    memset(cfg->ble_obd_mac, 0, sizeof(cfg->ble_obd_mac));
+    memset(cfg->ble_device_name, 0, sizeof(cfg->ble_device_name));
+    nvs_cfg_set(cfg);
+}
+
+// ---- 场景切换 ----
+
+static void go_list(void)
+{
+    if (s_timer) { lv_timer_del(s_timer); s_timer = NULL; }
+    s_scene = SC_LIST;
+    scan_start();
+    scene_apply();
+}
+
+static void go_progress(int step, const ble_scan_result_t *dev)
+{
+    elm327_ble_scan_only_stop();
+    if (s_timer) { lv_timer_del(s_timer); s_timer = NULL; }
+    if (elm327_ble_is_connected()) elm327_ble_disconnect();   // 换绑先断旧
+    if (dev) {
+        snprintf(s_sel_name, sizeof(s_sel_name), "%s",
+                 dev->name[0] ? dev->name : "(unnamed)");
+        memcpy(s_sel_mac, dev->addr, 6);
     }
+    elm327_ble_connect_by_addr(s_sel_mac, s_sel_name);
     s_scene = SC_PROGRESS;
     s_step = step;
-    scene_apply();
-    uint32_t ms = (step == 0) ? 1400 : 1100;    // 原型 demo 节奏
-    s_timer = lv_timer_create(timer_cb, ms, NULL);
-    lv_timer_set_repeat_count(s_timer, 1);
-}
-
-static void cancel_progress(void)
-{
-    if (s_timer) {
-        lv_timer_del(s_timer);
-        s_timer = NULL;
-    }
-    s_scene = SC_LIST;
+    s_deadline = lv_tick_get() + CONNECT_TIMEOUT_MS;
     scene_apply();
 }
-
-// ---- 动作 ----
 
 static void back_cb(lv_event_t *e)
 {
     (void)e;
-    if (s_timer) {
-        lv_timer_del(s_timer);
-        s_timer = NULL;
-    }
+    elm327_ble_scan_only_stop();
+    if (s_timer) { lv_timer_del(s_timer); s_timer = NULL; }
     jdm_nav_goto(PAGE_BLUETOOTH);
 }
 
 static void rescan_cb(lv_event_t *e)
 {
     (void)e;
-    start_progress(0, NULL);
+    s_scene = SC_LIST;
+    scan_start();
+    scene_apply();
 }
 
 static void retry_cb(lv_event_t *e)
 {
     (void)e;
-    start_progress(1, s_ram_device);
+    go_progress(1, NULL);
 }
 
 static void row_cb(lv_event_t *e)
 {
     int i = (int)(intptr_t)lv_event_get_user_data(e);
-    start_progress(1, DEVS[i].name);    // 原型 select-obd-N → connecting
+    if (i < 0 || i >= s_dev_count || s_scanning) return;
+    snprintf(s_sel_name, sizeof(s_sel_name), "%s",
+             s_devs[i].name[0] ? s_devs[i].name : "(unnamed)");
+    memcpy(s_sel_mac, s_devs[i].addr, 6);
+    go_progress(1, &s_devs[i]);
 }
 
 static void change_cb(lv_event_t *e)
 {
     (void)e;
-    start_progress(0, NULL);
+    s_scene = SC_LIST;
+    scan_start();
+    scene_apply();
 }
 
-// ---- 忘记对话框(真实清除 NVS 绑定) ----
+// ---- 忘记对话框(真实清 NVS + 断开) ----
 
 static void dialog_close(void)
 {
@@ -171,21 +249,18 @@ static void dialog_cancel_cb(lv_event_t *e)
 static void dialog_forget_cb(lv_event_t *e)
 {
     (void)e;
-    nvs_user_cfg_t *cfg = (nvs_user_cfg_t *)nvs_cfg_get();
-    memset(cfg->ble_device_name, 0, sizeof(cfg->ble_device_name));
-    memset(cfg->ble_obd_mac, 0, sizeof(cfg->ble_obd_mac));
-    nvs_cfg_set(cfg);
-    s_ram_bound = false;
-    s_ram_device[0] = '\0';
+    elm327_ble_disconnect();
+    adapter_forget_nv();
     dialog_close();
     s_scene = SC_LIST;
+    scan_start();
     scene_apply();
 }
 
 static void forget_cb(lv_event_t *e)
 {
     (void)e;
-    if (s_dialog) return;       // 防重入
+    if (s_dialog) return;
     s_dialog = true;
 
     s_dialog_obj = lv_obj_create(lv_obj_get_parent(s_result));
@@ -206,7 +281,7 @@ static void forget_cb(lv_event_t *e)
     lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
 
     jdm_text(s_dialog_obj, 360, 240, "FORGET OBD ADAPTER?", JDM_FONT_BODY, JDM_ROLE_RED, JDM_TEXT_MIDDLE);
-    jdm_text(s_dialog_obj, 360, 299, s_ram_device[0] ? s_ram_device : "OBDLink CX",
+    jdm_text(s_dialog_obj, 360, 299, s_sel_name[0] ? s_sel_name : "OBD adapter",
              JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     jdm_text(s_dialog_obj, 360, 350, "Phone pairing is kept.", JDM_FONT_SMALL, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
     lv_obj_t *cancel = jdm_btn_create(s_dialog_obj, 148, 434, 192, "CANCEL", JDM_BTN_SECONDARY);
@@ -215,44 +290,7 @@ static void forget_cb(lv_event_t *e)
     lv_obj_add_event_cb(forget, dialog_forget_cb, LV_EVENT_CLICKED, NULL);
 }
 
-// ---- 列表行(connectionRow) ----
-
-static lv_obj_t *row_create(lv_obj_t *parent, int i, int32_t my)
-{
-    const char *label = DEVS[i].addr;
-    static char labels[3][24];
-    snprintf(labels[i], sizeof(labels[i]), "%s / %s", DEVS[i].addr, DEVS[i].signal);
-
-    lv_obj_t *hit = lv_obj_create(parent);
-    lv_obj_remove_style_all(hit);
-    lv_obj_set_pos(hit, UIS(142), UIS(my));
-    lv_obj_set_size(hit, UIS(436), UIS(100));
-    lv_obj_add_flag(hit, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(hit, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_user_data(hit, (void *)(intptr_t)i);
-    lv_obj_add_event_cb(hit, row_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
-
-    bool selected = s_ram_bound && strcmp(s_ram_device, DEVS[i].name) == 0;
-    jdm_color_role_t ink = selected ? JDM_ROLE_AMBER : JDM_ROLE_TEXT;
-    // 行内坐标相对 hit 容器(原型 connectionRow:x+16 / y+8|38|72 / 底线 y+99)
-    jdm_text(hit, 16, 8, labels[i], JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_START);
-    jdm_text(hit, 16, 38, DEVS[i].name, JDM_FONT_LABEL, ink, JDM_TEXT_START);
-    if (selected) {
-        jdm_text(hit, 16, 72, "SAVED ADAPTER", JDM_FONT_SMALL, JDM_ROLE_GREEN, JDM_TEXT_START);
-    }
-    // 右侧 chevron(hit 局部:x=436−28..−18,y=40..60)
-    static jdm_pt_t chev[3];
-    chev[0] = (jdm_pt_t){408, 40};
-    chev[1] = (jdm_pt_t){418, 50};
-    chev[2] = (jdm_pt_t){408, 60};
-    jdm_draw_poly(hit, chev, 3, 3, ink);
-    // 底线
-    static jdm_pt_t base[2];
-    base[0] = (jdm_pt_t){16, 99};
-    base[1] = (jdm_pt_t){420, 99};
-    jdm_draw_poly(hit, base, 2, 2, selected ? JDM_ROLE_AMBER : JDM_ROLE_LINE);
-    return hit;
-}
+// ---- 构建 ----
 
 static void build_list(lv_obj_t *page)
 {
@@ -262,9 +300,16 @@ static void build_list(lv_obj_t *page)
     lv_obj_set_pos(s_list, 0, 0);
     lv_obj_clear_flag(s_list, LV_OBJ_FLAG_SCROLLABLE);
 
-    for (int i = 0; i < 3; i++) {
-        row_create(s_list, i, 178 + i * 108);
-    }
+    s_scan_hint = jdm_text(s_list, 142, 152, "", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_START);
+
+    // 可滚动行容器:越界行上下滑动查看(LVGL 触摸滚动)
+    s_rows_box = lv_obj_create(s_list);
+    lv_obj_remove_style_all(s_rows_box);
+    lv_obj_set_pos(s_rows_box, UIS(142), UIS(172));
+    lv_obj_set_size(s_rows_box, UIS(436), UIS(332));
+    lv_obj_set_scroll_dir(s_rows_box, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(s_rows_box, LV_SCROLLBAR_MODE_AUTO);
+
     lv_obj_t *back = jdm_btn_create(s_list, 170, 520, 170, "BACK", JDM_BTN_SECONDARY);
     lv_obj_add_event_cb(back, back_cb, LV_EVENT_CLICKED, NULL);
     lv_obj_t *rescan = jdm_btn_create(s_list, 360, 520, 190, "RESCAN", JDM_BTN_SECONDARY);
@@ -289,9 +334,9 @@ static void build_progress(lv_obj_t *page)
     jdm_draw_poly(s_progress, icon_a, 4, 3, JDM_ROLE_BLUE);
     jdm_draw_poly(s_progress, icon_b, 3, 3, JDM_ROLE_BLUE);
 
-    s_step_lbl = jdm_text(s_progress, 360, 326, "SEARCHING", JDM_FONT_BODY, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
-    s_step_sub = jdm_text(s_progress, 360, 377, "Keep the adapter powered", JDM_FONT_LABEL, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
-    s_step_hint = jdm_text(s_progress, 360, 424, "Looking for nearby OBD adapters",
+    s_step_lbl = jdm_text(s_progress, 360, 326, "CONNECTING", JDM_FONT_BODY, JDM_ROLE_AMBER, JDM_TEXT_MIDDLE);
+    s_step_sub = jdm_text(s_progress, 360, 377, "", JDM_FONT_LABEL, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
+    s_step_hint = jdm_text(s_progress, 360, 424, "Establishing adapter connection",
                            JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     for (int i = 0; i < 3; i++) {
         lv_obj_t *dot = lv_obj_create(s_progress);
@@ -303,7 +348,7 @@ static void build_progress(lv_obj_t *page)
         lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
         s_dots[i] = dot;
     }
-    s_prog_btn = jdm_btn_create(s_progress, 248, 552, 224, "BACK", JDM_BTN_SECONDARY);
+    s_prog_btn = jdm_btn_create(s_progress, 248, 552, 224, "CANCEL", JDM_BTN_SECONDARY);
     lv_obj_add_event_cb(s_prog_btn, back_cb, LV_EVENT_CLICKED, NULL);
 }
 
@@ -316,7 +361,7 @@ static void build_result(lv_obj_t *page)
     lv_obj_clear_flag(s_result, LV_OBJ_FLAG_SCROLLABLE);
 
     s_chip = jdm_chip_create(s_result, 210, 206, 300, "DATA READY", JDM_ROLE_PANEL);
-    s_res_dev = jdm_text(s_result, 360, 288, "OBDLink CX", JDM_FONT_BODY, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
+    s_res_dev = jdm_text(s_result, 360, 288, "", JDM_FONT_BODY, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
     s_res_line1 = jdm_text(s_result, 360, 350, "", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     s_res_line2 = jdm_text(s_result, 360, 386, "", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
@@ -339,25 +384,24 @@ static void scene_apply(void)
     lv_obj_set_hidden(s_progress, s_scene != SC_PROGRESS);
     lv_obj_set_hidden(s_result, s_scene != SC_CONNECTED && s_scene != SC_DISCONNECTED);
 
-    if (s_scene == SC_PROGRESS) {
-        static const char *const STEPS[] = {"SEARCHING", "CONNECTING", "READING VEHICLE"};
-        static const char *const SUBS[] = {"Keep the adapter powered", "Establishing adapter connection",
-                                           "Adapter connected / checking data"};
-        static const char *const HINTS[] = {"Looking for nearby OBD adapters", "Establishing adapter connection",
-                                            "Adapter connected / checking data"};
-        lv_label_set_text(s_step_lbl, STEPS[s_step]);
-        lv_label_set_text(s_step_sub, s_step == 0 ? SUBS[0] : s_candidate);
-        lv_label_set_text(s_step_hint, HINTS[s_step]);
+    if (s_scene == SC_LIST) {
+        lv_label_set_text(s_scan_hint,
+                          s_scanning ? "SEARCHING\xE2\x80\xA6" : "");
+    } else if (s_scene == SC_PROGRESS) {
+        static const char *const STEPS[] = {"CONNECTING", "READING VEHICLE"};
+        lv_label_set_text(s_step_lbl, STEPS[s_step - 1]);
+        lv_label_set_text(s_step_sub, s_sel_name);
+        lv_label_set_text(s_step_hint, s_step == 1 ? "Establishing adapter connection"
+                                                   : "Adapter connected / checking data");
         for (int i = 0; i < 3; i++) {
             lv_obj_set_style_bg_color(s_dots[i],
                                       jdm_color(i <= s_step ? JDM_ROLE_AMBER : JDM_ROLE_LINE), 0);
         }
-        jdm_btn_set_label(s_prog_btn, s_step == 0 ? "BACK" : "CANCEL");
-    } else if (s_scene != SC_LIST) {
+    } else {
         bool ready = s_scene == SC_CONNECTED;
         jdm_chip_set(s_chip, ready ? "DATA READY" : "CONNECTION LOST",
                      ready ? JDM_ROLE_PANEL : JDM_ROLE_AMBER);
-        lv_label_set_text(s_res_dev, s_ram_device[0] ? s_ram_device : "OBDLink CX");
+        lv_label_set_text(s_res_dev, s_sel_name);
         lv_label_set_text(s_res_line1, ready ? "Vehicle data is available" : "Saved adapter retained");
         lv_label_set_text(s_res_line2, ready ? "This adapter reconnects automatically"
                                              : "Check power and reconnect");
@@ -369,14 +413,13 @@ static void scene_apply(void)
 
 static void create(lv_obj_t *page)
 {
-    // 绑定态:NVS 适配器绑定读入 RAM(FORGET 真清 NVS;演示选中不写)
+    // 绑定态:NVS 适配器绑定
     const nvs_user_cfg_t *cfg = nvs_cfg_get();
     bool bound = (cfg->ble_obd_mac[0] | cfg->ble_obd_mac[1] | cfg->ble_obd_mac[2] |
                   cfg->ble_obd_mac[3] | cfg->ble_obd_mac[4] | cfg->ble_obd_mac[5]) != 0;
-    s_ram_bound = bound;
-    strncpy(s_ram_device, cfg->ble_device_name[0] ? cfg->ble_device_name : "OBDLink CX",
-            sizeof(s_ram_device) - 1);
-    s_ram_device[sizeof(s_ram_device) - 1] = '\0';
+    snprintf(s_sel_name, sizeof(s_sel_name), "%s",
+             cfg->ble_device_name[0] ? cfg->ble_device_name : "OBD adapter");
+    memcpy(s_sel_mac, cfg->ble_obd_mac, 6);
 
     jdm_header_create(page, "OBD SETUP", "SELECT AN ADAPTER");
 
@@ -386,10 +429,23 @@ static void create(lv_obj_t *page)
 
     s_scene = bound ? (jdm_conn_active() ? SC_CONNECTED : SC_DISCONNECTED) : SC_LIST;
     scene_apply();
+    if (s_scene == SC_LIST) scan_start();   // 未绑定进入即扫
 }
 
 static void update(void)
 {
+    if (s_scene == SC_PROGRESS) {
+        bool link = elm327_ble_is_connected();
+        if (s_step == 1 && link) {          // BLE 链路建立 → 读车验证
+            s_step = 2;
+            s_deadline = lv_tick_get() + CONNECT_TIMEOUT_MS;
+        } else if (s_step == 2 && jdm_conn_active()) {
+            adapter_bind_nv(s_sel_mac, s_sel_name);   // 数据就绪 → 真实绑定
+            s_scene = SC_CONNECTED;
+        } else if (lv_tick_get() > s_deadline) {
+            s_scene = SC_DISCONNECTED;                // 超时
+        }
+    }
     scene_apply();
 }
 

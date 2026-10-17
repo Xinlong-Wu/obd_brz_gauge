@@ -7,6 +7,7 @@
  * is walkable on the PC. */
 #include "bsp_obd_dsp/lcd_driver/ST77916.h"
 #include "bsp_obd_dsp/elm327_ble_client.h"
+#include "bsp_obd_dsp/racechrono_ble_diy.h"
 #include "bsp_obd_dsp/espnow_link.h"
 #include "bsp_obd_dsp/gauge_pair_ble_client.h"
 #include "bsp_obd_dsp/rs485_brake_temp.h"
@@ -52,9 +53,11 @@ const char *elm327_ble_get_connected_name(void)
     return s_elm_connected ? s_elm_name : "";
 }
 
+static ble_scan_result_t s_scan_results[BLE_SCAN_MAX_DEVICES];
+static int s_scan_result_count;
+
 static void fake_scan_tick(lv_timer_t *t)
 {
-    if (!s_scan_cb) return;
     int idx = (int)(uintptr_t)lv_timer_get_user_data(t);
     if (idx >= (int)(sizeof(s_fake_adapters) / sizeof(s_fake_adapters[0]))) {
         lv_timer_del(t);
@@ -67,7 +70,10 @@ static void fake_scan_tick(lv_timer_t *t)
     memcpy(dev.addr, s_fake_adapters[idx].mac, 6);
     dev.rssi = s_fake_adapters[idx].rssi;
     fprintf(stderr, "[sim] scan found: %s (%d dBm)\n", dev.name, dev.rssi);
-    s_scan_cb(&dev, idx + 1);
+    /* 快照独立于回调填充:页面传 NULL cb(收集在调用方客户端内部) */
+    if (s_scan_result_count < BLE_SCAN_MAX_DEVICES)
+        s_scan_results[s_scan_result_count++] = dev;
+    if (s_scan_cb) s_scan_cb(&dev, s_scan_result_count);
     lv_timer_set_user_data(t, (void *)(uintptr_t)(idx + 1));
 }
 
@@ -75,6 +81,7 @@ void elm327_ble_scan_only_start(int duration_s, ble_scan_found_cb_t cb)
 {
     (void)duration_s;
     elm327_ble_scan_only_stop();
+    s_scan_result_count = 0;
     s_scan_cb = cb;
     s_scan_timer = lv_timer_create(fake_scan_tick, 700, NULL); /* one device / 700ms */
     fprintf(stderr, "[sim] elm327 scan started (%u fake adapters)\n",
@@ -88,6 +95,13 @@ void elm327_ble_scan_only_stop(void)
         s_scan_timer = NULL;
     }
     s_scan_cb = NULL;
+}
+
+int elm327_ble_scan_results_get(ble_scan_result_t *out)
+{
+    if (!out) return 0;
+    memcpy(out, s_scan_results, sizeof(ble_scan_result_t) * s_scan_result_count);
+    return s_scan_result_count;
 }
 
 static void fake_connect_done(lv_timer_t *t)
@@ -119,6 +133,20 @@ void elm327_ble_disconnect(void)
 }
 
 void elm327_ble_pause_for_ota(void) {}
+
+/* ---- RaceChrono GATT 服务(模拟):手机恒连接,配对页可演示 ---- */
+
+bool racechrono_ble_diy_is_connected(void)
+{
+    return true;
+}
+
+bool racechrono_ble_diy_get_phone(uint8_t mac_out[6])
+{
+    static const uint8_t phone[6] = {0x02, 0x42, 0x50, 0x48, 0x4F, 0x4E}; /* "...PHON" */
+    if (mac_out) memcpy(mac_out, phone, 6);
+    return true;
+}
 
 /* ================= ESP-NOW link (simulated) ================= */
 

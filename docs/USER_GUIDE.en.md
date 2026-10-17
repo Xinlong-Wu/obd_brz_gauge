@@ -73,7 +73,7 @@ through 16 pages —
 
 ### Connection design in the browser prototype (v17)
 
-The connection flow of the [browser prototype](../ui-prototype/README.en.md#connection-flow) (15 connections overview / 16 phone pairing / 17 OBD setup) is now synced to the firmware: phone pairing codes and OBD connections are separate, each with its own forget confirmation. The OBD device list and connection progress mirror the prototype demo flow (the firmware has no BLE scan source yet); FORGET really clears the NVS binding.
+The connection flow of the [browser prototype](../ui-prototype/README.en.md#connection-flow) (15 connections overview / 16 phone pairing / 17 OBD setup) is now synced to the firmware: phone pairing codes and OBD connections are separate, each with its own forget confirmation. The OBD page lists **real BLE scan results** (all devices, sorted by signal strength; the list scrolls); selecting a row really connects, and a successful connection is written to the NVS binding; FORGET clears the binding and disconnects. The pairing page's paired state is **persistent** (remembers the last connected phone in NVS): with the phone app connected over BLE, tap **CONFIRM PAIRING** to bind; **FORGET / PAIR NEW** clears the phone binding.
 
 Browser prototype v18 additionally unifies all 17 screens by semantic text roles, enlarges labels, units, statuses and buttons, and removes repeated explanations. Main / composite / auxiliary readings use consistent separate tiers. Firmware mirrors only the new semantic constants; existing page font mappings have not switched.
 

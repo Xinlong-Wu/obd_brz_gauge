@@ -1,10 +1,11 @@
 // ================================================================
 //  page_pair.c — 手机配对(原型 16 页 PHONE PAIRING)
 //
-//  两态:普通(可发现开关 + MAC 派生配对码 + CONFIRM PAIRING)与
-//  完成(蓝牙图标 + PHONE CONNECTED + PAIR NEW/FORGET)。FORGET 弹
-//  确认对话框;手机配对在固件侧暂无真实绑定,配对态为 UI 态(重启
-//  复位)。BACK 回连接总览页(14)。
+//  绑定持久化:NVS ble_phone_mac(非零 = 已配对)。CONFIRM PAIRING 在
+//  手机 GATT(RaceChrono 服务)已连接时把该手机写入 NVS;FORGET /
+//  PAIR NEW 真实清除绑定。配对码为 MAC 派生显示(App 侧关联用)。
+//  DISCOVERABLE 开关为 UI 预留(固件暂无可发现性能力)。BACK 回连接
+//  总览页(14)。
 // ================================================================
 
 #include "core/jdm_geo.h"
@@ -12,12 +13,15 @@
 #include "core/jdm_draw.h"
 #include "core/jdm_text.h"
 #include "core/jdm_theme.h"
+#include "bsp_obd_dsp/nvs_storage.h"
+#include "bsp_obd_dsp/racechrono_ble_diy.h"
 #include "esp_mac.h"
 #include "widgets/jdm_btn.h"
 #include "widgets/jdm_header.h"
 #include "widgets/jdm_toggle.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #define PAGE_BLUETOOTH  14      // 连接总览(见 jdm_ui.c 页表)
 
@@ -28,9 +32,9 @@ static lv_obj_t *s_status;      // y280:PAIRING CODE / NOT DISCOVERABLE
 static lv_obj_t *s_code;        // y320:配对码
 static lv_obj_t *s_hint;        // y408:提示
 static lv_obj_t *s_confirm;
-static bool s_paired;
+static lv_obj_t *s_done_sub;    // 完成态副行(连接中/待回连文案)
 static bool s_visible = true;
-static bool s_dialog;           // 忘记确认对话框(非 NULL = 打开)
+static bool s_dialog;           // 忘记确认对话框
 static lv_obj_t *s_dialog_obj;
 static char s_code_text_buf[16];        // MAC 派生配对码("XXXX XXXX")
 
@@ -39,23 +43,47 @@ static const char *s_code_text(void)
     return s_code_text_buf;
 }
 
-static void back_cb(lv_event_t *e)
+static bool phone_paired_nv(void)
 {
-    (void)e;
-    jdm_nav_goto(PAGE_BLUETOOTH);
+    const nvs_user_cfg_t *cfg = nvs_cfg_get();
+    return cfg->ble_phone_mac[0] | cfg->ble_phone_mac[1] | cfg->ble_phone_mac[2] |
+           cfg->ble_phone_mac[3] | cfg->ble_phone_mac[4] | cfg->ble_phone_mac[5];
+}
+
+static void phone_forget_nv(void)
+{
+    nvs_user_cfg_t *cfg = (nvs_user_cfg_t *)nvs_cfg_get();
+    memset(cfg->ble_phone_mac, 0, sizeof(cfg->ble_phone_mac));
+    nvs_cfg_set(cfg);
+}
+
+static void phone_bind_nv(const uint8_t mac[6])
+{
+    nvs_user_cfg_t *cfg = (nvs_user_cfg_t *)nvs_cfg_get();
+    memcpy(cfg->ble_phone_mac, mac, sizeof(cfg->ble_phone_mac));
+    nvs_cfg_set(cfg);
 }
 
 static void refresh(void)
 {
-    lv_obj_set_hidden(s_norm, s_paired);
-    lv_obj_set_hidden(s_done, !s_paired);
-    if (!s_paired) {
+    bool paired = phone_paired_nv();
+    bool live = racechrono_ble_diy_get_phone(NULL);
+
+    lv_obj_set_hidden(s_norm, paired);
+    lv_obj_set_hidden(s_done, !paired);
+
+    if (paired) {
+        lv_label_set_text(s_done_sub, live ? "App connection is ready"
+                                           : "Open the app to reconnect");
+    } else {
         jdm_toggle_set(s_toggle, s_visible);
         lv_label_set_text(s_status, s_visible ? "PAIRING CODE" : "NOT DISCOVERABLE");
         lv_label_set_text(s_code, s_visible ? s_code_text() : "\xE2\x80\x94\x20\xE2\x80\x94");
-        lv_label_set_text(s_hint, s_visible ? "Enter this code in the phone app"
-                                            : "Turn on discoverable to pair");
-        jdm_btn_set_disabled(s_confirm, !s_visible);
+        const char *hint = !s_visible ? "Turn on discoverable to pair"
+                          : live      ? "Enter this code in the phone app"
+                                      : "Connect the SkyGauge app to pair";
+        lv_label_set_text(s_hint, hint);
+        jdm_btn_set_disabled(s_confirm, !s_visible || !live);
     }
 }
 
@@ -71,17 +99,28 @@ static void visible_cb(lv_event_t *e)
 static void confirm_cb(lv_event_t *e)
 {
     (void)e;
-    s_paired = true;            // UI 态:固件暂无手机配对绑定
+    uint8_t mac[6];
+    if (racechrono_ble_diy_get_phone(mac)) {
+        phone_bind_nv(mac);     // 持久绑定当前 GATT 手机
+    }
     refresh();
 }
 
 static void new_pair_cb(lv_event_t *e)
 {
     (void)e;
-    s_paired = false;
+    phone_forget_nv();          // 清绑定重新配对
     s_visible = true;
     refresh();
 }
+
+static void back_cb(lv_event_t *e)
+{
+    (void)e;
+    jdm_nav_goto(PAGE_BLUETOOTH);
+}
+
+// ---- 忘记确认对话框 ----
 
 static void dialog_close(void)
 {
@@ -101,7 +140,7 @@ static void dialog_cancel_cb(lv_event_t *e)
 static void dialog_forget_cb(lv_event_t *e)
 {
     (void)e;
-    s_paired = false;
+    phone_forget_nv();
     dialog_close();
     refresh();
 }
@@ -112,7 +151,6 @@ static void forget_cb(lv_event_t *e)
     if (s_dialog) return;       // 防重入
     s_dialog = true;
 
-    // 确认对话框(原型):遮罩 + panel 面板 + 红标题 + CANCEL/FORGET
     s_dialog_obj = lv_obj_create(lv_obj_get_parent(s_done));
     lv_obj_remove_style_all(s_dialog_obj);
     lv_obj_set_size(s_dialog_obj, UIS(720), UIS(720));
@@ -156,7 +194,7 @@ static void build_normal(lv_obj_t *page)
     s_status = jdm_text(s_norm, 360, 280, "PAIRING CODE", JDM_FONT_SUPPORT, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
     s_code = jdm_text(s_norm, 360, 318 + 8 - jdm_text_glyph_top_off(jdm_font(JDM_FONT_PAIR)),
                       "", JDM_FONT_PAIR, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
-    s_hint = jdm_text(s_norm, 360, 408, "Enter this code in the phone app",
+    s_hint = jdm_text(s_norm, 360, 408, "Connect the SkyGauge app to pair",
                       JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
     s_confirm = jdm_btn_create(s_norm, 190, 450, 340, "CONFIRM PAIRING", JDM_BTN_PRIMARY);
@@ -186,7 +224,8 @@ static void build_done(lv_obj_t *page)
 
     jdm_text(s_done, 360, 288, "PHONE CONNECTED", JDM_FONT_TITLE, JDM_ROLE_GREEN, JDM_TEXT_MIDDLE);
     jdm_text(s_done, 360, 336, "ROADSTER PHONE", JDM_FONT_LABEL, JDM_ROLE_TEXT, JDM_TEXT_MIDDLE);
-    jdm_text(s_done, 360, 382, "App connection is ready", JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
+    s_done_sub = jdm_text(s_done, 360, 382, "App connection is ready",
+                          JDM_FONT_SMALL, JDM_ROLE_MUTED, JDM_TEXT_MIDDLE);
 
     lv_obj_t *pair_new = jdm_btn_create(s_done, 152, 438, 200, "PAIR NEW", JDM_BTN_SECONDARY);
     lv_obj_add_event_cb(pair_new, new_pair_cb, LV_EVENT_CLICKED, NULL);
@@ -215,6 +254,7 @@ static void create(lv_obj_t *page)
 
 static void update(void)
 {
+    refresh();      // 200ms 轮询:GATT 连接态/绑定变化即时反映
 }
 
 const jdm_page_t page_pair = {"pair", create, update, 200};
