@@ -290,6 +290,12 @@ python3 tools/sim_regress.py
 python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 ```
 
+Python tests for the generic CAN discovery tool (no car / BLE; standard library):
+
+```bash
+python3 -B -m unittest discover -s tests -p 'test_*discover*.py' -v
+```
+
 - New unit tests: add `test_xxx.c` under `tests/` and register it in
   `tests/CMakeLists.txt` (`add_gauge_test`); assert macros live in
   `tests/test_util.h`. Prefer extracting pure logic into `*_logic.h`
@@ -315,6 +321,7 @@ python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 | `tools/analyze_proble.py` | correlates injected signals with Car Scanner recordings to recover PID mappings and formulas |
 | `tools/parse_carscanner_backup.py` | parses a CarScanner backup directory into a per-car PID CSV |
 | `tools/elm327_ble_dump.py` | host-side direct BLE ELM327 client for raw traffic (bleak; auto-detects FFF0/18F0/FF12, interactive/one-shot/polling, `--all` full scan into CSV) |
+| `tools/elm327_can_discover.py` | Generic BLE CAN discovery: `scan` / `capture` → JSONL; stdlib `summary` / `analyze` → inventory / correlation candidates |
 | `tools/python_quick_rs485_check.py` | direct RS485/Modbus self-check (troubleshooting) |
 | `tools/fix_nvs.py` | resets the NVS role to standalone (fixes WiFi OOM crashes) |
 
@@ -337,6 +344,12 @@ app never marks it unsupported and asks its whole profile), and each injected
 signal corresponds to one real app request — pairing them in order recovers
 which PID drives which gauge and its decode formula. Feed the results into a
 vehicle profile per [VEHICLES.en.md](VEHICLES.en.md#adding-a-vehicle).
+
+### Generic CAN broadcast discovery (passive capture on a real car)
+
+Use `tools/elm327_can_discover.py` for unknown broadcast signals: inventory IDs with `scan` / `capture`, repeat `baseline → active → baseline` using free-form labels, then find correlation candidates offline with `summary` / `analyze`. It is not limited to vehicle profiles or predefined channels and does not name signals automatically; MX-5 NC / PRHT is only an example.
+
+See [CAN_DISCOVERY.en.md](CAN_DISCOVERY.en.md) for operation, protocol / hardware filtering, JSONL completeness, and revalidation. v1 is BLE-only, with `bleak` for capture and only the standard library offline. It sends no vehicle requests, hidden probes, or blind DID scans. Clone acknowledgments do not prove electrical silence, and incomplete records are rejected for analysis by default. Store raw captures outside the repository; do not commit / upload them. Do not share the adapter concurrently with firmware or existing `elm327_ble_dump.py`, which remains unchanged.
 
 ## Release workflow
 

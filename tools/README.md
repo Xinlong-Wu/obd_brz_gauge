@@ -37,6 +37,11 @@ CMake 配置阶段、`gen_bootmedia.py` 在固件编译阶段被 `main/CMakeList
 | 脚本 | 依赖 | 用途 |
 |------|------|------|
 | `elm327_ble_dump.py` | bleak（`pip3 install bleak`）| 主机直连 BLE ELM327 读原始数据：按固件同款优先级识别 FFF0/18F0/FF12 服务，交互收发、`--cmd` 一次性脚本、`--loop` 轮询、`--all` 查支持位图后全量轮询写 CSV（复用 analyze_proble 标准表解码）、`--raw` 逐包十六进制 |
+| `elm327_can_discover.py` | BLE: bleak; offline: stdlib | Generic CAN discovery: `scan` / `capture` → JSONL; `summary` / `analyze` → inventory / correlation candidates |
+
+通用广播发现见 [CAN_DISCOVERY.md](../docs/CAN_DISCOVERY.md)：不限车型或预设信号，先盘点 ID，再用自由标签做重复状态对比。v1 仅 BLE；推荐虚拟环境内 `pip install bleak`，离线分析只用标准库。原始采集放仓库外、不提交或上传；输出不覆盖已有文件，父目录须先创建（如 `mkdir -p ~/can-captures`）。
+
+新工具不发送车辆请求、不盲扫 DID；静默命令确认不等于克隆硬件电气层保证，不完整采集默认拒绝分析。既有 `elm327_ble_dump.py` 保持不变，主动 PID 查询与被动广播监听是两条不同路径，不能同时占用适配器。
 
 ## 一次性设备调试脚本（按需改串口）
 

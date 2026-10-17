@@ -47,6 +47,12 @@
 - **油温**有四级回退链（primary → secondary → tertiary → quaternary），主策略连续失败自动切换
 - `OBD2 Generic`、`Supra A90`、`MINI R55`、`jeep`、`Honda Integra` 不在 override 表里 —— 它们只用 profile 自带的枚举策略，行为同样是数据驱动的
 
+## 通用广播信号发现（不新增车型）
+
+寻找未知 CAN 广播信号时，先看 [CAN_DISCOVERY.md](CAN_DISCOVERY.md)：`tools/elm327_can_discover.py` 用 BLE 盘点实际可见的 ID / DLC，再按自由标签做重复状态实验，离线给出字节 / 位相关性候选。工具不限车型或信号清单，不会自动命名信号、写入 profile 或增加固件通道；本节不改变内置车型数量与现有采集行为。
+
+候选须经精确 ID 复采、重复回归和无关动作对照后才考虑适配。MX-5 NC / PRHT 只是示例，手动软顶不同，不能保证门、灯、车顶等状态在所接总线上广播；没有广播时可另行研究基于维修资料的只读模块增强诊断，v1 不盲扫 DID。原始采集保存在仓库外，不提交 / 上传。
+
 ## 新增车型
 
 ### 步骤 1：基础参数（`vehicle_profiles.c` 的 `s_profiles[]` 末尾追加）

@@ -38,6 +38,11 @@ reference table: [docs/DEVELOPMENT.en.md](../docs/DEVELOPMENT.en.md#tool-scripts
 | Script | Deps | Purpose |
 |--------|------|---------|
 | `elm327_ble_dump.py` | bleak (`pip3 install bleak`) | Host-side direct BLE ELM327 client for raw data: auto-detects FFF0/18F0/FF12 services with the same priority as the firmware; interactive shell, one-shot `--cmd` script, `--loop` polling, `--all` support-bitmap scan + full PID sweep into a CSV (decodes via the analyze_proble standard table), `--raw` per-packet hex dump |
+| `elm327_can_discover.py` | BLE: bleak; offline: stdlib | Generic CAN discovery: `scan` / `capture` → JSONL; `summary` / `analyze` → inventory / correlation candidates |
+
+See [CAN_DISCOVERY.en.md](../docs/CAN_DISCOVERY.en.md) for generic broadcast discovery, not limited to vehicle profiles or predefined signals: inventory IDs first, then compare repeated states using free-form labels. v1 is BLE-only; install with `pip install bleak` in a virtual environment. Offline analysis uses only the standard library. Keep raw captures outside the repository; do not commit or upload them. Outputs never overwrite files, and the parent directory must exist (for example, `mkdir -p ~/can-captures`).
+
+The new tool sends no vehicle requests and does not blind-scan DIDs. A silent-command acknowledgment is not an electrical guarantee on clones; incomplete captures are rejected for analysis by default. Existing `elm327_ble_dump.py` is unchanged: active PID queries and passive broadcast monitoring are different paths and must not share the adapter concurrently.
 
 ## One-off device debug scripts (adjust the serial port as needed)
 

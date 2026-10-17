@@ -256,6 +256,12 @@ python3 tools/sim_regress.py
 python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 ```
 
+通用 CAN 发现工具的 Python 测试（无需车辆 / BLE，标准库）：
+
+```bash
+python3 -B -m unittest discover -s tests -p 'test_*discover*.py' -v
+```
+
 - 单测新增用例:在 `tests/` 加 `test_xxx.c` + `tests/CMakeLists.txt` 注册
   (`add_gauge_test`),断言宏见 `tests/test_util.h`;纯逻辑优先抽成
   `*_logic.h`(`static inline`,不依赖 LVGL/ESP-IDF)再测
@@ -278,6 +284,7 @@ python3 tools/gen_assets.py --check && python3 tools/gen_jdm_fonts.py --check
 | `tools/analyze_proble.py` | 把注入信号与 Car Scanner 录制对上号，反推 PID→仪表映射与解码公式 |
 | `tools/parse_carscanner_backup.py` | 解析 CarScanner 备份目录，导出全车 PID 清单 CSV |
 | `tools/elm327_ble_dump.py` | 主机直连 BLE ELM327 读原始报文（bleak；FFF0/18F0/FF12 自动识别，交互/一次性/轮询，`--all` 全量扫描写 CSV）|
+| `tools/elm327_can_discover.py` | Generic BLE CAN discovery: `scan` / `capture` → JSONL; stdlib `summary` / `analyze` → inventory / correlation candidates |
 | `tools/python_quick_rs485_check.py` | RS485/Modbus 直连自检（排障用）|
 | `tools/fix_nvs.py` | 把 NVS 角色重置为独立模式（修 WiFi OOM 崩溃）|
 
@@ -297,6 +304,12 @@ python3 tools/one_shot.py
 里的私有 PID 问全），每条注入信号对应 App 的一次真实请求，**按顺序配对即可反推
 哪个 PID 驱动哪个仪表、解码公式是什么**。挖到的结果按
 [VEHICLES.md](VEHICLES.md#新增车型) 加进车型配置。
+
+### 通用 CAN 广播发现（实车被动监听）
+
+未知广播信号用 `tools/elm327_can_discover.py`：先 `scan` / `capture` 盘点 ID，再用自由标签重复 `baseline → active → baseline`，最后离线 `summary` / `analyze` 找相关候选。不限车型或预设通道，不自动命名信号；MX-5 NC / PRHT 仅是示例。
+
+操作、协议 / 硬件过滤、JSONL 完整性和复验要求见 [CAN_DISCOVERY.md](CAN_DISCOVERY.md)。v1 仅 BLE，采集依赖 `bleak`，离线只用标准库；不发车辆请求、不隐藏探测、不盲扫 DID。克隆设备的静默确认不证明电气层静默，不完整记录默认拒绝分析。原始采集保存在仓库外，不提交 / 上传；不要与固件或既有 `elm327_ble_dump.py` 同时占用适配器，后者行为不变。
 
 ## 发布流程
 

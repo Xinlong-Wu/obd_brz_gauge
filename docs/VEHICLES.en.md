@@ -55,6 +55,12 @@ Notes:
   in the override table — they rely on the enum strategy baked into their
   profile, which is equally data-driven
 
+## Generic broadcast discovery (does not add profiles)
+
+For unknown CAN broadcast signals, start with [CAN_DISCOVERY.en.md](CAN_DISCOVERY.en.md). `tools/elm327_can_discover.py` inventories IDs / DLCs actually visible over BLE, supports repeated state experiments with free-form labels, and ranks byte / bit correlation candidates offline. It is not limited to vehicles or a signal list and does not name signals, write profiles, or add firmware channels automatically. This section changes neither the built-in profile count nor existing acquisition behavior.
+
+Before integration, recapture exact IDs, repeat reversible states, and use unrelated actions as controls. MX-5 NC / PRHT is only an example; manual soft tops differ, and door, light, roof, or other states are not guaranteed to be broadcast on the connected network. If no broadcast is available, separately investigate service-documentation-based read-only enhanced module diagnostics; v1 does not blind-scan DIDs. Keep raw captures outside the repository; do not commit / upload them.
+
 ## Adding a vehicle
 
 ### Step 1: base parameters (append to `s_profiles[]` in `vehicle_profiles.c`)
