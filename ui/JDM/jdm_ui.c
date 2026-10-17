@@ -24,6 +24,7 @@ const jdm_page_t *const jdm_pages[] = {
     &page_oilpress, &page_triple, &page_multi, &page_tyres,
     &page_speed, &page_gforce, &page_heart, &page_analog,
     &page_music, &page_display, &page_bluetooth, &page_pair,
+    &page_obd,
 };
 const uint8_t jdm_page_count = (uint8_t)(sizeof(jdm_pages) / sizeof(jdm_pages[0]));
 

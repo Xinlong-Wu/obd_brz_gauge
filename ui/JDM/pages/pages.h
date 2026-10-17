@@ -24,7 +24,8 @@ extern const jdm_page_t page_analog;     // 机械压力表
 extern const jdm_page_t page_music;      // 音乐(源未接入,断连态)
 extern const jdm_page_t page_display;    // 日 / 夜亮度
 extern const jdm_page_t page_bluetooth;  // 蓝牙 / 遥控
-extern const jdm_page_t page_pair;       // 配对码
+extern const jdm_page_t page_pair;       // 手机配对
+extern const jdm_page_t page_obd;        // OBD 设备(源未接入,演示流程)
 
 /** 轮播页表(jdm_ui 装配)。 */
 extern const jdm_page_t *const jdm_pages[];

@@ -34,9 +34,9 @@ SCENARIOS = [
      ["jdm_boot.bmp"]),
     # 整环巡览:16 页每页一张(--page 逐页跳转由 tour 无法覆盖,
     # 这里用 16 次交替滑动近似巡览顺序)
-    ("jdm_tour", COMMON + ["--frames", "0", "--tour", "16",
+    ("jdm_tour", COMMON + ["--frames", "0", "--tour", "17",
                            "--shots-dir", "{out}"],
-     ["tour_%03d.bmp" % i for i in range(16)]),
+     ["tour_%03d.bmp" % i for i in range(17)]),
     # splash 本身(字体/face 底/标题的长期回归门槛)
     ("jdm_splash", COMMON + ["--frames", "200",
                              "--screenshot", "{out}/jdm_splash.bmp"],

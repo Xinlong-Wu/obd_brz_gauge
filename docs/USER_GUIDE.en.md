@@ -24,7 +24,7 @@ data, start with [TROUBLESHOOTING.en.md](TROUBLESHOOTING.en.md).
 3. When unbound, pages still render with **—** placeholders (disconnected
    semantics); see "Bluetooth" below for the binding path
 
-## Page navigation (16-page carousel)
+## Page navigation (17-page carousel)
 
 The main UI is a **horizontal carousel**: **swipe left/right** to cycle
 through 16 pages —
@@ -46,7 +46,8 @@ through 16 pages —
 | 13 | NOW PLAYING | media page (source not wired yet; disconnected state) |
 | 14 | ILLUMINATION | day/night brightness memory and adjustment |
 | 15 | CONNECTIONS | adapter status and binding management |
-| 16 | PAIR DEVICE | pairing code |
+| 16 | PHONE PAIRING | phone pairing: discoverable switch + pairing code (MAC-derived); confirming enters the done state (PAIR NEW / FORGET) |
+| 17 | OBD SETUP | OBD adapter: device list → connection progress (SEARCHING / CONNECTING / READING VEHICLE) → DATA READY / CONNECTION LOST; FORGET asks for confirmation and really clears the binding |
 
 ## Day / night & brightness (ILLUMINATION)
 
@@ -72,7 +73,7 @@ through 16 pages —
 
 ### Connection design in the browser prototype (v17)
 
-The [browser prototype](../ui-prototype/README.en.md#connection-flow) has 17 screens: 15 is the connection overview, 16 handles phone pairing, and new screen 17 discovers / selects / connects OBD. Phone pairing codes and OBD connections are separate, with independent forget confirmations; waiting-for-vehicle and connection-failure states can be previewed. This describes only the prototype. Firmware retains the 16-screen navigation above; the new flow is not wired to the device yet.
+The connection flow of the [browser prototype](../ui-prototype/README.en.md#connection-flow) (15 connections overview / 16 phone pairing / 17 OBD setup) is now synced to the firmware: phone pairing codes and OBD connections are separate, each with its own forget confirmation. The OBD device list and connection progress mirror the prototype demo flow (the firmware has no BLE scan source yet); FORGET really clears the NVS binding.
 
 ## Data & disconnect
 
