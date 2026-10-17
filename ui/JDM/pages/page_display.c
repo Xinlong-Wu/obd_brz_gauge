@@ -22,7 +22,9 @@ static lv_obj_t *s_day_bar;
 static lv_obj_t *s_night_pct;
 static lv_obj_t *s_night_bar;
 static lv_obj_t *s_day_minus;
+static lv_obj_t *s_day_plus;
 static lv_obj_t *s_night_minus;
+static lv_obj_t *s_night_plus;
 static lv_obj_t *s_mode_btn;
 
 static lv_obj_t *bar_create(lv_obj_t *parent, int32_t my)
@@ -60,8 +62,9 @@ static void refresh(void)
     lv_obj_set_width(s_night_bar, UIS(428) * night / 100);
 
     jdm_round_btn_set_disabled(s_day_minus, day <= 10);
+    jdm_round_btn_set_disabled(s_day_plus, day >= 100);
     jdm_round_btn_set_disabled(s_night_minus, night <= 10);
-    // 上限禁用由按钮回调里钳制(round_btn 无 + 的禁用句柄,此处只禁 −)
+    jdm_round_btn_set_disabled(s_night_plus, night >= 100);
     jdm_btn_set_label(s_mode_btn,
                       jdm_theme_is_night() ? "NIGHT ACTIVE" : "DAY ACTIVE");
 }
@@ -81,16 +84,16 @@ static void create(lv_obj_t *page)
     s_day_bar = bar_create(page, 242);
     s_day_minus = jdm_round_btn_create(page, 146, 264, 96, "\xE2\x88\x92");
     lv_obj_add_event_cb(s_day_minus, day_minus_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t *day_plus = jdm_round_btn_create(page, 478, 264, 96, "+");
-    lv_obj_add_event_cb(day_plus, day_plus_cb, LV_EVENT_CLICKED, NULL);
+    s_day_plus = jdm_round_btn_create(page, 478, 264, 96, "+");
+    lv_obj_add_event_cb(s_day_plus, day_plus_cb, LV_EVENT_CLICKED, NULL);
 
     jdm_text(page, 146, 368, "NIGHT", JDM_FONT_TITLE, JDM_ROLE_TEXT, JDM_TEXT_START);
     s_night_pct = jdm_text(page, 574, 368, "35%", JDM_FONT_TITLE, JDM_ROLE_AMBER, JDM_TEXT_END);
     s_night_bar = bar_create(page, 422);
     s_night_minus = jdm_round_btn_create(page, 146, 444, 96, "\xE2\x88\x92");
     lv_obj_add_event_cb(s_night_minus, night_minus_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t *night_plus = jdm_round_btn_create(page, 478, 444, 96, "+");
-    lv_obj_add_event_cb(night_plus, night_plus_cb, LV_EVENT_CLICKED, NULL);
+    s_night_plus = jdm_round_btn_create(page, 478, 444, 96, "+");
+    lv_obj_add_event_cb(s_night_plus, night_plus_cb, LV_EVENT_CLICKED, NULL);
 
     s_mode_btn = jdm_btn_create(page, 240, 552, 240, "DAY ACTIVE", JDM_BTN_PRIMARY);
     lv_obj_add_event_cb(s_mode_btn, mode_cb, LV_EVENT_CLICKED, NULL);
