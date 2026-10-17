@@ -29,6 +29,11 @@ void racechrono_ble_diy_handle_gap_event(esp_gap_ble_cb_event_t event, esp_ble_g
 // Query connection state to RaceChrono app.
 bool racechrono_ble_diy_is_connected(void);
 
+/** 当前连接的手机 GATT 地址(6 字节)。已连接时返回 true 并填充 mac_out;
+ *  未连接返回 false。PHONE PAIRING 页绑定/显示用(线程:调用方任一线程,
+ *  内部为一次性快照拷贝)。 */
+bool racechrono_ble_diy_get_phone(uint8_t mac_out[6]);
+
 #ifdef __cplusplus
 }
 #endif

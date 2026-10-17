@@ -58,6 +58,7 @@ static bool s_scan_only_mode = false;  // true=scan only, no connect
 static ble_scan_found_cb_t s_scan_cb = NULL;
 static ble_scan_result_t s_scan_list[BLE_SCAN_MAX_DEVICES];
 static int s_scan_count = 0;
+static portMUX_TYPE s_scan_mux = portMUX_INITIALIZER_UNLOCKED;   // 列表由 BT 线程写/任意线程读
 static bool s_ble_inited = false;  // whether the BLE stack has been initialized
 static bool s_poll_task_started = false; // whether the poll task has been created
 static volatile bool s_ota_paused = false; // during WiFi OTA: suppress auto-reconnect + polling so BLE stops competing for the radio
@@ -1598,7 +1599,9 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
                              pr->scan_rst.scan_rsp_len, dev_name, sizeof(dev_name));
 
             if (s_scan_only_mode) {
-                // Scan mode: collect the device list
+                // Scan mode: collect the device list(s_scan_mux 保护:读取方
+                // elm327_ble_scan_results_get 在任意线程)
+                portENTER_CRITICAL(&s_scan_mux);
                 if (dev_name[0] != '\0' && s_scan_count < BLE_SCAN_MAX_DEVICES) {
                     // Check if it already exists
                     bool exists = false;
@@ -1609,14 +1612,18 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
                         }
                     }
                     if (!exists) {
-                        strncpy(s_scan_list[s_scan_count].name, dev_name, 31);
-                        memcpy(s_scan_list[s_scan_count].addr, pr->scan_rst.bda, 6);
-                        s_scan_list[s_scan_count].rssi = pr->scan_rst.rssi;
-                        s_scan_count++;
+                        ble_scan_result_t *slot = &s_scan_list[s_scan_count++];
+                        strncpy(slot->name, dev_name, 31);
+                        slot->name[31] = '\0';
+                        memcpy(slot->addr, pr->scan_rst.bda, 6);
+                        slot->rssi = pr->scan_rst.rssi;
                         ESP_LOGD(TAG, "Scan found [%d]: %s (RSSI %d)", s_scan_count, dev_name, pr->scan_rst.rssi);
-                        if (s_scan_cb) s_scan_cb(&s_scan_list[s_scan_count - 1], s_scan_count);
+                        portEXIT_CRITICAL(&s_scan_mux);
+                        if (s_scan_cb) s_scan_cb(slot, s_scan_count);   // 回调在临界区外
+                        return;   // scan rst 分支收尾
                     }
                 }
+                portEXIT_CRITICAL(&s_scan_mux);
             } else {
                 // Normal mode: connect after matching
                 bool matched = match_device_target(pr, s_target_name, dev_name, sizeof(dev_name));
@@ -2371,6 +2378,15 @@ void elm327_ble_scan_only_stop(void) {
     esp_ble_gap_stop_scanning();
     s_scan_only_mode = false;
     ESP_LOGD(TAG, "Scan-only stopped. Found %d devices.", s_scan_count);
+}
+
+int elm327_ble_scan_results_get(ble_scan_result_t *out) {
+    if (!out) return 0;
+    portENTER_CRITICAL(&s_scan_mux);
+    memcpy(out, s_scan_list, sizeof(ble_scan_result_t) * s_scan_count);
+    int n = s_scan_count;
+    portEXIT_CRITICAL(&s_scan_mux);
+    return n;
 }
 
 void elm327_ble_connect_by_addr(const uint8_t mac[6], const char *name) {

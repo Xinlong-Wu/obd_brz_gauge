@@ -76,6 +76,7 @@ typedef struct {
                                  // see the load_blob grow logic comment in nvs_storage.c.
     uint8_t brightness_night;  // JDM night brightness 10-100, 0=unset (use 35)
     uint8_t night_mode;        // JDM night mode: 0=day, 1=night (text→amber take-over + night backlight)
+    uint8_t ble_phone_mac[6];  // last connected phone GATT MAC (all-zero = no phone paired; PHONE PAIRING page)
 } nvs_user_cfg_t;
 
 

@@ -79,6 +79,10 @@ void elm327_ble_scan_only_start(int duration_s, ble_scan_found_cb_t cb);
 // Stop scanning.
 void elm327_ble_scan_only_stop(void);
 
+/** 扫描结果快照(按发现顺序,OBD SETUP 页列表用)。返回条数(≤20);
+ *  out 容量须 ≥ BLE_SCAN_MAX_DEVICES。任意线程可调,内部互斥。 */
+int elm327_ble_scan_results_get(ble_scan_result_t *out);
+
 // Connect to the device with the given MAC (call after stopping the scan): exact match, so a
 // same-name device cannot hijack the connection. name is only for logging/UI display.
 void elm327_ble_connect_by_addr(const uint8_t mac[6], const char *name);

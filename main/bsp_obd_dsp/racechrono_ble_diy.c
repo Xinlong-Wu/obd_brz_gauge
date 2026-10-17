@@ -52,6 +52,7 @@ typedef struct {
 static esp_gatt_if_t s_gatts_if = ESP_GATT_IF_NONE;
 static uint16_t s_conn_id = 0;
 static bool s_connected = false;
+static uint8_t s_phone_mac[6] = {0};   // 当前连接手机的 GATT 地址(CONNECT_EVT 记录,DISCONNECT 清零)
 static bool s_notify_enabled = false;
 static bool s_started = false;
 static bool s_rc_enabled = true;          // when false, skip RC (0x1FF8) + Pair (0x1FF9), only create Info (0x1FFA) + OTA (0x1FFB)
@@ -709,6 +710,7 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
 
     case ESP_GATTS_CONNECT_EVT:
         s_connected = true;
+        memcpy(s_phone_mac, param->connect.remote_bda, sizeof(s_phone_mac));
         s_conn_id = param->connect.conn_id;
         // Start each connection from a safe default, so stale deny-all rules don't block data.
         s_allow_all = true;
@@ -724,6 +726,7 @@ static void gatts_cb(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble
 
     case ESP_GATTS_DISCONNECT_EVT:
         s_connected = false;
+        memset(s_phone_mac, 0, sizeof(s_phone_mac));
         s_notify_enabled = false;
         ESP_LOGI(RC_TAG, "GATT client disconnected: %02x:%02x:%02x:%02x:%02x:%02x",
                  param->disconnect.remote_bda[0], param->disconnect.remote_bda[1], param->disconnect.remote_bda[2],
@@ -858,6 +861,13 @@ void racechrono_ble_diy_start(bool enable_racechrono)
 bool racechrono_ble_diy_is_connected(void)
 {
     return s_connected;
+}
+
+bool racechrono_ble_diy_get_phone(uint8_t mac_out[6])
+{
+    if (!s_connected) return false;
+    if (mac_out) memcpy(mac_out, s_phone_mac, 6);
+    return true;
 }
 
 // Enter/leave OTA advertising mode (called from the OTA mode screen):
