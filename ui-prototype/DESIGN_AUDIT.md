@@ -1,8 +1,14 @@
-# 16 页设计规范反查
+# 17 页设计规范反查
 
 [English](DESIGN_AUDIT.en.md) | 简体中文
 
-检查日期：2026-10-10。对象为仓库 `ui-prototype` 当前 v16 工作副本，依据 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)、`foundations.js` 和 `scenarios.js`。
+当前检查版本：v18（2026-10-17）；下方同时保留 v17 / v16 历史记录。对象为仓库 `ui-prototype`，依据 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)、`foundations.js` 和 `scenarios.js`。
+
+## v18 语义字号增补（2026-10-17）
+
+全部 17 页改用 13 种语义文字角色，主 / 综合 / 辅助数值为 90 / 40 / 25px，标题 18px，标签 / 操作 / 状态 / 内容 16px，单位 / 刻度 / 辅助信息 14px（360 显示）。同角色跨页、跨状态的字号、字体和字重一致；全场景自动检查禁止单页压缩或覆盖。原型现有 24 项测试通过。
+
+本轮浏览器检查全部 61 个场景、11 个车辆页无数据、夜间及忘记确认，修正文字和图形之间的间距，验证原有交互。完整记录与修改前后对照见 [design-qa.md](design-qa.md)。以下 v17 / v16 记录保留为历史；当前字号规范以 [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) 为准。
 
 ## v17 连接流程增补（2026-10-16）
 

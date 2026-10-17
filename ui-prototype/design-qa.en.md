@@ -1,6 +1,22 @@
-# Connection-flow visual acceptance
+# Prototype visual acceptance
 
 English | [简体中文](design-qa.md)
+
+## v18 semantic typography (2026-10-17)
+
+final result: passed
+
+Scope covers all 17 screens and 61 scenes, plus unavailable data on 11 vehicle screens, a night example and both forget confirmations. Browser screenshots were checked at actual 360×360. Fonts, units, statuses and actions use 13 semantic roles, with necessary text at least 14px. Per-scene role evidence is stored in `.preview/typography/final-scenes.json`.
+
+This pass captured actual before / after views and compared 05 / 07 / 15 side by side in `.preview/typography/before-after.png`. Intentional changes enlarge text, remove repeated explanations and separate main / composite / auxiliary value tiers, retaining JDM fonts, colors and button feedback. Normal and warning / system sheets were reviewed. Current content shows no visible text obstruction, circular clipping or button overflow; overlap of blank font line boxes is not treated as glyph obstruction.
+
+Corrections addressed units near the car leaders on 08, title / coordinate-ring spacing on 10, the right statistic's circular clearance on 11, and endpoint ticks / labels on 12. Screen 05 reserves space for the unified primary value. Alert fields on 07 use concise copy with full reasons retained in semantic annotations. Both confirmation headings identify the target and preserve cancel / confirm actions.
+
+Browser checks covered TPS / B.P switching with Enter, play / pause and tracks, brightness and day / night switching, discoverability disabling confirmation, simulated phone pairing and independent forgetting, and OBD discovery / selection / automatic completion and cancellation. The catalog shows every role and its warning state was checked; browser error logs are empty. All 24 prototype checks and `test_jdm_fonts` pass. New firmware semantic metadata changes no existing role, page or runtime allocation.
+
+Regenerated 92 SVG / outlined-text / PNG sets and two overviews, preserving `data-type-role` and actual font weight. See [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md) and `components.html#typography`. This remains browser design acceptance; viewing distance, brightness and rasterization on the physical screen require hardware rechecking.
+
+## v17 connection-flow record
 
 Date: 2026-10-16. Scope: screens 15 / 16 / 17 and the shared connection row in the v17 browser prototype. final result: passed
 

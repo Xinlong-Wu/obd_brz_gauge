@@ -1,8 +1,14 @@
-# Reverse audit of the 16 screens
+# Reverse audit of the 17 screens
 
 English | [简体中文](DESIGN_AUDIT.md)
 
-Audit date: 2026-10-10. The target is the current v16 working copy of repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
+Current review: v18 (2026-10-17), with historical v17 / v16 records retained below. The target is repository `ui-prototype`, checked against [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md), `foundations.js`, and `scenarios.js`.
+
+## v18 semantic typography addendum (2026-10-17)
+
+All 17 screens use 13 semantic roles: main / composite / auxiliary values at 90 / 40 / 25px, headings at 18px, labels / actions / statuses / content at 16px, and units / scales / metadata at 14px (360 display). Each role keeps its size, family and weight across screens and states. Full-scenario checks reject local compression or overrides. All 24 prototype tests pass.
+
+The browser pass checked all 61 scenes, unavailable data on 11 vehicle pages, night mode and forget confirmations, corrected spacing between text and graphics, and verified existing interactions. See [design-qa.en.md](design-qa.en.md) for the review and before / after comparison. The v17 / v16 records below remain historical; current typography follows [DESIGN_SYSTEM.en.md](DESIGN_SYSTEM.en.md).
 
 ## v17 connection-flow addendum (2026-10-16)
 
