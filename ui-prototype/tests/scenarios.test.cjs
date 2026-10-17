@@ -80,8 +80,8 @@ test('system failures preserve recoverable layouts and disable unavailable media
  const NC=load(),svg=NC.render('music',{...NC.defaults,scenario:'media-unavailable'});
  assert.equal((svg.match(/aria-disabled="true"/g)||[]).length,3);
  assert.equal((svg.match(/tabindex="-1"/g)||[]).length,3);
- assert.match(svg,/SOURCE UNAVAILABLE/);assert.doesNotMatch(svg,/Night Drive/);
+ assert.match(svg,/NO MEDIA/);assert.doesNotMatch(svg,/Night Drive/);
  const lost=NC.render('bluetooth',{...NC.defaults,scenario:'connection-lost'});
- assert.match(lost,/CONNECTION LOST/);assert.match(lost,/CONNECTION LOST \/ RETRY/);assert.doesNotMatch(lost,/DEVICE CONNECTED/);
+ assert.match(lost,/DISCONNECTED/);assert.match(lost,/data-act="obd"/);assert.doesNotMatch(lost,/DEVICE CONNECTED/);
  for(const scenario of ['pair-failed','pair-expired'])assert.match(NC.render('pair',{...NC.defaults,scenario}),/data-act="retry-pair"/);
 });

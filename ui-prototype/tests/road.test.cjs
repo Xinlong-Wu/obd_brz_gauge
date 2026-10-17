@@ -34,7 +34,7 @@ test('preview speed drives both the reading and optional speed-limit reminder',(
  assert.equal(NC.resolve('speed',state).values.speed,60);assert.equal(NC.resolve('speed',state).alerts.length,0);
  assert.equal(NC.resolve('speed',{...state,previewSpeed:140}).alerts.length,1);
  const parked=NC.render('speed',{...NC.defaults,previewSpeed:0});
- assert.match(parked,/data-road-state="stopped"/);assert.match(parked,/CRUISE STANDBY/);
+ assert.match(parked,/data-road-state="stopped"/);assert.match(parked,/CRUISE OFF/);
  const offline=NC.render('speed',{...state,previewSpeed:140,signal:false});
  assert.match(offline,/data-road-speed="0"/);assert.match(offline,/data-road-frequency="0.000"/);assert.doesNotMatch(offline,/SPEED LIMIT/);
  assert.match(NC.render('speed',NC.defaults),/data-road-kind="tree"/);assert.match(NC.render('speed',NC.defaults),/data-road-kind="building"/);

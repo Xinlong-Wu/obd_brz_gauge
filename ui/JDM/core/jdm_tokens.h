@@ -43,6 +43,21 @@ typedef enum {
     JDM_ROLE_COUNT,
 } jdm_color_role_t;
 
+// ---- v18 语义字号(母版 px;原型先采用,现有固件角色映射不变) ----
+#define JDM_TYPE_VALUE_PRIMARY      180
+#define JDM_TYPE_VALUE_COMPACT      80
+#define JDM_TYPE_VALUE_SECONDARY    50
+#define JDM_TYPE_PAIR_CODE          80
+#define JDM_TYPE_CONTENT_TITLE      60
+#define JDM_TYPE_PAGE_TITLE         36
+#define JDM_TYPE_LABEL              32
+#define JDM_TYPE_ACTION             32
+#define JDM_TYPE_STATUS             32
+#define JDM_TYPE_CONTENT            32
+#define JDM_TYPE_UNIT               28
+#define JDM_TYPE_SCALE              28
+#define JDM_TYPE_META               28
+
 // ---- 几何(母版 px)----
 #define JDM_GEO_MASTER       720
 #define JDM_GEO_RADIUS       360    // 整表半径(内容裁切边界)

@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 
+#include "core/jdm_tokens.h"
 #include "core/jdm_geo.h"   // UI_MASTER_RES(纯宏)
 
 /** 字体家族 = 嵌入的 TTF blob(生成物 assets/fonts/jdm_*.h)。 */
@@ -45,6 +46,47 @@ typedef struct {
 } jdm_font_spec_t;
 
 extern const jdm_font_spec_t JDM_FONT_SPECS[JDM_FONT_COUNT];
+
+/** v18 semantic metadata, opt-in for a later firmware page migration.
+ * Existing JDM_FONT_SPECS and runtime allocations are deliberately unchanged. */
+typedef enum {
+    JDM_TYPE_ROLE_VALUE_PRIMARY,
+    JDM_TYPE_ROLE_VALUE_COMPACT,
+    JDM_TYPE_ROLE_VALUE_SECONDARY,
+    JDM_TYPE_ROLE_PAIR_CODE,
+    JDM_TYPE_ROLE_CONTENT_TITLE,
+    JDM_TYPE_ROLE_PAGE_TITLE,
+    JDM_TYPE_ROLE_LABEL,
+    JDM_TYPE_ROLE_ACTION,
+    JDM_TYPE_ROLE_STATUS,
+    JDM_TYPE_ROLE_CONTENT,
+    JDM_TYPE_ROLE_UNIT,
+    JDM_TYPE_ROLE_SCALE,
+    JDM_TYPE_ROLE_META,
+    JDM_TYPE_ROLE_COUNT,
+} jdm_type_role_t;
+
+static inline jdm_font_spec_t jdm_type_spec(jdm_type_role_t role)
+{
+    static const jdm_font_spec_t specs[JDM_TYPE_ROLE_COUNT] = {
+        [JDM_TYPE_ROLE_VALUE_PRIMARY] = {JDM_FAM_BARLOW, JDM_TYPE_VALUE_PRIMARY},
+        [JDM_TYPE_ROLE_VALUE_COMPACT] = {JDM_FAM_BARLOW, JDM_TYPE_VALUE_COMPACT},
+        [JDM_TYPE_ROLE_VALUE_SECONDARY] = {JDM_FAM_BARLOW, JDM_TYPE_VALUE_SECONDARY},
+        [JDM_TYPE_ROLE_PAIR_CODE] = {JDM_FAM_BARLOW_SEMI, JDM_TYPE_PAIR_CODE},
+        [JDM_TYPE_ROLE_CONTENT_TITLE] = {JDM_FAM_BARLOW_SEMI, JDM_TYPE_CONTENT_TITLE},
+        [JDM_TYPE_ROLE_PAGE_TITLE] = {JDM_FAM_MONO_MED, JDM_TYPE_PAGE_TITLE},
+        [JDM_TYPE_ROLE_LABEL] = {JDM_FAM_MONO_MED, JDM_TYPE_LABEL},
+        [JDM_TYPE_ROLE_ACTION] = {JDM_FAM_MONO_MED, JDM_TYPE_ACTION},
+        [JDM_TYPE_ROLE_STATUS] = {JDM_FAM_MONO_MED, JDM_TYPE_STATUS},
+        [JDM_TYPE_ROLE_CONTENT] = {JDM_FAM_MONO_MED, JDM_TYPE_CONTENT},
+        [JDM_TYPE_ROLE_UNIT] = {JDM_FAM_MONO_MED, JDM_TYPE_UNIT},
+        [JDM_TYPE_ROLE_SCALE] = {JDM_FAM_MONO_MED, JDM_TYPE_SCALE},
+        [JDM_TYPE_ROLE_META] = {JDM_FAM_MONO_MED, JDM_TYPE_META},
+    };
+    if ((unsigned)role >= JDM_TYPE_ROLE_COUNT) return (jdm_font_spec_t){0, 0};
+    return specs[role];
+}
+
 
 /** 母版字号 → 渲染分辨率字号(对称取整,与 UIS() 同约定;入参恒为正)。 */
 static inline int jdm_font_px(int master_px, int render_res)

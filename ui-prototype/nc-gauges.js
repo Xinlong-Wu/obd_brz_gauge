@@ -23,78 +23,87 @@ const PAGES=[
 const defaults={page:'gear',night:false,day:85,dark:35,alarm:false,signal:true,visible:true,keyboard:true,paired:false,obdBound:true,obdDevice:'OBDLink CX',obdStatus:'connected',connectionDemo:false,playing:true,track:0,progress:69,dialog:false,channel:'TPS',scenarios:{},tyreWheel:'RR',heartSignal:true,pairCode:'1234 5678',previewSpeed:null,limits:{...root.NC_SCENARIOS.limits}};
 const songs=[{title:'Night Drive',artist:'ROADSTER RADIO',lyric:'沿着夜色，驶向下一个弯道',previous:'把城市留在身后',next:'让风穿过自由的方向',duration:189},{title:'Open Sky',artist:'ROADSTER RADIO',lyric:'抬头是星光，前方是远方',previous:'驶过漫长的街灯',next:'把时间交给这条路',duration:205}];
 let state={...defaults,scenarios:{},limits:{...defaults.limits}};
-const {esc,t,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,connectionRow,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene}=root.NC_COMPONENTS;
+const {esc,textLine:tx,shortReason,r,path,pt,arc,art,metric,header,shell,chip,btn,controlHit,roundButton,toggleControl,readoutControl,connectionRow,icon,mediaButton,trend,readout,statusText,alertInk,alertField,alertMessage,alertRim,needle,liveArc,tachometer,roadMotion,roadProjection,roadScene}=root.NC_COMPONENTS;
 const S=root.NC_SCENARIOS;
+function valueUnit(x,y,value,unit,role='valueSecondary',color='text'){
+ const offset=(F.typography.roles[role].size-F.typography.roles.unit.size)*.8;
+ return tx(x-8,y,value,role,color,'end')+tx(x+8,y+offset,unit,'unit','muted','start');
+}
 function render(id,s=state){
 const m=S.resolve(id,s),v=m.connected,n=m.values,dash='—';
 const find=k=>m.alerts.find(a=>a.field===k),ink=(k,normal='text')=>find(k)?alertInk(find(k)):normal;
 const readState=k=>!v?'disconnected':find(k)&&find(k).severity!=='advisory'?'warning':'normal';
 function reading(k,x,y,label,value,unit,compact=false){
- const alert=find(k),name=compact&&alert?alert.reason:label;
- return alertField(k,metric(x,y,name,value,unit,compact,ink(k),readState(k)),alert);
+ const alert=find(k),name=compact&&alert?shortReason(alert.reason):label;
+ return alertField(k,metric(x,y,name,value,unit,compact,ink(k),readState(k),compact&&alert?'status':'label'),alert);
 }
 let a=shell(!v?(id==='heart'?'NO SENSOR':'NO SIGNAL'):'');
 switch(id){
 case 'gear':{
- a+=tachometer(n.rpm,v,ink('rpm'))+t(360,172,'MX-5 / NC',F.typography.sizes.label,'amber');
- a+=readout({x:200,y:240,label:'GEAR',value:n.gear,unit:'',state:v?'normal':'disconnected'});
- a+=alertField('rpm',t(360,472,v?n.rpm.toLocaleString('en-US')+' RPM':'RPM',F.typography.sizes.support,ink('rpm','muted')),find('rpm'));
- if(v)a+=alertField('oiltemp',t(256,535,'OIL '+n.oiltemp+'°C',F.typography.sizes.support,ink('oiltemp')),find('oiltemp'))+alertField('oilpress',t(466,535,'PRESS '+n.oilpress.toFixed(1)+' bar',F.typography.sizes.support,ink('oilpress')),find('oilpress'));
- else a+=t(360,535,'WAITING FOR VEHICLE',F.typography.sizes.support,'muted');
- if(m.alerts.length)a+=alertMessage(m.alerts,590);break;}
+ a+=tachometer(n.rpm,v,ink('rpm'))+readout({x:200,y:186,label:'GEAR',value:n.gear,unit:'',state:v?'normal':'disconnected'});
+ a+=alertField('rpm',valueUnit(382,434,v?n.rpm.toLocaleString('en-US'):dash,'RPM','valueSecondary',ink('rpm','muted')),find('rpm'));
+ if(v){
+  a+=alertField('oiltemp',tx(260,514,'OIL T','label',ink('oiltemp'))+valueUnit(270,558,n.oiltemp,'°C','valueSecondary',ink('oiltemp')),find('oiltemp'));
+  a+=alertField('oilpress',tx(464,514,'OIL P','label',ink('oilpress'))+valueUnit(470,558,n.oilpress.toFixed(1),'bar','valueSecondary',ink('oilpress')),find('oilpress'));
+ }
+ if(m.alerts.length)a+=alertMessage(m.alerts,630);break;}
 case 'boost':{
  const angle=135+(n.boost+1)/4*270;
  a+=art('boost');
  if(v)a+=liveArc(360,365,274,135,angle,ink('boost','amber'),12)+needle(360,365,205,angle,ink('boost','amber'));
- a+=t(360,178,'MANIFOLD',F.typography.sizes.title,'amber')+t(360,325,'VACUUM / BOOST',F.typography.sizes.small,'muted')+reading('boost',200,375,'BOOST',n.boost.toFixed(2),'bar');
+ a+=tx(360,182,'MANIFOLD','pageTitle','amber')+reading('boost',200,352,'',n.boost.toFixed(2),'bar');
  a+=alertMessage(m.alerts);break;}
 case 'coolant':{
- a+=header('COOLANT','ENGINE THERMAL')+art('thermal');
+ a+=header('COOLANT')+art('thermal');
  if(v){const y=498-Math.min(1,Math.max(0,(n.coolant-60)/60))*288;
   a+='<g data-live-indicator="temperature">'+r(154,y,20,498-y,ink('coolant','amber'),10)+path('M137 '+y+'h49',ink('coolant'),3)+'</g>';
  }
- a+=reading('coolant',265,220,'WATER',n.coolant,'°C')+t(420,530,!v?'WAITING':find('coolant')?'TEMP HIGH':'STABLE',F.typography.sizes.label,!v?'muted':find('coolant')?'red':'green')+t(112,208,'120',F.typography.sizes.support,'red')+t(112,480,'60',F.typography.sizes.support,'muted');break;}
+ a+=reading('coolant',265,220,'',n.coolant,'°C')+tx(112,208,'120','scale','red')+tx(112,480,'60','scale','muted');
+ if(v&&find('coolant'))a+=tx(425,530,'TEMP HIGH','status','red');break;}
 case 'oiltemp':{
  a+=art('oil');
  if(v)a+=liveArc(360,360,246,135,135+Math.min(1,Math.max(0,(n.oiltemp-40)/100))*270,ink('oiltemp','amber'));
- a+=t(360,172,'OIL TEMPERATURE',F.typography.sizes.title,'amber')+reading('oiltemp',200,242,'ENGINE OIL',n.oiltemp,'°C')+t(360,540,!v?'WAITING':find('oiltemp')?'OIL TEMP HIGH':'WARM / STABLE',F.typography.sizes.support,!v?'muted':find('oiltemp')?'red':'green');break;}
+ a+=tx(360,186,'OIL TEMPERATURE','pageTitle','amber')+reading('oiltemp',200,244,'',n.oiltemp,'°C');
+ if(v&&find('oiltemp'))a+=tx(360,548,'OIL TEMP HIGH','status','red');break;}
 case 'oilpress':{
  const angle=130+n.oilpress/6*260;
- a+=header('OIL PRESSURE','LUBRICATION')+'<g data-oilpress-dial="eccentric">'+art('press');
+ a+=header('OIL PRESSURE')+'<g data-oilpress-dial="eccentric" transform="translate(200 355) scale(.86) translate(-220 -355)">'+art('press');
  if(v)a+=liveArc(220,355,160,130,angle,ink('oilpress','amber'),8)+needle(220,355,125,angle,ink('oilpress','text'));
- a+='</g><g data-oilpress-readout="numeric">'+alertField('oilpress',readout({x:360,y:240,label:'PRESSURE',value:n.oilpress.toFixed(1),unit:'bar',size:'eccentric',state:readState('oilpress')}),find('oilpress'))+statusText(520,540,!v?'WAITING':find('oilpress')?'LOW PRESSURE':'STABLE',readState('oilpress'))+'</g>';break;}
+ a+='</g><g data-oilpress-readout="numeric">'+alertField('oilpress',readout({x:375,y:250,label:'',value:n.oilpress.toFixed(1),unit:'bar',size:'eccentric',state:readState('oilpress')}),find('oilpress'));
+ if(v&&find('oilpress'))a+=statusText(535,544,'OIL P LOW','warning');
+ a+='</g>';break;}
 case 'triple':{
- a+=header('POWERTRAIN','THREE CHANNEL VIEW')+art('triple');
- if(v)a+='<g data-live-indicator="boost-bar">'+r(112,196,496*Math.min(1,(n.boost+1)/4),10,ink('boost','amber'),5)+'</g>';
- a+=alertField('boost',readout({x:200,y:215,label:find('boost')?'BOOST HIGH':'BOOST',value:n.boost.toFixed(2),unit:'bar',state:readState('boost')}),find('boost'));
- a+=reading('oiltemp',130,492,'OIL TEMP',n.oiltemp,'°C',true)+reading('oilpress',370,492,'OIL PRESS',n.oilpress.toFixed(1),'bar',true);
- a+=alertMessage(m.alerts,650);break;}
+ a+=header('POWERTRAIN')+path('M100 450H620M360 454V628');
+ if(v)a+='<g data-live-indicator="boost-bar">'+r(112,150,496*Math.min(1,(n.boost+1)/4),10,ink('boost','amber'),5)+'</g>';
+ a+=alertField('boost',readout({x:200,y:172,label:find('boost')?'BOOST HIGH':'BOOST',labelRole:find('boost')?'status':'label',value:n.boost.toFixed(2),unit:'bar',state:readState('boost')}),find('boost'));
+ a+=reading('oiltemp',130,470,'OIL TEMP',n.oiltemp,'°C',true)+reading('oilpress',370,470,'OIL PRESS',n.oilpress.toFixed(1),'bar',true);
+ a+=alertMessage(m.alerts,638);break;}
 case 'multi':{
- a+=header('ENGINE VITALS')+path('M108 314H612M360 162V308M108 466H612M360 470V610');
- a+=reading('oilpress',115,166,'OIL PRESS',n.oilpress.toFixed(1),'bar',true)+reading('oiltemp',375,166,'OIL TEMP',n.oiltemp,'°C',true)+reading('battery',115,477,'BATTERY',n.battery.toFixed(1),'V',true)+reading('coolant',375,477,'COOLANT',n.coolant,'°C',true);
- a+=alertField('boost',t(206,336,v?n.boost.toFixed(2):dash,F.typography.sizes.boost,ink('boost','amber'),'middle',F.typography.number)+t(206,427,find('boost')?'BOOST HIGH':'BOOST / bar',F.typography.sizes.small,ink('boost','muted')),find('boost'))+readoutControl(s.channel==='TPS'?'TPS':'B.P',v?(s.channel==='TPS'?'38%':'21%'):dash);
+ a+=header('ENGINE VITALS')+path('M108 314H612M360 144V308M108 466H612M360 470V628');
+ a+=reading('oilpress',115,144,'OIL PRESS',n.oilpress.toFixed(1),'bar',true)+reading('oiltemp',375,144,'OIL TEMP',n.oiltemp,'°C',true)+reading('battery',115,470,'BATTERY',n.battery.toFixed(1),'V',true)+reading('coolant',375,470,'COOLANT',n.coolant,'°C',true);
+ a+=alertField('boost',tx(242,332,v?n.boost.toFixed(2):dash,'valueCompact',ink('boost','amber'),'end')+tx(258,370,'bar','unit','muted','start')+tx(206,424,find('boost')?'BOOST HIGH':'BOOST',find('boost')?'status':'label',ink('boost','muted')),find('boost'))+readoutControl(s.channel==='TPS'?'TPS':'B.P',v?(s.channel==='TPS'?'38%':'21%'):dash);
  a+=alertMessage(m.alerts);break;}
 case 'tyres':{
- a+=header('TYRE MONITOR','MX-5 / ROADSTER')+art('roadster');
- [[186,252,'FL'],[534,252,'FR'],[186,430,'RL'],[534,430,'RR']].forEach(([x,y,wheel])=>{
+ a+=header('TYRE MONITOR')+art('roadster');
+ [[170,192,'FL'],[566,192,'FR'],[170,410,'RL'],[566,410,'RR']].forEach(([x,y,wheel])=>{
   const p=find(wheel+'.pressure'),temp=find(wheel+'.temp'),alert=p||temp,q=m.tyres[wheel];
-  a+='<g data-wheel="'+wheel+'">'+t(x,y,wheel,F.typography.sizes.small,alert?alertInk(alert):'muted');
-  a+=alertField(wheel+'.pressure',t(x,y+29,v?q.pressure.toFixed(1):dash,F.typography.sizes.tyre,p?alertInk(p):'text','middle',F.typography.number),p);
-  a+=alertField(wheel+'.temp',t(x,y+112,'bar / '+(v?q.temp:dash)+'°C',F.typography.sizes.small,temp?alertInk(temp):'muted'),temp);
-  if(alert)a+=path('M'+(x-58)+' '+(y+143)+'H'+(x+58),alertInk(alert),3,'data-wheel-alert="'+wheel+'"');
+  a+='<g data-wheel="'+wheel+'">'+tx(x,y,wheel,'label',alert?alertInk(alert):'muted');
+  a+=alertField(wheel+'.pressure',valueUnit(x+6,y+40,v?q.pressure.toFixed(1):dash,'bar','valueCompact',p?alertInk(p):'text'),p);
+  a+=alertField(wheel+'.temp',valueUnit(x+6,y+134,v?q.temp:dash,'°C','valueSecondary',temp?alertInk(temp):'muted'),temp);
+  if(alert)a+=path('M'+(x-64)+' '+(y+190)+'H'+(x+64),alertInk(alert),3,'data-wheel-alert="'+wheel+'"');
   a+='</g>';
  });
- a+=alertMessage(m.alerts,610);break;}
+ a+=alertMessage(m.alerts,626);break;}
 case 'speed':{
  const alert=find('speed');
- a+=header('SPEED','ROADSTER / TOURING')+roadScene(n.speed,v,s.roadDistance)+path('M158 575L292 380M562 575L428 380','line',3)+path('M360 550V524M360 490V474','amber',5)+reading('speed',200,204,'VELOCITY',n.speed,'km/h');
- a+=chip(224,490,272,!v?'CRUISE UNAVAILABLE':alert?'SPEED LIMIT':n.speed===0?'CRUISE STANDBY':'CRUISE ACTIVE',alert?'amber':'panel')+t(360,551,!v?'SET — km/h':alert?'LIMIT '+m.limits.speed+' km/h':'SET 100 km/h',F.typography.sizes.title,!v||n.speed===0?'muted':alert?'amber':'green');break;}
+ a+=header('SPEED')+roadScene(n.speed,v,s.roadDistance)+path('M158 575L292 380M562 575L428 380','line',3)+path('M360 550V524M360 490V474','amber',5)+reading('speed',200,190,'',n.speed,'km/h');
+ a+=chip(224,490,272,!v?'NO CRUISE':alert?'SPEED LIMIT':n.speed===0?'CRUISE OFF':'CRUISE ON',alert?'amber':'panel')+tx(230,564,alert?'LIMIT':'SET','label',!v?'muted':alert?'amber':'green')+valueUnit(410,550,!v?dash:alert?m.limits.speed:100,'km/h','valueSecondary',!v||n.speed===0?'muted':alert?'amber':'green');break;}
 case 'gforce':{
  const radius=238,lat=n.lat,lon=n.lon,alert=find('gforce');
- a+=header('G-FORCE');
+ a+=tx(360,72,'G-FORCE','pageTitle','amber');
  a+='<circle data-g-meter-ring="2" cx="360" cy="360" r="'+radius+'" fill="none" stroke="'+C.amber+'" stroke-width="3"/><circle data-g-meter-ring="1" cx="360" cy="360" r="'+(radius/2)+'" fill="none" stroke="'+C.line+'" stroke-width="2"/>';
  a+=path('M122 360H598M360 122V598','line',2)+path('M122 360H152M568 360H598M360 122V152M360 568V598','amber',6,'stroke-linecap="round"')+path('M241 360H258M462 360H479M360 241V258M360 462V479','amber',4,'stroke-linecap="round"');
- [[385,143,'+2'],[382,251,'+1'],[382,445,'−1'],[385,555,'−2'],[146,378,'−2'],[261,378,'−1'],[459,378,'+1'],[576,378,'+2']].forEach(([x,y,label])=>{a+=t(x,y,label,F.typography.sizes.small,'muted');});
+ [[385,143,'+2'],[382,251,'+1'],[382,445,'−1'],[385,555,'−2'],[146,378,'−2'],[261,378,'−1'],[459,378,'+1'],[576,378,'+2']].forEach(([x,y,label])=>{a+=tx(x,y,label,'scale','muted');});
  if(v){const x=(360+lat*radius/2).toFixed(2),y=(360-lon*radius/2).toFixed(2);a+='<g data-field="gforce" data-state="'+(alert?'alert':'normal')+'">';
   if(alert)a+='<circle data-g-limit="configured" cx="360" cy="360" r="'+(m.limits.gforce*radius/2)+'" fill="none" stroke="'+C.amber+'" stroke-width="2" stroke-dasharray="6 8"/>';
   a+='<circle cx="'+x+'" cy="'+y+'" r="16" fill="none" stroke="'+C.amber+'" stroke-width="2"/><circle data-g-meter-point="current" data-lat="'+lat+'" data-lon="'+lon+'" aria-label="横向 '+lat.toFixed(2)+' g，纵向 '+lon.toFixed(2)+' g" cx="'+x+'" cy="'+y+'" r="10" fill="'+C[alert?'amber':'text']+'"/>';
@@ -102,77 +111,76 @@ case 'gforce':{
  }break;}
 case 'heart':{
  const alert=find('heart');
- a+=header('DRIVER PULSE',!v?'SENSOR / WAITING':alert?'RANGE '+m.limits.heartLow+' / '+m.limits.heartHigh+' bpm':'LIVE / HEART RATE')+reading('heart',200,190,'PULSE',n.heart,'bpm');
- if(v)a+=trend([20,22,21,22,30,22,16,55,4,22,24,21,22,29,21,16,58,4,22,22,21],115,440,490,65,'amber').replace('<path ','<path data-live-indicator="heart-trend" ');
+ a+=header('DRIVER PULSE',alert?'RANGE '+m.limits.heartLow+' / '+m.limits.heartHigh+' bpm':'')+reading('heart',200,176,'',n.heart,'bpm');
+ if(v)a+=trend([20,22,21,22,30,22,16,55,4,22,24,21,22,29,21,16,58,4,22,22,21],115,456,490,50,'amber').replace('<path ','<path data-live-indicator="heart-trend" ');
  else a+=path('M115 478H605','line',2);
- a+=path('M112 532H608');
- [[168,'LOW',n.low],[360,'PEAK',n.peak],[552,'1 MIN',n.average]].forEach(([x,label,value])=>{const color=!v?'muted':alert?(value<m.limits.heartLow||value>m.limits.heartHigh?'amber':'text'):label==='PEAK'?'amber':'text';a+=t(x,550,label,F.typography.sizes.small,'muted')+t(x,582,v?value:dash,F.typography.sizes.statistic,color,'middle',F.typography.number);});
- if(alert)a+=alertMessage(m.alerts,640);break;}
+ a+=path('M112 522H608');
+ [[190,'LOW',n.low],[360,'PEAK',n.peak],[530,'1 MIN',n.average]].forEach(([x,label,value])=>{const color=!v?'muted':alert?(value<m.limits.heartLow||value>m.limits.heartHigh?'amber':'text'):label==='PEAK'?'amber':'text';a+=tx(x,538,label,'label','muted')+tx(x,574,v?value:dash,'valueSecondary',color);});
+ if(alert)a+=alertMessage(m.alerts,638);break;}
 case 'analog':{
  const pressure=n.boost,angle=135+(pressure+1)/4*270;
  for(let i=0;i<=40;i++){
-  const d=135+i*270/40,major=i%10===0,mid=i%5===0,p=pt(360,360,280,d),q=pt(360,360,major?250:mid?260:269,d);
+  const d=135+i*270/40,major=i%10===0,mid=i%5===0,p=pt(360,340,280,d),q=pt(360,340,i===0||i===40?273:major?250:mid?260:269,d);
   a+=path('M'+p.join(' ')+'L'+q.join(' '),i>=35?'red':mid?'text':'line',major?5:mid?3:2,'data-analog-tick="'+i+'"');
  }
- [-1,0,1,2,3].forEach(value=>{const p=pt(360,360,218,135+(value+1)/4*270);a+=t(+p[0],+p[1]-14,value,F.typography.sizes.label,'muted');});
- a+=t(360,186,'BOOST',F.typography.sizes.title,'amber');
- if(v)a+=needle(360,360,220,angle,ink('boost','amber')).replace('data-live-indicator="needle"','data-live-indicator="needle" data-analog-needle="current"');
- else a+='<circle cx="360" cy="360" r="9" fill="'+C.line+'"/>';
- a+=alertField('boost',t(360,466,v?pressure.toFixed(2):dash,F.typography.sizes.analog,ink('boost'),'middle',F.typography.number)+t(360,579,'bar',F.typography.sizes.support,'muted'),find('boost'))+alertMessage(m.alerts);break;}
+ [-1,0,1,2,3].forEach(value=>{const p=pt(360,340,value===-1||value===3?245:218,135+(value+1)/4*270);a+=tx(+p[0],+p[1]-14,value,'scale','muted');});
+ a+=tx(360,170,'BOOST','pageTitle','amber');
+ if(v)a+=needle(360,340,220,angle,ink('boost','amber')).replace('data-live-indicator="needle"','data-live-indicator="needle" data-analog-needle="current"');
+ else a+='<circle cx="360" cy="340" r="9" fill="'+C.line+'"/>';
+ a+=alertField('boost',tx(360,448,v?pressure.toFixed(2):dash,'valuePrimary',ink('boost'))+tx(530,578,'bar','unit','muted','start'),find('boost'))+alertMessage(m.alerts);break;}
 case 'music':{
  const song=songs[s.track],available=m.mediaAvailable,secs=Math.round(s.progress),time=n=>Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
- a+=header('NOW PLAYING',available?'ROADSTER RADIO':'MEDIA / UNAVAILABLE');
+ a+=header('NOW PLAYING');
  a+='<circle cx="174" cy="284" r="68" fill="'+C.panel+'"/><circle cx="174" cy="284" r="52" fill="none" stroke="'+C.line+'" stroke-width="2"/><circle cx="174" cy="284" r="35" fill="none" stroke="'+C.line+'" stroke-width="2"/><circle cx="174" cy="284" r="12" fill="'+C[available?'amber':'muted']+'"/>';
- a+=t(280,233,available?song.title:'No media',F.typography.sizes.mediaTitle,'text','start',F.typography.number,600)+t(280,305,available?song.artist:'SOURCE UNAVAILABLE',F.typography.sizes.small,'muted','start');
- if(available){
-  a+=t(360,355,song.previous,F.typography.sizes.support,'muted','middle',F.typography.body,400)+t(360,399,song.lyric,F.typography.sizes.body,'text','middle',F.typography.body,500)+t(360,443,song.next,F.typography.sizes.support,'muted','middle',F.typography.body,400);
- }else a+=t(360,399,'连接媒体设备后继续播放',F.typography.sizes.body,'muted','middle',F.typography.body,400);
- a+=r(150,480,420,6,'panel',3)+(available?r(150,480,420*secs/song.duration,6,'amber',3):'')+t(150,498,available?time(secs):'—:—',F.typography.sizes.small,'muted','start')+t(570,498,available?time(song.duration):'—:—',F.typography.sizes.small,'muted','end');
- a+=mediaButton(200,540,96,'上一首','prev-track','previous','panel',!available)+mediaButton(312,540,96,available&&s.playing?'暂停':'播放','play',available&&s.playing?'pause':'play','panel',!available)+mediaButton(424,540,96,'下一首','next-track','next','panel',!available);break;}
+ a+=tx(280,233,available?song.title:'NO MEDIA',available?'contentTitle':'status','text','start')+(available?tx(280,305,song.artist,'meta','muted','start'):'');
+ if(available)a+=tx(360,355,song.previous,'meta','muted')+tx(360,399,song.lyric,'content')+tx(360,443,song.next,'meta','muted');
+ else a+=tx(360,399,'连接媒体设备后继续播放','meta','muted');
+ a+=r(150,480,420,6,'panel',3)+(available?r(150,480,420*secs/song.duration,6,'amber',3):'')+tx(150,498,available?time(secs):'—:—','meta','muted','start')+tx(570,498,available?time(song.duration):'—:—','meta','muted','end');
+ a+=mediaButton(200,548,96,'上一首','prev-track','previous','panel',!available)+mediaButton(312,548,96,available&&s.playing?'暂停':'播放','play',available&&s.playing?'pause':'play','panel',!available)+mediaButton(424,548,96,'下一首','next-track','next','panel',!available);break;}
 case 'display':
- a+=header('ILLUMINATION','DAY / NIGHT MEMORY');
- a+=t(146,188,'DAY',F.typography.sizes.title,'text','start')+t(574,188,s.day+'%',F.typography.sizes.title,'amber','end')+r(146,242,428,8,'panel',4)+r(146,242,428*s.day/100,8,'amber',4)+roundButton(146,264,96,'−','day-minus',s.day<=10)+roundButton(478,264,96,'+','day-plus',s.day>=100);
- a+=t(146,368,'NIGHT',F.typography.sizes.title,'text','start')+t(574,368,s.dark+'%',F.typography.sizes.title,'amber','end')+r(146,422,428,8,'panel',4)+r(146,422,428*s.dark/100,8,'amber',4)+roundButton(146,444,96,'−','night-minus',s.dark<=10)+roundButton(478,444,96,'+','night-plus',s.dark>=100);
- a+=btn(240,552,240,s.night?'NIGHT ACTIVE':'DAY ACTIVE','mode','amber');break;
+ a+=header('ILLUMINATION');
+ a+=tx(146,188,'DAY','label','text','start')+valueUnit(530,176,s.day,'%','valueSecondary','amber')+r(146,242,428,8,'panel',4)+r(146,242,428*s.day/100,8,'amber',4)+roundButton(146,264,96,'−','day-minus',s.day<=10)+roundButton(478,264,96,'+','day-plus',s.day>=100);
+ a+=tx(146,368,'NIGHT','label','text','start')+valueUnit(530,356,s.dark,'%','valueSecondary','amber')+r(146,422,428,8,'panel',4)+r(146,422,428*s.dark/100,8,'amber',4)+roundButton(146,444,96,'−','night-minus',s.dark<=10)+roundButton(478,444,96,'+','night-plus',s.dark>=100);
+ a+=btn(240,552,240,s.night?'NIGHT MODE':'DAY MODE','mode','amber');break;
 case 'bluetooth':{
  const bound=m.obdBound,status=m.obdStatus;
- a+=header('CONNECTIONS','VEHICLE / PHONE / REMOTE');
- a+=connectionRow({y:180,label:'OBD ADAPTER',detail:bound?s.obdDevice:'FIND OBD ADAPTER',status:status==='disconnected'?'CONNECTION LOST / RETRY':status==='waiting'?'CONNECTED / WAITING FOR CAR':bound?'CONNECTED / DATA READY':'NOT CONNECTED',act:'obd',selected:bound&&status==='connected'});
- a+=connectionRow({y:304,label:'PHONE',detail:m.paired?'ROADSTER PHONE':'CONNECT YOUR PHONE',status:m.paired?'CONNECTED':'PAIR WITH A CODE',act:'pair',selected:m.paired});
- a+=t(158,446,'REMOTE KEY',F.typography.sizes.label,'text','start')+toggleControl(474,422,104,'遥控键盘','keyboard',s.keyboard);
+ a+=header('CONNECTIONS');
+ a+=connectionRow({y:166,label:'OBD ADAPTER',detail:bound?s.obdDevice:'FIND OBD',detailRole:bound?'content':'action',status:status==='disconnected'?'DISCONNECTED':status==='waiting'?'WAITING FOR CAR':bound?'DATA READY':'NOT CONNECTED',act:'obd',selected:bound&&status==='connected'});
+ a+=connectionRow({y:304,label:'PHONE',detail:m.paired?'ROADSTER PHONE':'PAIR PHONE',detailRole:m.paired?'content':'action',status:m.paired?'CONNECTED':'',act:'pair',selected:m.paired});
+ a+=tx(158,446,'REMOTE KEY','label','text','start')+toggleControl(474,422,104,'遥控键盘','keyboard',s.keyboard);
  a+=btn(248,552,224,'BACK','back');break;}
 case 'pair':{
  const failed=m.pairingFailed,expired=m.scenario==='pair-expired',done=m.scenario==='phone-connected',visible=s.visible!==false;
- a+=header('PHONE PAIRING','PHONE → GAUGE');
+ a+=header('PHONE PAIRING');
  if(done){
-  a+=icon(332,184,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1)+t(360,288,'PHONE CONNECTED',F.typography.sizes.title,'green')+t(360,336,'ROADSTER PHONE',F.typography.sizes.label,'text')+t(360,382,'App connection is ready',F.typography.sizes.small,'muted');
+  a+=icon(332,184,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1)+tx(360,288,'PHONE CONNECTED','status','green')+tx(360,344,'ROADSTER PHONE','content');
   a+=btn(152,438,200,'PAIR NEW','new-pair')+btn(368,438,200,'FORGET','forget-phone');
  }else{
-  a+=t(158,186,'DISCOVERABLE',F.typography.sizes.small,'muted','start')+toggleControl(474,166,104,'蓝牙可发现','visible',visible);
-  a+=t(360,280,failed?expired?'CODE EXPIRED':'PAIRING FAILED':visible?'PAIRING CODE':'NOT DISCOVERABLE',F.typography.sizes.support,failed?'amber':'muted')+t(360,320,expired||!visible?'— —':s.pairCode||'1234 5678',F.typography.sizes.pair,failed?'muted':'text','middle',F.typography.number,600);
-  a+=t(360,408,failed?expired?'Generate a new code':'Check phone and try again':visible?'Enter this code in the phone app':'Turn on discoverable to pair',F.typography.sizes.small,failed?'amber':'muted');
+  a+=tx(158,186,'DISCOVERABLE','label','muted','start')+toggleControl(474,166,104,'蓝牙可发现','visible',visible);
+  if(failed||!visible)a+=tx(360,280,failed?expired?'CODE EXPIRED':'PAIRING FAILED':'NOT DISCOVERABLE','status',failed?'amber':'muted');
+  a+=tx(360,330,expired||!visible?'— —':s.pairCode||'1234 5678','pairCode',failed?'muted':'text');
+  a+=tx(360,408,failed?expired?'Generate a new code':'Check phone':visible?'Enter code in app':'Enable discoverable','meta',failed?'amber':'muted');
   a+=btn(190,450,340,failed?expired?'NEW CODE':'RETRY':'CONFIRM PAIRING',failed?'retry-pair':'confirm-pair','amber',{disabled:!visible});
  }
  a+=btn(248,552,224,'BACK','connections');break;}
 case 'obd':{
  const scene=m.scenario,device=(['connecting','checking','connect-failed'].includes(m.scenario)?s.obdCandidate:null)||s.obdDevice||S.obdDevices[0].name;
- a+=header('OBD SETUP',scene==='normal'||scene==='scanning'?'SELECT AN ADAPTER':'VEHICLE CONNECTION');
+ a+=header('OBD SETUP');
  if(scene==='normal'){
-  S.obdDevices.forEach((d,i)=>{a+=connectionRow({y:178+i*108,label:d.address+' / '+d.signal,detail:d.name,status:m.obdBound&&d.name===device?'SAVED ADAPTER':'',selected:m.obdBound&&d.name===device,act:'select-obd-'+i});});
-  a+=btn(170,520,170,'BACK','connections')+btn(360,520,190,'RESCAN','scan-obd');
+  S.obdDevices.forEach((d,i)=>{a+=connectionRow({y:166+i*118,label:d.address,labelRole:'meta',detail:d.name,status:m.obdBound&&d.name===device?'SAVED':d.signal==='WEAK SIGNAL'?'WEAK SIGNAL':'',selected:m.obdBound&&d.name===device,act:'select-obd-'+i});});
+  a+=btn(184,536,166,'BACK','connections')+btn(366,536,170,'RESCAN','scan-obd');
  }else if(['scanning','connecting','checking'].includes(scene)){
   const step=scene==='scanning'?0:scene==='connecting'?1:2;
   a+=icon(332,206,'M15 0V72L44 51L0 15M0 57L44 21L15 0','blue',1.1);
-  a+=t(360,326,['SEARCHING','CONNECTING','READING VEHICLE'][step],F.typography.sizes.body,'amber')+t(360,377,step===0?'Keep the adapter powered':device,F.typography.sizes.label,'text');
-  a+=t(360,424,step===0?'Looking for nearby OBD adapters':step===1?'Establishing adapter connection':'Adapter connected / checking data',F.typography.sizes.small,'muted');
+  a+=tx(360,326,['SEARCHING','CONNECTING','READING VEHICLE'][step],'status','amber')+tx(360,386,step===0?'Keep adapter powered':device,step===0?'meta':'content');
   for(let i=0;i<3;i++)a+=r(282+i*56,484,44,4,i<=step?'amber':'line',2);
   a+=btn(248,552,224,step===0?'BACK':'CANCEL',step===0?'connections':'cancel-obd');
  }else{
   const ready=scene==='connected',waiting=scene==='vehicle-off',empty=scene==='no-devices',lost=scene==='disconnected';
-  a+=chip(210,206,300,ready?'DATA READY':waiting?'ADAPTER CONNECTED':empty?'NO ADAPTER FOUND':lost?'CONNECTION LOST':'CONNECTION FAILED',ready?'panel':'amber');
-  a+=t(360,288,empty?'NO OBD DEVICE':device,F.typography.sizes.body,'text');
-  const lines=ready?['Vehicle data is available','This adapter reconnects automatically']:waiting?['Waiting for vehicle data','Switch on the ignition to continue']:empty?['Power the OBD adapter','Then search again']:lost?['Saved adapter retained','Check power and reconnect']:['Keep the adapter close and powered','Then retry the connection'];
-  a+=t(360,350,lines[0],F.typography.sizes.small,'muted')+t(360,386,lines[1],F.typography.sizes.small,'muted');
+  a+=chip(160,206,400,ready?'DATA READY':waiting?'ADAPTER CONNECTED':empty?'NO ADAPTER FOUND':lost?'CONNECTION LOST':'CONNECTION FAILED',ready?'panel':'amber');
+  if(!empty)a+=tx(360,298,device,'content');
+  const hint=waiting?'Switch on the ignition':empty?'Power on the adapter':lost?'Saved adapter retained':ready?'':'Check adapter power';
+  if(hint)a+=tx(360,366,hint,'meta','muted');
   if(ready||waiting)a+=btn(152,446,200,'CHANGE','scan-obd')+btn(368,446,200,'FORGET','forget-obd');
   else a+=btn(190,446,340,empty?'SEARCH AGAIN':'RETRY',empty?'scan-obd':'retry-obd','amber');
   a+=btn(248,552,224,'BACK','connections');
@@ -183,7 +191,7 @@ a+=alertRim(m.alerts);
 if(s.dialog&&['bluetooth','obd','pair'].includes(id)){
  const phone=s.dialog==='phone';
  a='<g aria-hidden="true" pointer-events="none">'+a.replaceAll('tabindex="0"','tabindex="-1"')+'</g>';
- a+='<circle cx="360" cy="360" r="360" fill="'+C.face+'" opacity=".94"/><g role="dialog" aria-label="'+(phone?'Forget phone':'Forget OBD adapter')+'">'+r(114,200,492,354,'panel',20)+t(360,240,phone?'FORGET PHONE?':'FORGET OBD ADAPTER?',F.typography.sizes.body,'red')+t(360,299,phone?'ROADSTER PHONE':s.obdDevice||'OBDLink CX',F.typography.sizes.small,'muted')+t(360,350,phone?'OBD connection is kept.':'Phone pairing is kept.',F.typography.sizes.small,'text')+btn(148,434,192,'CANCEL','cancel')+btn(380,434,192,'FORGET','clear','red')+'</g>';
+ a+='<circle cx="360" cy="360" r="360" fill="'+C.face+'" opacity=".94"/><g role="dialog" aria-label="'+(phone?'Forget phone':'Forget OBD adapter')+'">'+r(114,200,492,354,'panel',20)+tx(360,240,phone?'FORGET PHONE?':'FORGET OBD?','pageTitle','red')+tx(360,320,phone?'ROADSTER PHONE':s.obdDevice||'OBDLink CX','content','muted')+btn(148,434,192,'CANCEL','cancel')+btn(380,434,192,'FORGET','clear','red')+'</g>';
 }
 
 if(s.night)a='<g class="night-colors">'+a.replaceAll(C.text,C.night)+'</g>';

@@ -11,6 +11,8 @@ function frame(content,x,y,w,h,label){
 }
 const roles={canvas:'外页背景',face:'表盘底色',panel:'控件表面',line:'细线与刻度',text:'主要读数',muted:'辅助文字',amber:'选中与强调',red:'报警',green:'正常状态',blue:'连接信息',night:'夜间读数'};
 document.getElementById('palette').innerHTML=Object.entries(C).map(([key,value])=>'<article class="swatch" style="--swatch:'+value+'"><div class="swatch-color"></div><div class="swatch-copy"><p class="swatch-name">'+roles[key]+'</p><p class="swatch-role">'+key+'</p><code>'+value+'</code></div></article>').join('');
+const typeSamples={valuePrimary:'104',valueCompact:'3.8',valueSecondary:'105',pairCode:'1234 5678',contentTitle:'Night Drive',pageTitle:'COOLANT',label:'OIL TEMP',action:'CONFIRM',status:'CONNECTED',content:'OBDLink CX',unit:'km/h',scale:'120',meta:'01:09 / 歌手'};
+document.getElementById('type-roles').innerHTML=Object.entries(F.typography.roles).map(([role,spec])=>'<article class="component-card"><p class="component-name">'+role+' / '+spec.size/2+'px</p><div class="sample">'+frame(U.typeText({x:360,y:220,text:typeSamples[role],role}),200,200,320,spec.size+64,role+' 字号角色')+'</div><p class="component-detail">'+U.esc(spec.family)+' · '+spec.weight+'<br>'+spec.size+' MASTER / '+spec.size/2+' DISPLAY</p></article>').join('');
 function readouts(){
   const demos=[
     {size:'primary',name:'PRIMARY',label:'OIL TEMP',value:'104',warning:'130',unit:'°C',y:220},
@@ -21,7 +23,7 @@ function readouts(){
   document.getElementById('readouts').innerHTML=demos.map(d=>{
     const style=F.readout[d.size],x=360-style.width/2;
     const svg=U.readout({x,y:d.y,label:d.label,value:readoutState==='warning'?d.warning:d.value,unit:d.unit,size:d.size,state:readoutState});
-    const top=d.y-(d.size==='analog'?24:12),height=d.size==='analog'?178:d.size==='compact'?184:304;
+    const top=d.y-(d.size==='analog'?24:12),height=d.size==='analog'?260:d.size==='compact'?184:304;
     return '<article class="component-card"><p class="component-name">'+d.name+' / '+style.valueSize/2+'px</p><div class="sample">'+frame(svg,x-12,top,style.width+24,height,d.name+' 读数')+'</div><p class="component-detail">Size='+d.size+' · State='+readoutState+'<br>Label / Value / Unit 共用中心轴</p></article>';
   }).join('');
   app.querySelectorAll('[data-state]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.state===readoutState)));
@@ -36,11 +38,11 @@ function controls(){
   document.getElementById('adjust-demo').innerHTML=frame(adjust,240,294,240,100,'亮度加减组件');
   document.getElementById('brightness-value').textContent=brightness+'% · 到达边界时加减键不可用';
   document.getElementById('toggle-demo').innerHTML=frame(U.toggleControl(474,286,104,'蓝牙可发现','visible',on),468,280,116,104,'开关组件');
-  document.getElementById('connection-demo').innerHTML=frame(U.connectionRow({y:180,label:'OBD ADAPTER',detail:'OBDLink CX',status:'SAVED ADAPTER',act:'connection-example',selected:true}),130,168,460,124,'连接列表行组件');
+  document.getElementById('connection-demo').innerHTML=frame(U.connectionRow({y:180,label:'OBD ADAPTER',detail:'OBDLink CX',status:'SAVED ADAPTER',act:'connection-example',selected:true}),130,168,460,144,'连接列表行组件');
   document.getElementById('channel-demo').innerHTML=frame(U.readoutControl(channel,channel==='TPS'?'38%':'21%'),369,312,242,152,'TPS / B.P 整体切换组件');
 }
 const g=F.geometry;
-document.getElementById('geometry-demo').innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" role="group" aria-label="圆屏内容和交互安全区">'+U.shell()+'<circle cx="360" cy="360" r="'+g.interactiveRadius+'" fill="none" stroke="'+C.amber+'" stroke-width="2" stroke-dasharray="8 8"/>'+U.path('M360 200V520M200 360H520','line',2)+U.t(360,250,'CONTENT / R342',F.typography.sizes.title,'muted')+U.t(360,308,'TOUCH / R318',F.typography.sizes.title,'amber')+U.t(360,422,'720 → 360',F.typography.sizes.label,'text')+'</svg>';
+document.getElementById('geometry-demo').innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720" role="group" aria-label="圆屏内容和交互安全区">'+U.shell()+'<circle cx="360" cy="360" r="'+g.interactiveRadius+'" fill="none" stroke="'+C.amber+'" stroke-width="2" stroke-dasharray="8 8"/>'+U.path('M360 200V520M200 360H520','line',2)+U.textLine(360,250,'CONTENT / R342','meta','muted')+U.textLine(360,308,'TOUCH / R318','meta','amber')+U.textLine(360,422,'720 → 360','label','text')+'</svg>';
 function act(action){
   if(action==='connection-example')document.getElementById('connection-note').textContent='已选择 OBDLink CX · 整行点击与 Enter / Space 使用同一动作';
   else if(action==='play')playing=!playing;

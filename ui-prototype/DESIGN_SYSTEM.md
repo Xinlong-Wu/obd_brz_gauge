@@ -46,18 +46,35 @@
 
 系统状态有独立恢复方式：媒体不可用时禁用三个播放控件；连接丢失保留已存配对；配对失败提供重试，配对码过期提供新码。心率断连显示 `NO SENSOR` 和 `—`，不会受车辆数据开关影响。
 
-### 字体与尺寸
+### 字体与语义字号
 
-数字使用 Barlow Condensed，标签、单位和状态使用 IBM Plex Mono；中文歌词使用系统字体。
+v18 的所有仪表文字由 `foundations.js` 的 `typography.roles` 决定。先按含义选择角色，页面只传入角色、位置、内容及颜色；不得直接指定字号、字体或字重。720 母版对应 360 显示。
 
-- `hero`：180 母版像素，对应 90px 显示。
-- `eccentric`：144，对应 72px。
-- `analog`：96，对应 48px。
-- `compact`：76，对应 38px。
-- `mediaTitle`：60，对应 30px，专用于音乐页歌曲名称。
-- `title` / `label` / `support` / `small`：28 / 26 / 24 / 22，对应 14 / 13 / 12 / 11px。
+| Role | Master px | Display px | Font | Weight |
+|---|---:|---:|---|---:|
+| `valuePrimary` | 180 | 90 | Barlow Condensed | 500 |
+| `valueCompact` | 80 | 40 | Barlow Condensed | 500 |
+| `valueSecondary` | 50 | 25 | Barlow Condensed | 500 |
+| `pairCode` | 80 | 40 | Barlow Condensed | 600 |
+| `contentTitle` | 60 | 30 | Barlow Condensed | 600 |
+| `pageTitle` | 36 | 18 | IBM Plex Mono | 500 |
+| `label` | 32 | 16 | IBM Plex Mono | 500 |
+| `action` | 32 | 16 | IBM Plex Mono | 500 |
+| `status` | 32 | 16 | IBM Plex Mono | 500 |
+| `content` | 32 | 16 | IBM Plex Mono | 500 |
+| `unit` | 28 | 14 | IBM Plex Mono | 500 |
+| `scale` | 28 | 14 | IBM Plex Mono | 500 |
+| `meta` | 28 | 14 | IBM Plex Mono | 500 |
 
-字号和字体角色定义在同一个基础文件中。优先使用现有角色，新增角色时说明用途；不要按页面复制一套配色和字号。
+`valuePrimary` 用于单项主读数、挡位、车速及 06 主增压；`valueCompact` 用于综合页、胎压和 TPS / B.P；`valueSecondary` 用于辅助测量、RPM 摘要、胎温、心率统计、设定车速和亮度百分比。配对码与歌曲名称分别使用 `pairCode`、`contentTitle`。
+
+页面与弹窗标题用 `pageTitle`；指标名、轮位和开关名用 `label`；按钮和切换标签用 `action`；报警、连接阶段、断连和 ON / OFF 用 `status`。设备名与当前歌词用 `content`；单位、刻度分别用 `unit`、`scale`；地址尾号、歌手、时间、前后歌词和必要的短说明用 `meta`。中文缺字使用系统字体回退，不单独改变角色字号与字重。
+
+同角色跨页、跨正常 / 报警 / 选中 / 断连状态保持同一字号、字体与字重。组合读数必须把名称、数值、单位分开应用角色；文字太长时缩短、分行或重排，不缩小字号、不压缩字形。删除装饰副标题、重复指标名与正常状态说明，保留异常原因和恢复操作。报警摘要使用简短文案，例如 `OIL P LOW`，完整原因仍保留在语义标注中；不添加叹号。
+
+统一入口为 `typeText({x,y,text,role,color,anchor})`，简写为 `textLine(x,y,text,role,color,anchor)`。输出携带 `data-type-role`，未知角色报错；`art.js` 的静态文字同样显式标注角色。组件规范页提供全部 13 种角色示例。
+
+旧 `typography.sizes` 仅保留为历史 / 固件兼容定义；原型仪表不再使用。固件的 `JDM_TYPE_*` 与 `jdm_type_spec()` 同步新语义定义，但原有 `JDM_FONT_SPECS`、页面和运行时字体分配不变，等待后续单独移植。预览网页自身使用独立的 `viewer.typography`。
 
 ### 圆屏和间距
 
@@ -72,11 +89,11 @@
 
 ### Readout
 
-属性包括 `x`、`y`、`label`、`value`、`unit`、`size`、`state`，以及正常状态的可选强调色 `color`。
+属性包括 `x`、`y`、`label`、`labelRole`、`value`、`unit`、`size`、`state`，以及正常状态的可选强调色 `color`。
 
 - `size`：`primary`、`compact`、`eccentric`、`analog`。
 - `state`：`normal`、`warning`、`disconnected`。
-- 标签、数字和单位共用中心轴；不同尺寸具有固定的纵向间距。
+- 标签、数字和单位共用中心轴；`size` 仅决定布局变体，主读数统一使用 `valuePrimary`，综合读数使用 `valueCompact`，标签与单位的角色不随布局改变。
 - `warning` 强制使用报警色；`disconnected` 显示 `—`，不显示传入的有效值。
 
 ```js
@@ -87,7 +104,7 @@ U.readout({
 });
 ```
 
-Figma 的 `Size / State` 和 `Label / Value / Unit` 对应这里的尺寸、状态与文本属性。`metric(...)` 适配入口支持最后一个 `state` 参数；无数据状态优先于报警。
+Figma 的 `Size / State` 和 `Label / Value / Unit` 对应这里的尺寸、状态与文本属性。`metric(...)` 适配入口支持 `state` 和可选 `labelRole`；无数据状态优先于报警。`labelRole` 默认 `label`，报警原因使用 `status`。
 
 ### Road Scene 与动效
 
@@ -127,7 +144,7 @@ U.actionButton({
 
 ### Connection Row 与连接流程
 
-`connectionRow({x,y,width,label,detail,status,act,selected})` 用于 15 / 17 页；默认宽 436、高 100 母版像素，整行点击。顶部为小标签，中部为设备名，底部可选状态；已存或连接项使用琥珀色与下划线，连接状态还须明确写出。右侧箭头表示可进入下一层，状态行不放独立小按钮。
+`connectionRow({x,y,width,label,labelRole,detail,detailRole,status,act,selected})` 用于 15 / 17 页；默认宽 436、高 116 母版像素，整行点击。顶部为标签（地址行可选 `labelRole=meta`），中部为设备名，底部可选状态；`detailRole` 默认 `content`，未绑定时的配对 / 搜索入口用 `action`。已存或连接项使用琥珀色与下划线，连接状态还须明确写出。右侧箭头表示可进入下一层，状态行不放独立小按钮。
 
 15 页分别管理 OBD、手机和遥控；16 页仅为手机配对，17 页为仪表主动搜索与连接 OBD。适配器已连接与车辆数据就绪是不同状态；未点火时提示等待车辆。两种绑定的忘记确认相互独立；取消更换保留原有 OBD。演示进度在离开页面、打开确认框或切换场景后取消，不允许旧进度修改其他页面；场景选择器中的进度示例保持静态，点击操作才自动推进。亮度继续保留在 14 页。
 

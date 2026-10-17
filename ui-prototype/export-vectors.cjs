@@ -4,9 +4,8 @@ fs.mkdirSync(path.join(dir,'vectors'),{recursive:true});
 for(const file of ['foundations.js','art.js','components.js','scenarios.js','nc-gauges.js'])
   vm.runInThisContext(fs.readFileSync(path.join(dir,file),'utf8'));
 const F=NC_FOUNDATIONS;
-const font=fs.readFileSync(path.join(dir,F.fonts.find(f=>f.family===F.typography.number&&f.weight===500).file)).toString('base64');
-const mono=fs.readFileSync(path.join(dir,F.fonts.find(f=>f.family===F.typography.label&&f.weight===500).file)).toString('base64');
-const styles='<style>@font-face{font-family:'+F.typography.number+';src:url(data:font/ttf;base64,'+font+')}@font-face{font-family:'+F.typography.label+';src:url(data:font/ttf;base64,'+mono+')} .night-colors text[fill="'+F.colors.text+'"]{fill:'+F.colors.night+'}</style>';
+const fontFaces=F.fonts.map(f=>'@font-face{font-family:"'+f.family+'";font-weight:'+f.weight+';src:url(data:font/ttf;base64,'+fs.readFileSync(path.join(dir,f.file)).toString('base64')+')}').join('');
+const styles='<style>'+fontFaces+' .night-colors text[fill="'+F.colors.text+'"]{fill:'+F.colors.night+'}</style>';
 const scenarioBoards=NC.pages.flatMap(p=>NC.scenarios[p.id].filter(scene=>scene.id!=='normal').flatMap(scene=>{
  const wheels=p.id==='tyres'&&scene.id!=='multiple'?NC_SCENARIOS.wheels:[null];
  return wheels.map(wheel=>({name:p.id+'-'+scene.id+(wheel?'-'+wheel.toLowerCase():''),id:p.id,state:{...NC.defaults,scenario:scene.id,...(wheel?{tyreWheel:wheel}:{})}}));
@@ -38,5 +37,5 @@ NC.pages.forEach((p,i)=>{
  alertCells+='<g transform="translate('+x+' '+y+')"><text x="0" y="-30" '+label+'>'+String(i+1).padStart(2,'0')+' / '+p.english.replaceAll('&','&amp;')+'</text><g transform="scale(.7)">'+body+'</g></g>';
 });
 fs.writeFileSync(path.join(dir,'overview-alerts.svg'),board.replace(cells,alertCells).replace('JDM INSTRUMENT PROTOTYPE / COMPLETE INTERFACE COLLECTION','WARNING / ADVISORY / SYSTEM STATE COLLECTION'));
-fs.writeFileSync(path.join(dir,'design-manifest.json'),JSON.stringify({title:'MX-5 NC / Circuit Instruments',resolution:{master:720,display:360},pages:NC.pages,states:named.map(p=>p.name),scenarios:NC.scenarios,limits:NC_SCENARIOS.limits,artboards:named.map(p=>({name:p.name,page:p.id,scenario:NC_SCENARIOS.selected(p.id,p.state).id,connected:NC.resolve(p.id,p.state).connected,tyreWheel:p.state.tyreWheel})),colors:NC.colors,fonts:['Barlow Condensed','IBM Plex Mono'],figma:'https://www.figma.com/design/4Ah7vldYa2qIrVheZ0Xzc8'},null,2));
+fs.writeFileSync(path.join(dir,'design-manifest.json'),JSON.stringify({title:'MX-5 NC / Circuit Instruments',resolution:{master:720,display:360},pages:NC.pages,states:named.map(p=>p.name),scenarios:NC.scenarios,limits:NC_SCENARIOS.limits,artboards:named.map(p=>({name:p.name,page:p.id,scenario:NC_SCENARIOS.selected(p.id,p.state).id,connected:NC.resolve(p.id,p.state).connected,tyreWheel:p.state.tyreWheel})),typography:F.typography.roles,colors:NC.colors,fonts:['Barlow Condensed','IBM Plex Mono'],figma:'https://www.figma.com/design/4Ah7vldYa2qIrVheZ0Xzc8'},null,2));
 console.log('Exported '+named.length+' SVG artboards and overview.');

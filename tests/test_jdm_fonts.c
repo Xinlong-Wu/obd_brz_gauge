@@ -42,6 +42,16 @@ int main(void)
     TEST_ASSERT_EQ_INT(9,   jdm_font_px(22, 300));    // 22*300/720 = 9.17 → 9
     TEST_ASSERT_EQ_INT(15,  jdm_font_px(30, 360));
 
+    // ---- v18 semantic metadata is opt-in; runtime roles above stay legacy ----
+    TEST_ASSERT_EQ_INT(180, jdm_type_spec(JDM_TYPE_ROLE_VALUE_PRIMARY).master_px);
+    TEST_ASSERT_EQ_INT(80, jdm_type_spec(JDM_TYPE_ROLE_VALUE_COMPACT).master_px);
+    TEST_ASSERT_EQ_INT(50, jdm_type_spec(JDM_TYPE_ROLE_VALUE_SECONDARY).master_px);
+    TEST_ASSERT_EQ_INT(36, jdm_type_spec(JDM_TYPE_ROLE_PAGE_TITLE).master_px);
+    TEST_ASSERT_EQ_INT(32, jdm_type_spec(JDM_TYPE_ROLE_LABEL).master_px);
+    TEST_ASSERT_EQ_INT(28, jdm_type_spec(JDM_TYPE_ROLE_UNIT).master_px);
+    TEST_ASSERT_EQ_INT(JDM_FAM_BARLOW_SEMI, jdm_type_spec(JDM_TYPE_ROLE_PAIR_CODE).family);
+    TEST_ASSERT_EQ_INT(0, jdm_type_spec(JDM_TYPE_ROLE_COUNT).master_px);
+
     // ---- init 前:返回默认字体兜底 ----
     TEST_ASSERT(jdm_font(JDM_FONT_HERO) == LV_FONT_DEFAULT);
     TEST_ASSERT(jdm_font(JDM_FONT_COUNT) == LV_FONT_DEFAULT);   // 越界兜底

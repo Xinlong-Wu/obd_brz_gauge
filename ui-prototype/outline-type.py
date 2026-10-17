@@ -18,8 +18,8 @@ if cjk_font is None:
 NS="http://www.w3.org/2000/svg"
 ET.register_namespace("", NS)
 foundations=json.loads((ROOT/"foundations.json").read_text(encoding="utf-8"))
-FONT={f["family"]:TTFont(ROOT/f["file"]) for f in foundations["fonts"] if f["weight"]==500}
-FONT[foundations["typography"]["body"]]=TTFont(cjk_font,fontNumber=0)
+FONT={(f["family"],f["weight"]):TTFont(ROOT/f["file"]) for f in foundations["fonts"]}
+FONT[(foundations["typography"]["body"],500)]=TTFont(cjk_font,fontNumber=0)
 DATA={k:(f.getGlyphSet(),f.getBestCmap(),f["head"].unitsPerEm,f["hmtx"].metrics) for k,f in FONT.items()}
 def outline(file):
  tree=ET.parse(file)
@@ -29,8 +29,8 @@ def outline(file):
     parent.remove(node)
    if node.tag!=f"{{{NS}}}text": continue
    chars="".join(node.itertext())
-   family=node.get("font-family","sans-serif")
-   if family not in DATA: family="sans-serif"
+   family=(node.get("font-family","sans-serif"),int(node.get("font-weight","500")))
+   if family not in DATA: family=("sans-serif",500)
    size=float(node.get("font-size","26"))
    x=float(node.get("x","0"));y=float(node.get("y","0"))
    spacing=float(node.get("letter-spacing","0"))
@@ -38,7 +38,7 @@ def outline(file):
    glyphs=[]
    for char in chars:
     k=family
-    if ord(char) not in DATA[k][1]: k="sans-serif"
+    if ord(char) not in DATA[k][1]: k=("sans-serif",500)
     gs, cmap, upem, metrics=DATA[k]
     gname=cmap.get(ord(char),".notdef")
     glyphs.append((gs,gname,size/upem,metrics[gname][0]*size/upem))
@@ -46,6 +46,7 @@ def outline(file):
    anchor=node.get("text-anchor","start")
    cursor=x-width/2 if anchor=="middle" else x-width if anchor=="end" else x
    group=ET.Element(f"{{{NS}}}g",{"aria-label":chars,"fill":node.get("fill","#F3F0E7")})
+   if node.get("data-type-role"): group.set("data-type-role",node.get("data-type-role"))
    for gs,gname,scale,advance in glyphs:
     pen=SVGPathPen(gs)
     gs[gname].draw(TransformPen(pen,(scale,0,0,-scale,cursor,baseline)))

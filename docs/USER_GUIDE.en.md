@@ -75,6 +75,8 @@ through 16 pages —
 
 The connection flow of the [browser prototype](../ui-prototype/README.en.md#connection-flow) (15 connections overview / 16 phone pairing / 17 OBD setup) is now synced to the firmware: phone pairing codes and OBD connections are separate, each with its own forget confirmation. The OBD device list and connection progress mirror the prototype demo flow (the firmware has no BLE scan source yet); FORGET really clears the NVS binding.
 
+Browser prototype v18 additionally unifies all 17 screens by semantic text roles, enlarges labels, units, statuses and buttons, and removes repeated explanations. Main / composite / auxiliary readings use consistent separate tiers. Firmware mirrors only the new semantic constants; existing page font mappings have not switched.
+
 ## Data & disconnect
 
 All data flows through the unified channel reading the OBD data cache

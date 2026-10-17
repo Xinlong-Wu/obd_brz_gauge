@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "colors": {
     "canvas": "#141718",
     "face": "#090D0F",
@@ -18,7 +18,13 @@
     "secondary": "#85918f",
     "hover": "#1e282d",
     "pressed": "#26343a",
-    "danger": "#29191c"
+    "danger": "#29191c",
+    "typography": {
+      "title": 28,
+      "body": 14,
+      "label": 13,
+      "meta": 12
+    }
   },
   "geometry": {
     "master": 720,
@@ -49,6 +55,86 @@
       "label": 26,
       "support": 24,
       "small": 22
+    },
+    "roles": {
+      "valuePrimary": {
+        "size": 180,
+        "family": "Barlow Condensed",
+        "weight": 500,
+        "letterSpacing": 0
+      },
+      "valueCompact": {
+        "size": 80,
+        "family": "Barlow Condensed",
+        "weight": 500,
+        "letterSpacing": 0
+      },
+      "valueSecondary": {
+        "size": 50,
+        "family": "Barlow Condensed",
+        "weight": 500,
+        "letterSpacing": 0
+      },
+      "pairCode": {
+        "size": 80,
+        "family": "Barlow Condensed",
+        "weight": 600,
+        "letterSpacing": 0
+      },
+      "contentTitle": {
+        "size": 60,
+        "family": "Barlow Condensed",
+        "weight": 600,
+        "letterSpacing": 0
+      },
+      "pageTitle": {
+        "size": 36,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "label": {
+        "size": 32,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "action": {
+        "size": 32,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "status": {
+        "size": 32,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "content": {
+        "size": 32,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "unit": {
+        "size": 28,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "scale": {
+        "size": 28,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      },
+      "meta": {
+        "size": 28,
+        "family": "IBM Plex Mono",
+        "weight": 500,
+        "letterSpacing": 1.2
+      }
     }
   },
   "spacing": {
@@ -98,35 +184,31 @@
   "readout": {
     "primary": {
       "width": 320,
-      "labelSize": 26,
+      "valueRole": "valuePrimary",
       "valueSize": 180,
-      "valueOffset": 34,
-      "unitOffset": 232,
-      "unitSize": 24
+      "valueOffset": 44,
+      "unitOffset": 232
     },
     "compact": {
       "width": 230,
-      "labelSize": 22,
-      "valueSize": 76,
-      "valueOffset": 29,
-      "unitOffset": 122,
-      "unitSize": 22
+      "valueRole": "valueCompact",
+      "valueSize": 80,
+      "valueOffset": 40,
+      "unitOffset": 130
     },
     "eccentric": {
       "width": 320,
-      "labelSize": 26,
-      "valueSize": 144,
-      "valueOffset": 66,
-      "unitOffset": 232,
-      "unitSize": 24
+      "valueRole": "valuePrimary",
+      "valueSize": 180,
+      "valueOffset": 40,
+      "unitOffset": 232
     },
     "analog": {
       "width": 320,
-      "labelSize": 26,
-      "valueSize": 96,
+      "valueRole": "valuePrimary",
+      "valueSize": 180,
       "valueOffset": 0,
-      "unitOffset": 113,
-      "unitSize": 24
+      "unitOffset": 182
     }
   },
   "states": [

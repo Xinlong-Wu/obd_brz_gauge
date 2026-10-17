@@ -46,18 +46,35 @@ Unavailable data takes precedence over live-value limit warnings; do not show `�
 
 System states have separate recovery paths: unavailable media disables the three transport controls; connection loss retains stored pairing; failed pairing offers retry and an expired code offers a new code. Heart-rate disconnection shows `NO SENSOR` and `—`, independently of the vehicle-data toggle.
 
-### Type and size
+### Fonts and semantic typography
 
-Numbers use Barlow Condensed; labels, units, and statuses use IBM Plex Mono. Chinese lyrics use a system font.
+All v18 instrument text uses `typography.roles` in `foundations.js`. Choose a role by meaning; pages supply the role, position, content and color, never a font size, family or weight. The 720 master corresponds to the 360 display.
 
-- `hero`: 180 master pixels, displayed at 90px.
-- `eccentric`: 144, displayed at 72px.
-- `analog`: 96, displayed at 48px.
-- `compact`: 76, displayed at 38px.
-- `mediaTitle`: 60, displayed at 30px, reserved for the music screen song title.
-- `title` / `label` / `support` / `small`: 28 / 26 / 24 / 22, displayed at 14 / 13 / 12 / 11px.
+| Role | Master px | Display px | Font | Weight |
+|---|---:|---:|---|---:|
+| `valuePrimary` | 180 | 90 | Barlow Condensed | 500 |
+| `valueCompact` | 80 | 40 | Barlow Condensed | 500 |
+| `valueSecondary` | 50 | 25 | Barlow Condensed | 500 |
+| `pairCode` | 80 | 40 | Barlow Condensed | 600 |
+| `contentTitle` | 60 | 30 | Barlow Condensed | 600 |
+| `pageTitle` | 36 | 18 | IBM Plex Mono | 500 |
+| `label` | 32 | 16 | IBM Plex Mono | 500 |
+| `action` | 32 | 16 | IBM Plex Mono | 500 |
+| `status` | 32 | 16 | IBM Plex Mono | 500 |
+| `content` | 32 | 16 | IBM Plex Mono | 500 |
+| `unit` | 28 | 14 | IBM Plex Mono | 500 |
+| `scale` | 28 | 14 | IBM Plex Mono | 500 |
+| `meta` | 28 | 14 | IBM Plex Mono | 500 |
 
-Type sizes and families are defined in one foundation file. Prefer existing roles and explain new ones. Avoid copying a separate color and type scale into each screen.
+`valuePrimary` serves single-instrument main values, gear, speed and the main boost value on 06. `valueCompact` serves composite readings, tyre pressure and TPS / B.P. `valueSecondary` serves auxiliary measurements, RPM summaries, tyre temperature, heart statistics, set speed and brightness percentages. Pair codes and track names use `pairCode` and `contentTitle`.
+
+Screen and dialog headings use `pageTitle`; metric names, wheel positions and switch names use `label`; buttons and switching labels use `action`; alerts, connection stages, disconnection and ON / OFF use `status`. Device names and current lyrics use `content`; units and graduations use `unit` and `scale`; address suffixes, artists, timestamps, adjacent lyrics and necessary short instructions use `meta`. Missing CJK glyphs fall back to system fonts without changing the role size or weight.
+
+A role retains its size, family and weight across screens and normal / warning / selected / disconnected states. Combined readings separate names, values and units by role. Shorten, wrap or rearrange long text; do not reduce size or compress glyphs. Remove decorative subtitles, duplicate metric names and routine normal-state explanations while preserving alert reasons and recovery actions. Alert summaries use concise copy such as `OIL P LOW`; semantic annotations retain the full reason. No exclamation marks are added.
+
+Use `typeText({x,y,text,role,color,anchor})` or the positional shorthand `textLine(x,y,text,role,color,anchor)`. Output carries `data-type-role`; unknown roles throw. Static text in `art.js` declares its role too. The component catalog demonstrates all 13 roles.
+
+Legacy `typography.sizes` remains for historical / firmware compatibility only; instrument rendering no longer uses it. Firmware `JDM_TYPE_*` and `jdm_type_spec()` mirror the new definitions, while existing `JDM_FONT_SPECS`, pages and runtime font allocation stay unchanged pending a separate migration. The outer preview webpage uses independent `viewer.typography`.
 
 ### Circular screen and spacing
 
@@ -72,11 +89,11 @@ Type sizes and families are defined in one foundation file. Prefer existing role
 
 ### Readout
 
-Properties include `x`, `y`, `label`, `value`, `unit`, `size`, `state`, and an optional normal-state accent `color`.
+Properties include `x`, `y`, `label`, `labelRole`, `value`, `unit`, `size`, `state`, and an optional normal-state accent `color`.
 
 - `size`: `primary`, `compact`, `eccentric`, `analog`.
 - `state`: `normal`, `warning`, `disconnected`.
-- Labels, values, and units share one center axis; each size has fixed vertical offsets.
+- Labels, values, and units share one center axis. `size` selects layout geometry only; primary values use `valuePrimary`, composite values use `valueCompact`, and labels / units keep their semantic roles.
 - `warning` forces the warning color. `disconnected` shows `—` instead of the provided value.
 
 ```js
@@ -87,7 +104,7 @@ U.readout({
 });
 ```
 
-Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and text properties. The `metric(...)` adapter accepts a final `state` argument; unavailable data takes precedence over warnings.
+Figma's `Size / State` and `Label / Value / Unit` map to these size, state, and text properties. The `metric(...)` adapter accepts `state` and an optional `labelRole`; unavailable data takes precedence over warnings. `labelRole` defaults to `label`; alert reasons use `status`.
 
 ### Road scene and motion
 
@@ -127,7 +144,7 @@ U.actionButton({
 
 ### Connection Row and connection flow
 
-`connectionRow({x,y,width,label,detail,status,act,selected})` serves screens 15 / 17. Default dimensions are 436×100 master pixels, and the entire row is clickable. A small label sits above the device name, with optional status below. Saved or connected items use amber and an underline; connection state must also be explicit in text. The right chevron indicates navigation; status rows contain no separate small buttons.
+`connectionRow({x,y,width,label,labelRole,detail,detailRole,status,act,selected})` serves screens 15 / 17. Default dimensions are 436×116 master pixels, and the entire row is clickable. A label sits above the device name (address rows can select `labelRole=meta`), with optional status below. `detailRole` defaults to `content`; unbound pairing / discovery entries use `action`. Saved or connected items use amber and an underline; connection state must also be explicit in text. The right chevron indicates navigation; status rows contain no separate small buttons.
 
 Screen 15 separates OBD, phone and remote management; 16 is only for phone pairing, while 17 lets the gauge discover and connect to OBD. Adapter connected and vehicle data ready are distinct states; ignition-off examples wait for the vehicle. Forget confirmations affect each binding independently; cancelling a replacement preserves the previous OBD. Demo progress is cancelled when leaving the screen, opening a confirmation or changing scenes, preventing stale progress from changing other screens. Progress examples selected in the scenario inspector remain static; only actions advance automatically. Brightness remains on 14.
 

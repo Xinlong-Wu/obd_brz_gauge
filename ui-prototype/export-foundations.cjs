@@ -3,6 +3,7 @@ require('./foundations.js');
 const F=globalThis.NC_FOUNDATIONS,C=F.colors,V=F.viewer;
 const fonts=F.fonts.map(f=>'@font-face{font-family:"'+f.family+'";src:url("'+f.file+'") format("truetype");font-weight:'+f.weight+';font-display:swap}').join('\n');
 const vars={bg:C.canvas,panel:V.panel,ink:C.text,muted:C.muted,line:C.line,amber:C.amber,red:C.red,green:C.green,blue:C.blue,'night-ink':C.night,'dial-face':C.face,'dial-panel':C.panel,'control-hover':V.hover,'control-pressed':V.pressed,'control-danger':V.danger,'motion-fast':F.controls.feedbackMs+'ms','font-number':'"'+F.typography.number+'",sans-serif','font-label':'"'+F.typography.label+'",monospace'};
+Object.entries(V.typography).forEach(([role,size])=>{vars['viewer-type-'+role]=size+'px';});
 const css='/* Generated from foundations.js; edit the source tokens, then export. */\n'+fonts+'\n:root{color-scheme:dark;'+Object.entries(vars).map(([k,v])=>'--'+k+':'+v).join(';')+'}\n';
 fs.writeFileSync(path.join(__dirname,'foundations.css'),css);
 fs.writeFileSync(path.join(__dirname,'foundations.json'),JSON.stringify(F,null,2)+'\n');

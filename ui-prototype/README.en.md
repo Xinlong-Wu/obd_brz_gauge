@@ -2,7 +2,7 @@
 
 English | [简体中文](README.md)
 
-An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 17 screens, 44 abnormal / system scenario options, and 92 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v17.
+An MX-5 NC / JDM visual and interactive prototype for circular vehicle instruments, with 17 screens, 44 abnormal / system scenario options, and 92 exported artboards including wheel-position and unavailable-data variants. The master is 720×720, with a 360×360 actual-size preview; all data and connection actions are demonstrations. The imported design baseline is v10; the current prototype version is v18.
 
 ## Editing and previewing
 
@@ -57,10 +57,10 @@ Screen 16 is only for a phone pairing to the gauge; its code is not used for OBD
 
 ## Current design constraints
 
-- Warm white readings, amber accents, and red warnings; Barlow Condensed for numbers and IBM Plex Mono for labels.
+- Warm white readings, amber accents and red warnings. All text selects a semantic role from `typography.roles`: main / composite / auxiliary values are 90 / 40 / 25px, headings 18px, labels / actions / status / content 16px, and units / scales / metadata 14px at 360 display size. Numbers use Barlow Condensed; other roles use IBM Plex Mono with system CJK fallback.
 - The music primary key is a 52px dark circle with a fine amber outline. Auxiliary icons have at least 44×44px hit areas; press feedback does not move controls.
 - Screen 07 uses compact `TPS / B.P` labels and one combined hit area. Clicking labels, numbers, or whitespace switches the channel; amber and an underline mark the current channel.
-- Screen 05 separates the eccentric gauge and digits, with pressure, unit, and status sharing the right alignment axis. Normal and warning readings have approximately 22px clearance from the gauge at 360 display size.
+- Screen 05 reduces the eccentric graphic to a separate region and uses the unified 90px main value on the right with clear separation. Screen 08 separates pressure and temperature; 12 rearranges scales and units for the unified main value.
 - Screen 12 places its title inside the scale ring, leaving only a small `BOOST` label. Needle and graduations are centered, with unboxed numbers.
 - Screen 10 has a 1g inner circle and 2g outer circle, with the current point and no trail or bottom LAT / LON readings. Triggered reminders retain the dashed threshold circle and emphasized point, without bottom text.
 - Warning text has no exclamation marks. Screen 03 has no separate red column segment; its hot-range graduations are red.
@@ -97,7 +97,7 @@ UI_CJK_FONT=/path/to/cjk-font.ttc npm run export
 
 Check JS syntax, then inspect circular boundaries, digits, labels, and hit areas at 360 actual size. When editing interactions, verify the affected actions and normal / warning / disconnected states.
 
-The 20 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, system-disabled states, motion frequency, and perspective boundaries. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
+The 24 `npm test` checks cover component sizes, circular boundaries, scenario rendering, disconnected precedence, simultaneous warnings, four-wheel selection, optional limits, system-disabled states, motion frequency, perspective boundaries, full-scenario semantic typography, role consistency and firmware metadata synchronization. Screen-by-screen specification findings and current required fixes are in [DESIGN_AUDIT.en.md](DESIGN_AUDIT.en.md).
 
 ## Figma reference
 
